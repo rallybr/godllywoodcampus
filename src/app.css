@@ -1,0 +1,349 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Facebook/Instagram inspired design system */
+:root {
+  /* Facebook Colors */
+  --fb-blue: #1877f2;
+  --fb-blue-hover: #166fe5;
+  --fb-blue-light: #e7f3ff;
+  --fb-green: #42b883;
+  --fb-gray: #65676b;
+  --fb-gray-light: #f0f2f5;
+  --fb-gray-dark: #1c1e21;
+  --fb-white: #ffffff;
+  --fb-border: #dadde1;
+  
+  /* Instagram Colors */
+  --ig-gradient: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+  --ig-pink: #e1306c;
+  --ig-purple: #833ab4;
+  --ig-orange: #fd1d1d;
+  --ig-yellow: #fcb045;
+  
+  /* Status Colors */
+  --success: #42b883;
+  --warning: #f39c12;
+  --danger: #e74c3c;
+  --info: #3498db;
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* Base styles */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background-color: var(--fb-gray-light);
+  color: var(--fb-gray-dark);
+  line-height: 1.6;
+}
+
+/* Facebook-like components */
+.fb-card {
+  background: var(--fb-white);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--fb-border);
+}
+
+.fb-button {
+  background: var(--fb-blue);
+  color: var(--fb-white);
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.fb-button:hover {
+  background: var(--fb-blue-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.fb-button-secondary {
+  background: var(--fb-gray-light);
+  color: var(--fb-gray-dark);
+  border: 1px solid var(--fb-border);
+}
+
+.fb-button-secondary:hover {
+  background: var(--fb-border);
+}
+
+/* Instagram gradient text */
+.ig-gradient {
+  background: var(--ig-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Profile picture styles */
+.profile-pic {
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--fb-white);
+  box-shadow: var(--shadow);
+}
+
+.profile-pic-sm {
+  width: 32px;
+  height: 32px;
+}
+
+.profile-pic-md {
+  width: 48px;
+  height: 48px;
+}
+
+.profile-pic-lg {
+  width: 64px;
+  height: 64px;
+}
+
+.profile-pic-xl {
+  width: 96px;
+  height: 96px;
+}
+
+/* Status indicators */
+.status-online {
+  position: relative;
+}
+
+.status-online::after {
+  content: '';
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  width: 12px;
+  height: 12px;
+  background: var(--success);
+  border: 2px solid var(--fb-white);
+  border-radius: 50%;
+}
+
+/* Social media like animations */
+.like-animation {
+  animation: like 0.6s ease-in-out;
+}
+
+@keyframes like {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+/* Story ring (Instagram style) */
+.story-ring {
+  background: var(--ig-gradient);
+  padding: 2px;
+  border-radius: 50%;
+}
+
+.story-ring-inner {
+  background: var(--fb-white);
+  border-radius: 50%;
+  padding: 2px;
+}
+
+/* Notification badge */
+.notification-badge {
+  background: var(--ig-pink);
+  color: var(--fb-white);
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 600;
+  min-width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  top: -4px;
+  right: -4px;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--fb-gray-light);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--fb-gray);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--fb-blue);
+}
+
+/* Loading skeleton */
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Responsive grid */
+.social-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+@media (min-width: 768px) {
+  .social-grid {
+    grid-template-columns: 300px 1fr 300px;
+  }
+}
+
+/* Mobile optimizations */
+@media (max-width: 767px) {
+  .social-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .fb-card {
+    margin: 8px;
+    border-radius: 0;
+  }
+}
+
+@layer base {
+  html {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: linear-gradient(135deg, #000000 0%, #1a1a1a 50%, #000000 100%);
+    min-height: 100vh;
+  }
+  
+  body {
+    background: linear-gradient(135deg, #000000 0%, #1a1a1a 50%, #000000 100%);
+    color: #F0F8FF;
+  }
+  
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #00BFFF #1a1a1a;
+  }
+  
+  *::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  *::-webkit-scrollbar-track {
+    background: #1a1a1a;
+  }
+  
+  *::-webkit-scrollbar-thumb {
+    background: #00BFFF;
+    border-radius: 4px;
+  }
+  
+  *::-webkit-scrollbar-thumb:hover {
+    background: #0080FF;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center px-6 py-3 text-sm font-medium rounded-lg transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-dark-900;
+  }
+  
+  .btn-primary {
+    @apply btn bg-gradient-to-r from-primary-500 to-primary-600 text-white hover:from-primary-600 hover:to-primary-700 focus:ring-primary-500 shadow-neon-blue hover:shadow-lg;
+  }
+  
+  .btn-secondary {
+    @apply btn bg-gradient-to-r from-secondary-500 to-secondary-600 text-white hover:from-secondary-600 hover:to-secondary-700 focus:ring-secondary-500 shadow-neon-purple hover:shadow-lg;
+  }
+  
+  .btn-outline {
+    @apply btn border-2 border-primary-500 bg-transparent text-primary-500 hover:bg-primary-500 hover:text-white focus:ring-primary-500;
+  }
+  
+  .btn-ghost {
+    @apply btn bg-transparent text-neon-white hover:bg-white/10 focus:ring-primary-500;
+  }
+  
+  .btn-danger {
+    @apply btn bg-gradient-to-r from-accent-500 to-accent-600 text-white hover:from-accent-600 hover:to-accent-700 focus:ring-accent-500 shadow-neon-magenta hover:shadow-lg;
+  }
+  
+  .form-input {
+    @apply block w-full px-4 py-3 bg-dark-700/50 border-2 border-dark-600 rounded-lg text-neon-white placeholder-gray-400 focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all duration-300;
+    background: linear-gradient(135deg, rgba(26, 26, 26, 0.8) 0%, rgba(42, 42, 42, 0.6) 100%);
+    backdrop-filter: blur(10px);
+  }
+  
+  .form-input:focus {
+    @apply shadow-neon-blue;
+    background: linear-gradient(135deg, rgba(0, 191, 255, 0.1) 0%, rgba(26, 26, 26, 0.9) 100%);
+    border-color: #00BFFF;
+    box-shadow: 0 0 0 3px rgba(0, 191, 255, 0.1), 0 0 20px rgba(0, 191, 255, 0.3);
+  }
+  
+  .form-input:hover {
+    border-color: rgba(0, 191, 255, 0.5);
+    background: linear-gradient(135deg, rgba(0, 191, 255, 0.05) 0%, rgba(26, 26, 26, 0.8) 100%);
+  }
+  
+  .form-label {
+    @apply block text-sm font-medium text-neon-white mb-2;
+  }
+  
+  .card {
+    @apply bg-dark-800/80 backdrop-blur-sm rounded-xl border border-dark-600 shadow-2xl;
+  }
+  
+  .card-header {
+    @apply px-6 py-4 border-b border-dark-600;
+  }
+  
+  .card-body {
+    @apply px-6 py-6;
+  }
+  
+  .card-footer {
+    @apply px-6 py-4 bg-dark-700/50 border-t border-dark-600 rounded-b-xl;
+  }
+  
+  .neon-text {
+    @apply text-transparent bg-clip-text bg-gradient-to-r from-primary-500 to-accent-500;
+  }
+  
+  .neon-border {
+    @apply border-2 border-primary-500 shadow-neon-blue;
+  }
+  
+  .glass-effect {
+    @apply bg-white/5 backdrop-blur-md border border-white/10;
+  }
+  
+  .glow-effect {
+    @apply animate-glow;
+  }
+}
