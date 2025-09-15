@@ -23,6 +23,24 @@ export const TIPOS_NOTIFICACAO = {
   SISTEMA: 'sistema'
 };
 
+// Solicitar permissão de notificação (browser only)
+export async function solicitarPermissaoNotificacao() {
+  try {
+    if (typeof window === 'undefined' || typeof Notification === 'undefined') {
+      return false;
+    }
+    if (Notification.permission === 'granted') return true;
+    if (Notification.permission !== 'denied') {
+      const permission = await Notification.requestPermission();
+      return permission === 'granted';
+    }
+    return false;
+  } catch (e) {
+    console.error('Falha ao solicitar permissão de notificação:', e);
+    return false;
+  }
+}
+
 // Carregar notificações do usuário
 export async function loadNotificacoes(limit = 20, offset = 0) {
   if (!$user) return;
