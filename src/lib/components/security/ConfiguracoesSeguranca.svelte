@@ -123,7 +123,7 @@
   }
 </script>
 
-<FormValidator bind:data={configuracoes} bind:rules={validationRules}>
+<FormValidator bind:data={configuracoes} rules={validationRules}>
   <div class="space-y-6">
     <!-- Header -->
     <div>
