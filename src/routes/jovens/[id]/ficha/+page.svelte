@@ -5,9 +5,11 @@
   import FichaJovem from '$lib/components/jovens/FichaJovem.svelte';
   import { goto } from '$app/navigation';
 
-  let jovem: any = null;
+  // @ts-ignore
+  let jovem = null;
   let loading = true;
-  let error: any = null;
+  // @ts-ignore
+  let error = null;
 
   onMount(async () => {
     const jovemId = $page.params.id;

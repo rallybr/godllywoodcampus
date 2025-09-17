@@ -53,7 +53,7 @@
   // Mapeamento de condição -> estágio (1 a 6), com chaves normalizadas
   const condicaoParaEstagioMap = new Map([
     // Condições oficiais (tabela)
-    [normalize('Batizado com o Espírito Santo'), 1], // Óleo
+    [normalize('Batizado com o Espírito Santo'), 1],  // Óleo
     [normalize('CPO'), 2], // Sal
     [normalize('Colaborador'), 3], // Luz
     [normalize('Obreiro'), 4], // Fogo
