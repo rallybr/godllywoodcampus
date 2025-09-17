@@ -1,4 +1,4 @@
-<script lang="ts">
+<script>
   import { onMount } from 'svelte';
   import { loadAvaliacoesByJovem } from '$lib/stores/avaliacoes';
   import { format } from 'date-fns';
@@ -10,11 +10,11 @@
   export let showAvaliacoes = true;
   export let compact = false;
 
-  let avaliacoes: any[] = [];
-  let loadingAvaliacoes: boolean = false;
+  let avaliacoes = [];
+  let loadingAvaliacoes = false;
 
   // Função para formatar data
-  function formatarData(data: any): string {
+  function formatarData(data) {
     if (!data) return 'Não informado';
     try {
       return format(new Date(data), 'dd/MM/yyyy', { locale: ptBR });
@@ -24,7 +24,7 @@
   }
 
   // Função para formatar data de cadastro
-  function formatarDataCadastro(data: any): string {
+  function formatarDataCadastro(data) {
     if (!data) return 'Não informado';
     try {
       return format(new Date(data), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
@@ -34,7 +34,7 @@
   }
 
   // Função para formatar telefone
-  function formatarTelefone(telefone: any): string {
+  function formatarTelefone(telefone) {
     if (!telefone) return 'Não informado';
     // Remove caracteres não numéricos
     const numeros = telefone.replace(/\D/g, '');
@@ -48,7 +48,7 @@
   }
 
   // Função para obter status de aprovação
-  function getStatusAprovacao(aprovado: any): { text: string; class: string } {
+  function getStatusAprovacao(aprovado) {
     switch (aprovado) {
       case 'aprovado':
         return { text: 'Aprovado', class: 'bg-green-100 text-green-800 border-green-200' };
@@ -62,9 +62,9 @@
   }
 
   // Função para obter média das avaliações
-  function getMediaAvaliacoes(): string | null {
+  function getMediaAvaliacoes() {
     if (!avaliacoes || avaliacoes.length === 0) return null;
-    const soma = avaliacoes.reduce((acc: number, av: any) => acc + (av.nota || 0), 0);
+    const soma = avaliacoes.reduce((acc, av) => acc + (av.nota || 0), 0);
     return (soma / avaliacoes.length).toFixed(1);
   }
 
