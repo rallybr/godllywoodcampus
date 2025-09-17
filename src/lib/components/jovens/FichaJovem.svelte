@@ -4,9 +4,11 @@
   import { format } from 'date-fns';
   import { ptBR } from 'date-fns/locale';
 
-  export let jovem: any;
-  export let showAvaliacoes: boolean = true;
-  export let compact: boolean = false;
+  // Tipos removidos dos exports para compatibilidade no build SSR
+  // (mantemos o restante em TS normalmente)
+  export let jovem;
+  export let showAvaliacoes = true;
+  export let compact = false;
 
   let avaliacoes: any[] = [];
   let loadingAvaliacoes: boolean = false;
