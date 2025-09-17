@@ -20,6 +20,10 @@
     goto(`/jovens/${jovem.id}?tab=avaliacoes`);
   }
   
+  function handleViewFicha() {
+    goto(`/jovens/${jovem.id}/ficha-test`);
+  }
+  
   function getAprovadoColor(aprovado, temAvaliacoes) {
     if (hasAvaliacoes(temAvaliacoes)) {
       return 'bg-blue-100 text-blue-800 border-blue-200';
@@ -134,7 +138,7 @@
   
   <!-- Content area with organized information -->
   <div class="p-6">
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
       <!-- Igreja -->
       <div class="flex items-center space-x-3 p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
         <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
@@ -185,31 +189,37 @@
   
   <!-- Actions -->
   <div class="px-6 py-5 bg-gradient-to-r from-gray-50 to-gray-100 border-t border-gray-200">
-    <div class="flex space-x-3">
-      <Button 
-        variant="outline" 
-        size="sm" 
-        class="flex-1 justify-center py-3 px-6 rounded-xl border-2 border-gray-300 text-gray-700 font-semibold hover:bg-blue-50 hover:border-blue-400 hover:text-blue-700 transition-all duration-200 group-hover:shadow-md"
+    <div class="flex space-x-2">
+      <button 
         on:click={handleView}
+        class="flex-1 flex items-center justify-center py-3 px-4 rounded-xl border-2 border-gray-300 text-gray-700 font-semibold hover:bg-blue-50 hover:border-blue-400 hover:text-blue-700 transition-all duration-200 group-hover:shadow-md"
       >
         <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
         </svg>
         Ver Perfil
-      </Button>
+      </button>
       
-      <Button 
-        variant="primary" 
-        size="sm" 
-        class="flex-1 justify-center py-3 px-6 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
+      <button 
+        on:click={handleViewFicha}
+        class="flex-1 flex items-center justify-center py-3 px-4 rounded-xl border-2 border-purple-300 text-purple-700 font-semibold hover:bg-purple-50 hover:border-purple-400 hover:text-purple-800 transition-all duration-200 group-hover:shadow-md"
+      >
+        <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+        Ver Ficha
+      </button>
+      
+      <button 
         on:click={handleEvaluate}
+        class="flex-1 flex items-center justify-center py-3 px-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
       >
         <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
         </svg>
         Avaliar
-      </Button>
+      </button>
     </div>
   </div>
 </div>

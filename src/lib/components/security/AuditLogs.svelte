@@ -6,12 +6,16 @@
   import Input from '$lib/components/ui/Input.svelte';
   import Select from '$lib/components/ui/Select.svelte';
   
+  /** @type {any[]} */
   let logs = [];
   let loading = true;
   let error = '';
   let totalLogs = 0;
   let paginaAtual = 1;
   let registrosPorPagina = 50;
+  
+  // cache de usuários por id
+  let usuariosMap = new Map();
   
   // Filtros
   let filtros = {
@@ -26,6 +30,23 @@
     await loadLogs();
   });
   
+  /** @param {any[]} ids */
+  async function carregarUsuarios(ids) {
+    const faltantes = ids.filter((id) => id && !usuariosMap.has(id));
+    if (faltantes.length === 0) return;
+    const { data, error: uErr } = await supabase
+      .from('usuarios')
+      .select('id, nome, email')
+      .in('id', faltantes);
+    if (uErr) throw uErr;
+    (data || []).forEach(u => usuariosMap.set(u.id, u));
+  }
+  
+  /** @param {string} id */
+  function usuarioDe(id) {
+    return usuariosMap.get(id) || null;
+  }
+  
   // Função para carregar logs
   async function loadLogs() {
     loading = true;
@@ -34,10 +55,7 @@
     try {
       let query = supabase
         .from('logs_auditoria')
-        .select(`
-          *,
-          usuario:usuarios!logs_auditoria_user_id_fkey(nome, email)
-        `, { count: 'exact' });
+        .select('*', { count: 'exact' });
       
       // Aplicar filtros
       if (filtros.usuario_id) {
@@ -65,13 +83,18 @@
         );
       
       const { data, error: fetchError, count } = await query;
-      
       if (fetchError) throw fetchError;
-      
       logs = data || [];
       totalLogs = count || 0;
-    } catch (err) {
-      error = err.message;
+      
+      // carregar usuários referenciados sem join
+      const ids = [...new Set((logs || []).map(l => l.usuario_id).filter(Boolean))];
+      await carregarUsuarios(ids);
+      
+    } catch (/** @type {unknown} */ err) {
+      const e = /** @type {{ message?: string }} */ (err);
+      error = e && e.message ? e.message : 'Erro ao carregar auditoria';
+      console.error('Auditoria - erro:', err);
     } finally {
       loading = false;
     }
@@ -96,7 +119,7 @@
     loadLogs();
   }
   
-  // Função para obter cor da ação
+  /** @param {string} acao */
   function getAcaoColor(acao) {
     const colors = {
       'cadastro': 'text-green-600 bg-green-100',
@@ -108,11 +131,10 @@
       'login': 'text-gray-600 bg-gray-100',
       'logout': 'text-gray-600 bg-gray-100'
     };
-    
-    return colors[acao] || 'text-gray-600 bg-gray-100';
+    return /** @type {any} */(colors)[acao] || 'text-gray-600 bg-gray-100';
   }
   
-  // Função para formatar data
+  /** @param {string} dateString */
   function formatDate(dateString) {
     return new Date(dateString).toLocaleDateString('pt-BR', {
       day: '2-digit',
@@ -124,17 +146,9 @@
     });
   }
   
-  // Função para obter dados paginados
-  function getDadosPaginados() {
-    return logs;
-  }
-  
-  // Função para obter total de páginas
-  function getTotalPaginas() {
-    return Math.ceil(totalLogs / registrosPorPagina);
-  }
-  
-  // Função para mudar página
+  function getDadosPaginados() { return logs; }
+  function getTotalPaginas() { return Math.ceil(totalLogs / registrosPorPagina); }
+  /** @param {number} novaPagina */
   function mudarPagina(novaPagina) {
     if (novaPagina >= 1 && novaPagina <= getTotalPaginas()) {
       paginaAtual = novaPagina;
@@ -142,20 +156,18 @@
     }
   }
   
-  // Função para exportar logs
   function exportarLogs() {
     const csv = [
       'Data,Usuário,Ação,Detalhe,IP,User Agent',
       ...logs.map(log => [
         formatDate(log.criado_em),
-        log.usuario?.nome || 'N/A',
+        (usuarioDe(log.usuario_id)?.nome) || 'N/A',
         log.acao,
         log.detalhe,
         log.ip_address,
         log.user_agent
       ].join(','))
     ].join('\n');
-    
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
@@ -177,11 +189,7 @@
     </div>
     
     {#if logs.length > 0}
-      <Button
-        variant="outline"
-        size="sm"
-        on:click={exportarLogs}
-      >
+      <Button variant="outline" size="sm" on:click={exportarLogs}>
         <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
         </svg>
@@ -191,69 +199,28 @@
   </div>
   
   <!-- Filtros -->
-  <Card class="p-6">
+  <Card>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <Input
-        label="Usuário"
-        type="text"
-        bind:value={filtros.usuario_id}
-        placeholder="ID do usuário"
-      />
-      
-      <Input
-        label="Ação"
-        type="text"
-        bind:value={filtros.acao}
-        placeholder="Tipo de ação"
-      />
-      
-      <Input
-        label="IP"
-        type="text"
-        bind:value={filtros.ip_address}
-        placeholder="Endereço IP"
-      />
+      <Input label="Usuário" type="text" bind:value={filtros.usuario_id} placeholder="ID do usuário" />
+      <Input label="Ação" type="text" bind:value={filtros.acao} placeholder="Tipo de ação" />
+      <Input label="IP" type="text" bind:value={filtros.ip_address} placeholder="Endereço IP" />
     </div>
-    
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-      <Input
-        label="Data Início"
-        type="datetime-local"
-        bind:value={filtros.data_inicio}
-      />
-      
-      <Input
-        label="Data Fim"
-        type="datetime-local"
-        bind:value={filtros.data_fim}
-      />
+      <Input label="Data Início" type="datetime-local" bind:value={filtros.data_inicio} />
+      <Input label="Data Fim" type="datetime-local" bind:value={filtros.data_fim} />
     </div>
-    
     <div class="flex justify-end space-x-3 mt-4">
-      <Button
-        variant="outline"
-        on:click={limparFiltros}
-      >
-        Limpar
-      </Button>
-      
-      <Button
-        variant="primary"
-        on:click={aplicarFiltros}
-      >
-        Aplicar Filtros
-      </Button>
+      <Button variant="outline" on:click={limparFiltros}>Limpar</Button>
+      <Button variant="primary" on:click={aplicarFiltros}>Aplicar Filtros</Button>
     </div>
   </Card>
   
   <!-- Lista de Logs -->
-  <Card class="p-6">
+  <Card>
     <div class="flex items-center justify-between mb-6">
       <div>
         <h3 class="text-lg font-semibold text-gray-900">Logs de Auditoria</h3>
-        <p class="text-sm text-gray-600">
-          {totalLogs} registro{totalLogs !== 1 ? 's' : ''} encontrado{totalLogs !== 1 ? 's' : ''}
-        </p>
+        <p class="text-sm text-gray-600">{totalLogs} registro{totalLogs !== 1 ? 's' : ''} encontrado{totalLogs !== 1 ? 's' : ''}</p>
       </div>
     </div>
     
@@ -281,28 +248,17 @@
         <p class="text-gray-600">Não há logs de auditoria para os filtros aplicados.</p>
       </div>
     {:else}
-      <!-- Lista de logs -->
       <div class="space-y-4">
         {#each getDadosPaginados() as log}
           <div class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
             <div class="flex items-start justify-between">
               <div class="flex-1">
                 <div class="flex items-center space-x-3 mb-2">
-                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {getAcaoColor(log.acao)}">
-                    {log.acao}
-                  </span>
-                  
-                  <span class="text-sm text-gray-500">
-                    {log.usuario?.nome || 'Usuário não encontrado'}
-                  </span>
-                  
-                  <span class="text-sm text-gray-400">
-                    {formatDate(log.criado_em)}
-                  </span>
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {getAcaoColor(log.acao)}">{log.acao}</span>
+                  <span class="text-sm text-gray-500">{usuarioDe(log.usuario_id)?.nome || 'Usuário'}</span>
+                  <span class="text-sm text-gray-400">{formatDate(log.criado_em)}</span>
                 </div>
-                
                 <p class="text-sm text-gray-900 mb-2">{log.detalhe}</p>
-                
                 <div class="flex items-center space-x-4 text-xs text-gray-500">
                   <span>IP: {log.ip_address}</span>
                   <span>•</span>
@@ -314,35 +270,13 @@
         {/each}
       </div>
       
-      <!-- Paginação -->
       {#if getTotalPaginas() > 1}
         <div class="flex items-center justify-between mt-6">
-          <div class="text-sm text-gray-700">
-            Mostrando {((paginaAtual - 1) * registrosPorPagina) + 1} a {Math.min(paginaAtual * registrosPorPagina, totalLogs)} de {totalLogs} registros
-          </div>
-          
+          <div class="text-sm text-gray-700">Mostrando {((paginaAtual - 1) * registrosPorPagina) + 1} a {Math.min(paginaAtual * registrosPorPagina, totalLogs)} de {totalLogs} registros</div>
           <div class="flex space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              on:click={() => mudarPagina(paginaAtual - 1)}
-              disabled={paginaAtual === 1}
-            >
-              Anterior
-            </Button>
-            
-            <span class="px-3 py-2 text-sm text-gray-700">
-              Página {paginaAtual} de {getTotalPaginas()}
-            </span>
-            
-            <Button
-              variant="outline"
-              size="sm"
-              on:click={() => mudarPagina(paginaAtual + 1)}
-              disabled={paginaAtual === getTotalPaginas()}
-            >
-              Próxima
-            </Button>
+            <Button variant="outline" size="sm" on:click={() => mudarPagina(paginaAtual - 1)} disabled={paginaAtual === 1}>Anterior</Button>
+            <span class="px-3 py-2 text-sm text-gray-700">Página {paginaAtual} de {getTotalPaginas()}</span>
+            <Button variant="outline" size="sm" on:click={() => mudarPagina(paginaAtual + 1)} disabled={paginaAtual === getTotalPaginas()}>Próxima</Button>
           </div>
         </div>
       {/if}

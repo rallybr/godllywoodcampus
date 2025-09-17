@@ -99,7 +99,7 @@
             type="text"
             placeholder="Pesquisar por nome, WhatsApp..."
             value={searchTerm}
-            on:input={(e) => searchTerm = e.target?.value || ''}
+            on:input={(e) => searchTerm = e.target.value || ''}
             on:keydown={(e) => e.key === 'Enter' && handleSearch()}
             class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
           />

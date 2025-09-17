@@ -221,6 +221,61 @@ body {
   }
 }
 
+/* Extra small screens (320px - 474px) */
+@media (max-width: 474px) {
+  .xs-hidden {
+    display: none;
+  }
+  
+  .xs-text-xs {
+    font-size: 0.75rem;
+  }
+  
+  .xs-p-2 {
+    padding: 0.5rem;
+  }
+  
+  .xs-gap-2 {
+    gap: 0.5rem;
+  }
+  
+  /* Melhorar input de arquivo em mobile */
+  input[type="file"] {
+    font-size: 14px;
+    padding: 8px;
+  }
+  
+  input[type="file"]::file-selector-button {
+    font-size: 12px;
+    padding: 6px 12px;
+    margin-right: 8px;
+  }
+}
+
+/* iPhone Pro Max e dispositivos móveis grandes */
+@media (max-width: 428px) {
+  /* Ajustes específicos para iPhone Pro Max (428px) */
+  .iphone-pro-max {
+    padding: 0.75rem;
+  }
+  
+  .iphone-pro-max .file-input-container {
+    width: 100%;
+    max-width: 100%;
+  }
+  
+  .iphone-pro-max input[type="file"] {
+    font-size: 13px;
+    padding: 6px;
+  }
+  
+  .iphone-pro-max input[type="file"]::file-selector-button {
+    font-size: 11px;
+    padding: 4px 8px;
+    margin-right: 6px;
+  }
+}
+
 /* Mobile optimizations */
 @media (max-width: 767px) {
   .social-grid {
@@ -230,6 +285,243 @@ body {
   .fb-card {
     margin: 8px;
     border-radius: 0;
+  }
+  
+  /* Melhorar espaçamento em mobile */
+  .mobile-padding {
+    padding: 1rem;
+  }
+  
+  /* Ajustar tamanhos de fonte em mobile */
+  .mobile-text-sm {
+    font-size: 0.875rem;
+  }
+  
+  /* Melhorar botões em mobile */
+  .mobile-button {
+    min-height: 44px; /* Tamanho mínimo recomendado para touch */
+  }
+  
+  /* Ajustar modais em mobile */
+  .mobile-modal {
+    margin: 1rem;
+    max-height: calc(100vh - 2rem);
+  }
+  
+  /* Melhorar input de arquivo em mobile */
+  input[type="file"] {
+    width: 100%;
+    font-size: 14px;
+    padding: 8px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    background: white;
+  }
+  
+  input[type="file"]::file-selector-button {
+    font-size: 12px;
+    padding: 6px 12px;
+    margin-right: 8px;
+    background: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  
+  input[type="file"]::file-selector-button:hover {
+    background: #2563eb;
+  }
+  
+  /* Garantir que elementos não saiam do container */
+  .w-full {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+  
+  /* Melhorar selects em mobile */
+  select {
+    min-height: 48px; /* Tamanho mínimo para touch */
+    font-size: 16px; /* Evita zoom no iOS */
+    padding: 12px 16px;
+    border: 2px solid #d1d5db;
+    border-radius: 12px;
+    background: white;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+  }
+  
+  select:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    outline: none;
+  }
+  
+  select:disabled {
+    background-color: #f9fafb;
+    border-color: #e5e7eb;
+    color: #6b7280;
+    cursor: not-allowed;
+  }
+  
+  /* Ícone de dropdown customizado em mobile */
+  .relative svg {
+    width: 20px;
+    height: 20px;
+    color: #6b7280;
+  }
+  
+  /* Melhorar aparência dos selects com ícone customizado */
+  select[class*="appearance-none"] {
+    background-image: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+  }
+  
+  /* Hover effect para selects em mobile */
+  select:hover:not(:disabled) {
+    border-color: #9ca3af;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Active state para selects em mobile */
+  select:active:not(:disabled) {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+  
+  /* Melhorar campos de data híbridos em mobile */
+  input[type="text"][placeholder="DD/MM/AAAA"] {
+    min-height: 48px; /* Tamanho mínimo para touch */
+    font-size: 16px; /* Evita zoom no iOS */
+    padding: 12px 16px;
+    border: 2px solid #d1d5db;
+    border-radius: 12px;
+    background: white;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+  }
+  
+  input[type="text"][placeholder="DD/MM/AAAA"]:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    outline: none;
+  }
+  
+  /* Botão de calendário em campos de data */
+  .relative button[aria-label="Abrir calendário"] {
+    min-height: 48px;
+    padding: 12px;
+    border-radius: 0 12px 12px 0;
+    transition: all 0.2s ease;
+  }
+  
+  .relative button[aria-label="Abrir calendário"]:hover {
+    background-color: #f3f4f6;
+    color: #374151;
+  }
+  
+  .relative button[aria-label="Abrir calendário"]:active {
+    background-color: #e5e7eb;
+    transform: scale(0.98);
+  }
+  
+  /* Ícone de calendário responsivo */
+  .relative button[aria-label="Abrir calendário"] svg {
+    width: 20px;
+    height: 20px;
+  }
+  
+  /* Hover effect para campos de data em mobile */
+  input[type="text"][placeholder="DD/MM/AAAA"]:hover:not(:focus) {
+    border-color: #9ca3af;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Active state para campos de data em mobile */
+  input[type="text"][placeholder="DD/MM/AAAA"]:active:not(:focus) {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+  
+  /* Melhorar modal de crop em mobile */
+  .touch-none {
+    touch-action: none;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+  
+  /* Container de crop responsivo */
+  .crop-container {
+    touch-action: none;
+    overflow: hidden;
+    position: relative;
+  }
+  
+  /* Imagem de crop com suporte a touch */
+  .crop-image {
+    touch-action: none;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    cursor: grab;
+  }
+  
+  .crop-image:active {
+    cursor: grabbing;
+  }
+  
+  /* Melhorar slider de zoom em mobile */
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 8px;
+    background: #e5e7eb;
+    border-radius: 4px;
+    outline: none;
+  }
+  
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    background: #3b82f6;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+  
+  input[type="range"]::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    background: #3b82f6;
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+  
+  /* Melhorar botões do modal em mobile */
+  .modal-button {
+    min-height: 44px;
+    padding: 12px 24px;
+    font-size: 16px;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+  }
+  
+  .modal-button:active {
+    transform: scale(0.98);
   }
 }
 

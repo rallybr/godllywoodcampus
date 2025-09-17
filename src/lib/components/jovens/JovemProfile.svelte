@@ -1,7 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
-  import { loadJovemById, aprovarJovem } from '$lib/stores/jovens';
+  import { loadJovemById, aprovarJovem } from '$lib/stores/jovens-simple';
   import { goto } from '$app/navigation';
   import Button from '$lib/components/ui/Button.svelte';
   import Card from '$lib/components/ui/Card.svelte';
@@ -9,14 +9,17 @@
   import { userProfile, hasRole } from '$lib/stores/auth';
   import AvaliacaoModal from '$lib/components/modals/AvaliacaoModal.svelte';
   
+  // @ts-ignore
   export let jovemId;
   
+  // @ts-ignore
   let jovem = null;
   let loading = true;
   let error = '';
   let activeTab = 'dados-pessoais';
   let isApproving = false;
   let showAvaliacaoModal = false;
+  // @ts-ignore
   let avaliacoesListComponent = null;
   
   const tabs = [
@@ -59,6 +62,7 @@
     }
   }
   
+  // @ts-ignore
   async function handleAprovar(status) {
     if (!jovem) return;
     
@@ -72,7 +76,12 @@
       isApproving = false;
     }
   }
+
+  function verFicha() {
+    goto(`/jovens/${jovem.id}/ficha-test`);
+  }
   
+  // @ts-ignore
   function getStatusBadge(status) {
     switch (status) {
       case 'aprovado':
@@ -84,6 +93,7 @@
     }
   }
   
+  // @ts-ignore
   function getStatusText(status) {
     switch (status) {
       case 'aprovado':
@@ -95,11 +105,13 @@
     }
   }
   
+  // @ts-ignore
   function formatDate(dateString) {
     if (!dateString) return 'Não informado';
     return new Date(dateString).toLocaleDateString('pt-BR');
   }
   
+  // @ts-ignore
   function formatPhone(phone) {
     if (!phone || phone.trim() === '') return 'Não informado';
     // Remove caracteres não numéricos
@@ -120,6 +132,7 @@
     showAvaliacaoModal = false;
   }
   
+  // @ts-ignore
   async function handleAvaliacaoSuccess(event) {
     console.log('Avaliação criada com sucesso:', event.detail);
     // Recarregar a lista de avaliações se estiver na aba de avaliações
@@ -239,6 +252,24 @@
                     >
                       Editar
                     </Button>
+                    <button
+                      on:click={verFicha}
+                      class="flex items-center space-x-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    >
+                      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      <span>Ver Ficha</span>
+                    </button>
+                    <button
+                      on:click={() => goto(`/progresso?jovem=${jovem.id}`)}
+                      class="flex items-center space-x-2 px-3 py-2 text-sm font-medium text-white bg-teal-600 border border-teal-600 rounded-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500"
+                    >
+                      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h4l3 10 4-18 3 8h4" />
+                      </svg>
+                      <span>Progresso</span>
+                    </button>
                   </div>
                 {/if}
               </div>

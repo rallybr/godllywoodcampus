@@ -1,4 +1,4 @@
-import { writable, derived } from 'svelte/store';
+import { writable, derived, get } from 'svelte/store';
 import { supabase } from '$lib/utils/supabase';
 import { user } from './auth';
 
@@ -43,7 +43,8 @@ export async function solicitarPermissaoNotificacao() {
 
 // Carregar notificações do usuário
 export async function loadNotificacoes(limit = 20, offset = 0) {
-  if (!$user) return;
+  const currentUser = get(user);
+  if (!currentUser) return;
   
   loading.set(true);
   error.set(null);
@@ -52,7 +53,7 @@ export async function loadNotificacoes(limit = 20, offset = 0) {
     const { data, error: fetchError } = await supabase
       .from('notificacoes')
       .select('*')
-      .eq('destinatario_id', $user.id)
+      .eq('destinatario_id', currentUser.id)
       .order('criado_em', { ascending: false })
       .range(offset, offset + limit - 1);
     
@@ -69,13 +70,14 @@ export async function loadNotificacoes(limit = 20, offset = 0) {
 
 // Carregar notificações não lidas
 export async function loadNotificacoesNaoLidas() {
-  if (!$user) return;
+  const currentUser = get(user);
+  if (!currentUser) return;
   
   try {
     const { data, error: fetchError } = await supabase
       .from('notificacoes')
       .select('*')
-      .eq('destinatario_id', $user.id)
+      .eq('destinatario_id', currentUser.id)
       .eq('lida', false)
       .order('criado_em', { ascending: false });
     
@@ -89,6 +91,8 @@ export async function loadNotificacoesNaoLidas() {
 
 // Marcar notificação como lida
 export async function marcarComoLida(notificacaoId) {
+  const currentUser = get(user);
+  if (!currentUser) return;
   try {
     const { error: updateError } = await supabase
       .from('notificacoes')
@@ -97,7 +101,7 @@ export async function marcarComoLida(notificacaoId) {
         lida_em: new Date().toISOString() 
       })
       .eq('id', notificacaoId)
-      .eq('destinatario_id', $user.id);
+      .eq('destinatario_id', currentUser.id);
     
     if (updateError) throw updateError;
     
@@ -123,6 +127,8 @@ export async function marcarComoLida(notificacaoId) {
 
 // Marcar todas as notificações como lidas
 export async function marcarTodasComoLidas() {
+  const currentUser = get(user);
+  if (!currentUser) return 0;
   try {
     const { data, error: updateError } = await supabase
       .from('notificacoes')
@@ -130,7 +136,7 @@ export async function marcarTodasComoLidas() {
         lida: true, 
         lida_em: new Date().toISOString() 
       })
-      .eq('destinatario_id', $user.id)
+      .eq('destinatario_id', currentUser.id)
       .eq('lida', false)
       .select('id');
     
@@ -271,7 +277,7 @@ export function getIconeNotificacao(tipo) {
     case 'lembrete_avaliacao':
       return 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z';
     case 'sistema':
-      return 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z';
+      return 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z';
     default:
       return 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z';
   }

@@ -1,4 +1,6 @@
 <script>
+  export const ssr = false;
+  export const prerender = false;
   import AuditLogs from '$lib/components/security/AuditLogs.svelte';
 </script>
 

@@ -1,855 +1,320 @@
-# ROTEIRO DE DESENVOLVIMENTO - SISTEMA INTELLIMEN CAMPUS
+# ROTEIRO_DESEnVOLVIMENTO_INTELLIMEN_CAMPUS
 
-## 📋 VISÃO GERAL DO PROJETO
+Este roteiro consolida objetivos, status atual, funcionalidades, backlog e diretrizes técnicas do IntelliMen Campus. Ele está alinhado com:
+- `POLITICAS_RLS_COMPLETAS.md`
+- `DOCUMENTACAO_FUNCOES_BANCO.md`
+- `ESTRUTURA_TABELAS_BANCO.md`
+E com o código presente em `src/` (Svelte + Tailwind + Supabase).
 
-**Sistema para cadastrar e acompanhar jovens por edição do acampamento, com avaliação multi-avaliador (pastores/líderes), permissões hierárquicas por região/bloco/estado e relatórios para acompanhamento do desenvolvimento.**
-
-- **Tecnologias:** Svelte + TypeScript + Supabase + Vercel + Tailwind CSS
-- **Objetivo:** Cadastro completo e avaliação de jovens em acampamentos bimestrais
-- **Público:** 48 jovens por edição de diversos estados do Brasil
-
-### 🎯 OBJETIVOS PRINCIPAIS
-- Cadastro completo do jovem (dados pessoais, espirituais, profissionais, redes)
-- Hierarquia geográfica: Estado → Bloco → Região → Igreja
-- Avaliações por múltiplos avaliadores (pastores), com notas, categorias e observações
-- Controle de acessos com papéis (roles) que limitam visibilidade/ações por alcance geográfico e função
-- Filtros / relatórios / export (CSV/PDF) e interface limpa, rápida e responsiva
+Atualize este roteiro sempre que uma nova funcionalidade ou alteração estrutural for concluída.
 
 ---
 
-## 🎯 PRINCIPAIS TELAS / FLUXOS (UX)
+## 1) Visão geral e objetivos
 
-### 1. **Login / Autenticação (Supabase Auth)**
-- Login por e-mail + senha
-- Recuperação de senha
-- Perfil do usuário com foto, nome, estado e papel
+- Plataforma de cadastro, avaliação e acompanhamento de jovens participantes do IntelliMen Campus.
+- Foco em:
+  - Cadastro completo (multi-etapas) de jovens
+  - Avaliações por líderes/pastores com diferentes níveis de acesso
+  - Relatórios, estatísticas e notificações
+  - Experiência mobile-first, “look & feel” Facebook/Instagram
 
-### 2. **Dashboard (home) — baseado no papel do usuário**
-- Resumo: número de jovens no alcance, avaliações pendentes, média geral, últimos cadastros
-- Acesso rápido: "Cadastrar Jovem", "Avaliar", "Relatórios"
-
-### 3. **Lista de Jovens**
-- Cards / tabela com foto, nome, idade, estado, bloco, região, igreja, edição selecionada
-- Filtros no topo: edição, sexo, condição, idade, estado, bloco, região, igreja, aprovado / pré-aprovado
-- Pesquisa por nome + ordenação
-
-### 4. **Ficha do Jovem (detalhe)**
-- Topo: foto + info básica (nome, idade, edição, igreja)
-- Aba 1: Dados Pessoais (formulário com cascata Estado→Bloco→Região→Igreja)
-- Aba 2: Profissional / Espiritual / Experiência
-- Aba 3: Avaliações → lista de avaliações de pastores + botão "Adicionar avaliação"
-- Aba 4: Histórico (trocas de líder, alterações de condição, logs)
-- Botões: Editar, Exportar ficha, Marcar (Aprovado / Pré-Aprovado)
-
-### 5. **Modal de Avaliação**
-- Campos: avaliador (auto-preenchido), categoria1 (espírito: 4 opções), caráter (4 opções), disposição (4 opções), textarea observação, nota geral (1–10, radio buttons), salvar
-- Possibilidade de "Adicionar outro avaliador" (sempre cria outra avaliação vinculada)
-
-### 6. **Gerenciamento de Usuários / Papéis**
-- Formulário de cadastro de usuários com seleção de papel e localidade atribuída (estado/bloco/região/igreja)
-- Formulário para transferência de liderança (trocar lider de localidade)
-
-### 7. **Relatórios / Export**
-- Filtros aplicáveis, export CSV/PDF, gráficos simples (média por edição, por região etc)
-
-### 8. **Config / Admin**
-- CRUD para Estado/Bloco/Região/Igreja, Edições (1..10), cargos e permissões
-- Config de buckets de fotos (Supabase Storage), políticas, backups
+Tecnologias: SvelteKit, TypeScript/JS, Tailwind CSS, Supabase (Auth/DB/Storage), Vercel.
 
 ---
 
-## 🏗️ ESTRUTURA DO PROJETO
+## 2) Matriz de papéis e escopos (RLS)
 
-```
-src/
-├── lib/
-│   ├── components/
-│   │   ├── forms/
-│   │   │   ├── CadastroJovem.svelte
-│   │   │   ├── CadastroUsuario.svelte
-│   │   │   └── AvaliacaoJovem.svelte
-│   │   ├── ui/
-│   │   │   ├── Button.svelte
-│   │   │   ├── Input.svelte
-│   │   │   ├── Select.svelte
-│   │   │   ├── Modal.svelte
-│   │   │   └── Card.svelte
-│   │   ├── layout/
-│   │   │   ├── Header.svelte
-│   │   │   ├── Sidebar.svelte
-│   │   │   └── Footer.svelte
-│   │   └── charts/
-│   │       └── GraficoAvaliacoes.svelte
-│   ├── stores/
-│   │   ├── auth.js
-│   │   ├── jovens.js
-│   │   └── avaliacoes.js
-│   ├── utils/
-│   │   ├── supabase.js
-│   │   ├── validators.js
-│   │   └── helpers.js
-│   └── types/
-│       └── index.ts
-├── routes/
-│   ├── +layout.svelte
-│   ├── +page.svelte
-│   ├── login/
-│   │   └── +page.svelte
-│   ├── dashboard/
-│   │   └── +page.svelte
-│   ├── jovens/
-│   │   ├── +page.svelte
-│   │   ├── [id]/
-│   │   │   └── +page.svelte
-│   │   └── cadastrar/
-│   │       └── +page.svelte
-│   ├── avaliacoes/
-│   │   ├── +page.svelte
-│   │   └── [jovemId]/
-│   │       └── +page.svelte
-│   ├── usuarios/
-│   │   ├── +page.svelte
-│   │   └── cadastrar/
-│   │       └── +page.svelte
-│   └── relatorios/
-│       └── +page.svelte
-└── app.html
-```
+Os níveis abaixo definem o escopo de dados visível. Detalhes e políticas em `POLITICAS_RLS_COMPLETAS.md`.
+
+- administrador: acesso total ao sistema
+- lider_nacional_iurd, lider_nacional_fju: visão nacional
+- lider_estadual_iurd, lider_estadual_fju: visão por estado (blocos, regiões, igrejas do estado)
+- lider_bloco_iurd, lider_bloco_fju: visão por bloco (regiões e igrejas do bloco)
+- lider_regional_iurd: visão por região (todas as igrejas da região)
+- lider_igreja_iurd: visão por igreja
+- colaborador: vê/gerencia o que criou
+- jovem: vê e gerencia seus próprios dados
+
+Implementação: ver RLS por tabela e funções auxiliares (`has_role`, `is_admin_user`, `can_access_jovem`, etc.).
 
 ---
 
-## 🗄️ MODELAGEM DE DADOS (TABELAS PRINCIPAIS)
+## 3) Estrutura de dados (resumo)
 
-### Tabelas Geográficas
-```sql
--- Estados do Brasil
-estados (id uuid PK, nome text, sigla text)
-
--- Blocos por estado
-blocos (id uuid PK, estado_id uuid FK, nome text)
-
--- Regiões por bloco
-regioes (id uuid PK, bloco_id uuid FK, nome text)
-
--- Igrejas por região
-igrejas (id uuid PK, regiao_id uuid FK, nome text, endereco text)
-```
-
-### Tabelas de Sistema
-```sql
--- Edições do acampamento
-edicoes (id uuid PK, numero int, nome text, data_inicio date, data_fim date)
-
--- Usuários do sistema
-usuarios (id uuid PK, email text, nome text, foto_path text, sexo text, estado_bandeira text, created_at timestamp)
-
--- Papéis/Roles do sistema
-roles (id uuid PK, slug text, descricao text)
-
--- Relacionamento usuário-papel-localização
-user_roles (id uuid PK, user_id uuid FK, role_id uuid FK, estado_id uuid FK nullable, bloco_id uuid FK nullable, regiao_id uuid FK nullable, igreja_id uuid FK nullable)
-```
-
-### Tabelas de Negócio
-```sql
--- Jovens cadastrados
-jovens (
-  id uuid PK,
-  foto_path text,
-  nome_completo text,
-  whatsapp text,
-  data_nasc date,
-  idade int,
-  data_cadastro timestamp,
-  estado_civil text,
-  namora boolean,
-  tem_filho boolean,
-  trabalha boolean,
-  local_trabalho text,
-  escolaridade text,
-  formacao text,
-  tem_dividas boolean,
-  tempo_igreja text,
-  batizado_aguas boolean,
-  data_batismo_aguas date,
-  batizado_es boolean,
-  data_batismo_es date,
-  condicao text,
-  pastor_que_indicou text,
-  cresceu_na_igreja boolean,
-  tempo_condicao text,
-  responsabilidade_igreja text,
-  experiencia_altar boolean,
-  foi_obreiro boolean,
-  foi_colaborador boolean,
-  afastou boolean,
-  quando_afastou date,
-  motivo_afastou text,
-  quando_voltou date,
-  pais_sao_igreja boolean,
-  obs_pais text,
-  familiares_igreja boolean,
-  deseja_altar boolean,
-  observacao_text text,
-  testemunho_text text,
-  instagram text,
-  facebook text,
-  tiktok text,
-  obs_redes text,
-  estado_id uuid FK,
-  bloco_id uuid FK,
-  regiao_id uuid FK,
-  igreja_id uuid FK,
-  edicao_id uuid FK,
-  aprovado enum
-)
-
--- Avaliações dos jovens
-avaliacoes (
-  id uuid PK,
-  jovem_id uuid FK,
-  user_id uuid FK,
-  data timestamp,
-  espirito enum,
-  caractere enum,
-  disposicao enum,
-  observacao text,
-  nota int
-)
-
--- Logs de histórico
-logs_historico (
-  id uuid PK,
-  jovem_id uuid FK,
-  user_id uuid FK,
-  acao text,
-  detalhe text,
-  created_at timestamp
-)
-```
-
-### Enums
-- `intellimen_aprovado_enum` - Status de aprovação (null, pré-aprovado, aprovado)
-- `intellimen_espirito_enum` - Avaliação do espírito (ruim, observar, bom, excelente)
-- `intellimen_caractere_enum` - Avaliação do caráter (excelente, bom, observar, ruim)
-- `intellimen_disposicao_enum` - Avaliação da disposição (muito_disposto, normal, pacato, desanimado)
+- Tabelas principais: `usuarios`, `user_roles`, `roles`, `estados`, `blocos`, `regioes`, `igrejas`, `edicoes`, `jovens`, `avaliacoes`, `notificacoes`.
+- Tabelas de apoio/ops: `logs_auditoria`, `logs_historico`, `sessoes_usuario`, `configuracoes_sistema`.
+- Detalhes de colunas, FKs e defaults em `ESTRUTURA_TABELAS_BANCO.md`.
 
 ---
 
-## 🎨 DESIGN SYSTEM
+## 4) Functions e triggers (resumo)
 
-### Cores Principais
-```css
-:root {
-  --primary: #1e40af;      /* Azul principal */
-  --secondary: #059669;    /* Verde secundário */
-  --accent: #dc2626;       /* Vermelho de destaque */
-  --neutral: #6b7280;      /* Cinza neutro */
-  --background: #f8fafc;   /* Fundo claro */
-  --surface: #ffffff;      /* Superfície */
-  --text: #1f2937;         /* Texto principal */
-}
-```
-
-### Componentes UI
-- **Botões:** Primário, Secundário, Outline, Ghost
-- **Inputs:** Text, Email, Password, Select, Textarea, File
-- **Cards:** Padrão, Com header, Com ações
-- **Modais:** Confirmação, Formulário, Informação
-- **Tabelas:** Responsivas com filtros
-- **Badges:** Status, Tags, Contadores
+Principais funções documentadas em `DOCUMENTACAO_FUNCOES_BANCO.md`:
+- Acesso/RLS: `has_role`, `is_admin_user`, `can_access_jovem`, `get_user_by_auth_id`
+- Notificações: `obter_lideres_para_notificacao`, `notificar_lideres`, `criar_notificacao_automatica`
+- Auditoria/Manutenção: `criar_log_auditoria`, `limpar_logs_antigos`, `limpar_notificacoes_antigas`, `obter_estatisticas_sistema`
+- Triggers utilitárias: `recalcular_idade`, `set_usuario_id_on_insert`, `atualizar_timestamp`, `trigger_notificar_*`
 
 ---
 
-## 📱 PÁGINAS E ROTAS
+## 5) Funcionalidades atuais (frontend)
 
-### 1. **Página de Login** (`/login`)
-- Formulário de autenticação
-- Integração com Supabase Auth
-- Redirecionamento baseado no nível de acesso
+- Autenticação Supabase + guarda de rotas; layout com `Header` e `Sidebar` responsivos
+- Cadastro de Jovem (multi-etapas) com:
+  - Foto com crop responsivo (suporte a toque)
+  - Dados pessoais, localização (estado/bloco/região/igreja), edição
+  - Campos profissionais, espirituais, experiência, família, observações
+  - Redes sociais (instagram, facebook, tiktok, obs_redes)
+  - Híbrido de datas (input texto + botão calendário nativo)
+  - Limpeza de payload antes do insert (remover strings vazias em datas/numéricos)
+- Listagens e filtros:
+  - Jovens: filtros por edição, sexo, condição, aprovação, idade, estado/bloco/região/igreja
+  - Avaliações: listagem e inserção via modal
+- Relatórios/Estatísticas: dashboards básicos
+- Notificações: dropdown e listagem; regras de envio por triggers/functions
+- Responsividade mobile-first; UX parecida com rede social
 
-### 2. **Dashboard** (`/dashboard`)
-- Visão geral do sistema
-- Estatísticas por edição
-- Gráficos de avaliações
-- Acesso rápido às funcionalidades
-
-### 3. **Gestão de Jovens** (`/jovens`)
-- Lista de jovens com filtros
-- Cards com informações básicas
-- Ações: Ver detalhes, Editar, Avaliar
-- Paginação e busca
-
-### 4. **Cadastro de Jovem** (`/jovens/cadastrar`)
-- Formulário em etapas
-- Validação em tempo real
-- Upload de foto
-- Seleção hierárquica de localização
-
-### 5. **Perfil do Jovem** (`/jovens/[id]`)
-- Informações completas
-- Histórico de avaliações
-- Gráficos de evolução
-- Ações de aprovação
-
-### 6. **Sistema de Avaliação** (`/avaliacoes`)
-- Lista de jovens para avaliar
-- Formulário de avaliação
-- Histórico de avaliações
-- Relatórios por avaliador
-
-### 7. **Gestão de Usuários** (`/usuarios`)
-- Lista de usuários por nível
-- Cadastro de novos usuários
-- Edição de permissões
-- Troca de liderança
-
-### 8. **Relatórios** (`/relatorios`)
-- Relatórios por edição
-- Estatísticas gerais
-- Exportação de dados
-- Gráficos analíticos
+Código-fonte relevante:
+- `src/lib/components/forms/CadastroJovem.svelte`
+- `src/lib/stores/{jovens,avaliacoes,notificacoes,geographic}.js`
+- `src/routes/**` (páginas e dashboards)
 
 ---
 
-## 🔧 FUNCIONALIDADES TÉCNICAS
+## 6) O que falta / melhorias identificadas
 
-### 1. **Autenticação e Autorização**
-- Login com Supabase Auth
-- RLS (Row Level Security) no banco
-- Middleware de verificação de permissões
-- Redirecionamento baseado em nível
+Alinhar implementação com documentação e fechar lacunas:
 
-### 2. **Validação de Dados**
-- Validação client-side com Svelte
-- Validação server-side com Supabase
-- Mensagens de erro contextuais
-- Sanitização de inputs
-
-### 3. **Upload de Arquivos**
-- Upload de fotos para Supabase Storage
-- Compressão automática de imagens
-- Validação de tipos e tamanhos
-- URLs otimizadas
-- **IMPORTANTE:** Usar nomes corretos dos buckets (fotos_usuarios, fotos_jovens)
-
-### 4. **Filtros e Busca**
-- Filtros em tempo real
-- Busca por texto
-- Filtros combinados
-- Persistência de filtros na URL
-
-### 5. **Responsividade**
-- Design mobile-first
-- Breakpoints: sm, md, lg, xl
-- Componentes adaptáveis
-- Navegação otimizada para mobile
+- Perfis de usuários (página de perfil por papel):
+  - Jovem: visão do próprio cadastro e status
+  - Líderes: listagens contextuais (estado/bloco/região/igreja) + atalhos
+  - Admin/Colab: visão geral com filtros avançados
+- Gestão de papéis e escopos no app (UI):
+  - Tela de cadastro/edição de user_roles (atribuição de escopo)
+  - Fluxo para “Troca de liderança” por localidade
+- Relatórios:
+  - Painéis por papel (nacional/estadual/bloco/região/igreja) com filtros persistentes e exportação
+- Auditoria e segurança:
+  - UI dedicada para `logs_auditoria` e `logs_historico`
+  - Página de sessões ativas (`sessoes_usuario`) e revogação manual
+- Notificações:
+  - Preferências por usuário (categorias de notificação) via `configuracoes_sistema`
+  - Marcar lida em lote e indicadores por papel
+- Avaliações:
+  - Histórico consolidado por jovem (timeline)
+  - Métricas agregadas (médias/últimas notas) nos cards
+- UX/Polimento:
+  - Acessibilidade (labels/roles/teclado) onde ainda há avisos do linter
+  - Placeholder/ajuda contextual nos campos
 
 ---
 
-## 📊 COMPONENTES PRINCIPAIS
+## 7) Backlog priorizado (versão inicial)
 
-### 1. **CadastroJovem.svelte**
-```svelte
-<script>
-  // Formulário em etapas
-  // Validação de dados
-  // Upload de foto
-  // Seleção hierárquica
-</script>
-```
+1. Perfis e navegação por papel (UI):
+   - Páginas de perfil para jovem/líder/admin com cards e atalhos
+2. Gestão de papéis e escopos (UI):
+   - CRUD `user_roles` com filtros por escopo e validações
+3. Relatórios focados por papel:
+   - Visão nacional/estadual/bloco/região/igreja com KPIs e exportação
+4. Auditoria e sessões:
+   - Telas para `logs_auditoria`, `logs_historico` e `sessoes_usuario`
+5. Notificações e preferências:
+   - Configurações por usuário e melhoria de UX de leitura
+6. Avaliações aprimoradas:
+   - Timeline por jovem e resumos (média/últimas avaliações)
+7. Polimento geral de responsividade/A11y/performance
 
-### 2. **AvaliacaoJovem.svelte**
-```svelte
-<script>
-  // Formulário de avaliação
-  // Múltiplos avaliadores
-  // Nota de 1 a 10
-  // Comentários textuais
-</script>
-```
-
-### 3. **FiltrosJovens.svelte**
-```svelte
-<script>
-  // Filtros por localização
-  // Filtros por características
-  // Busca por nome
-  // Filtros por edição
-</script>
-```
-
-### 4. **ListaJovens.svelte**
-```svelte
-<script>
-  // Cards de jovens
-  // Paginação
-  // Ações rápidas
-  // Status de aprovação
-</script>
-```
+Cada item deve referenciar as colunas/tabelas/funcs em `ESTRUTURA_TABELAS_BANCO.md` e `DOCUMENTACAO_FUNCOES_BANCO.md`, além de respeitar as RLS em `POLITICAS_RLS_COMPLETAS.md`.
 
 ---
 
-## 🚀 CRONOGRAMA DE DESENVOLVIMENTO
+## 8) Diretrizes de desenvolvimento
 
-### **Fase 1: Setup e Estrutura (Semana 1)**
-- [ ] Configuração do projeto Svelte + TypeScript
-- [ ] Setup do Supabase (Auth + Database + Storage)
-- [ ] Configuração do Tailwind CSS
-- [ ] Estrutura de pastas e arquivos
-- [ ] Componentes base UI (Button, Input, Modal, Card)
-- [ ] Configuração de tipos TypeScript
-
-### **Fase 2: Banco de Dados e Autenticação (Semana 2)**
-- [ ] Criação das tabelas no Supabase
-- [ ] Configuração dos Enums
-- [ ] Setup do Supabase Auth
-- [ ] RLS Policies para todas as tabelas
-- [ ] Sistema de login com recuperação de senha
-- [ ] Middleware de autenticação e autorização
-
-### **Fase 3: Cadastro de Jovens (Semana 3)**
-- [ ] Formulário de cadastro em etapas
-- [ ] Validação de dados com Zod
-- [ ] Upload de fotos para Supabase Storage
-- [ ] Seleção hierárquica Estado→Bloco→Região→Igreja
-- [ ] Cálculo automático de idade
-- [ ] Integração completa com banco
-
-### **Fase 4: Sistema de Avaliação (Semana 4)**
-- [ ] Modal de avaliação com múltiplos critérios
-- [ ] Sistema de múltiplos avaliadores
-- [ ] Nota de 1 a 10 com radio buttons
-- [ ] Histórico de avaliações por jovem
-- [ ] Permissões por nível de acesso
-- [ ] Cálculo de médias automático
-
-### **Fase 5: Interface e Filtros (Semana 5)**
-- [ ] Lista de jovens com cards responsivos
-- [ ] Sistema de filtros avançados
-- [ ] Busca por nome em tempo real
-- [ ] Paginação server-side
-- [ ] Ordenação por múltiplos critérios
-- [ ] Status de aprovação visual
-
-### **Fase 6: Gestão de Usuários e Papéis (Semana 6)**
-- [ ] Cadastro de usuários com seleção de papel
-- [ ] Sistema de roles com localização
-- [ ] Formulário de transferência de liderança
-- [ ] Perfis de usuário com foto
-- [ ] Controle de permissões granular
-- [ ] Logs de auditoria
-
-### **Fase 7: Dashboard e Relatórios (Semana 7)**
-- [ ] Dashboard personalizado por papel
-- [ ] Gráficos de avaliações e estatísticas
-- [ ] Relatórios por edição/região/igreja
-- [ ] Export CSV com filtros aplicados
-- [ ] Export PDF de fichas individuais
-- [ ] Métricas de acompanhamento
-
-### **Fase 8: Configurações e Deploy (Semana 8)**
-- [ ] CRUD para Estados/Blocos/Regiões/Igrejas
-- [ ] Gestão de edições (1-10)
-- [ ] Configuração de buckets de fotos
-- [ ] Testes de funcionalidades
-- [ ] Deploy na Vercel
-- [ ] Configuração de domínio e SSL
+- Sempre revisar os três documentos de base antes de implementar:
+  - `POLITICAS_RLS_COMPLETAS.md`
+  - `DOCUMENTACAO_FUNCOES_BANCO.md`
+  - `ESTRUTURA_TABELAS_BANCO.md`
+- RLS primeiro: novas telas/consultas devem começar pela verificação de acesso (role/escopo).
+- Functions/Triggers: avaliar reutilização das existentes; documentar qualquer nova no arquivo de functions.
+- Migrations: manter scripts versionados (quando necessário) e sincronizar a documentação.
+- UI/UX: mobile-first, acessibilidade, feedbacks claros, componentes reutilizáveis.
 
 ---
 
-## 🔄 FLUXOS CRÍTICOS DETALHADOS
+## 9) Fluxos principais (alto nível)
 
-### 1. **Cadastro com Cascata Estado→Bloco→Região→Igreja**
-```javascript
-// Fluxo de seleção hierárquica
-OnSelect(Estado) → fetch blocos where estado_id
-OnSelect(Bloco) → fetch regioes where bloco_id  
-OnSelect(Região) → fetch igrejas where regiao_id
-```
+- Cadastro de Jovem:
+  1. Usuário autenticado (jovem ou líder/admin) acessa o formulário
+  2. Preenche etapas com validações e máscaras
+  3. Foto enviada para Storage + URL salva em `jovens.foto`
+  4. Insert em `jovens` (limpeza de payload, cálculo idade)
+  5. Triggers notificam líderes conforme escopo
 
-### 2. **Adicionar Avaliação**
-- Na ficha do jovem, botão "Adicionar avaliação"
-- Modal: preenchimento; ao salvar, cria registro em avaliacoes com user_id = current_user
-- Após salvar, recalcular média geral do jovem (pode mostrar badge)
-- Permitir "Adicionar outro avaliador" — repete modal em sequência
+- Avaliação de Jovem:
+  1. Líder/colaborador acessa perfil do jovem
+  2. Abre modal de avaliação, preenche campos e nota
+  3. Insert em `avaliacoes`
+  4. Trigger notifica líderes e timeline é atualizada
 
-### 3. **Transferência de Liderança**
-- Form: selecionar usuário atual, novo usuário, localidade (estado/bloco/região/igreja)
-- Backend: criar log + atualizar user_roles (desabilitar antigo, adicionar novo)
-
-### 4. **Aprovação**
-- Botões "Pré-Aprovado" e "Aprovado" visíveis apenas a users com permissão
-- Mudança gera log e notificação (in-app)
+- Notificações:
+  1. Geração automática por triggers ou manual (futuro)
+  2. Usuário visualiza dropdown/lista e marca como lida
 
 ---
 
-## 🗄️ SUPABASE: STORAGE, POLICIES & TIPS
+## 10) Relatórios e filtros (alinhado ao rascunho)
 
-### Storage Buckets
-```sql
--- Bucket para fotos dos jovens
-fotos_jovens (padrão private)
-- Estrutura: {jovem_id}/profile.jpg
-- Política: usuários só podem ver/editar se tiverem relação no user_roles
-
--- Bucket para fotos dos usuários  
-fotos_usuarios (padrão private)
-- Estrutura: {user_id}/profile.jpg
-- Política: usuário só pode ver/editar sua própria foto
-
--- Bucket para documentos
-documentos (padrão private)
-- Estrutura: {jovem_id}/documentos/
-- Política: acesso baseado na hierarquia do usuário
-
--- Bucket para backups
-backups (padrão private)
-- Estrutura: {data}/backup_files/
-- Política: apenas administradores
-
--- Bucket temporário
-temp (padrão private)
-- Estrutura: {user_id}/temp_files/
-- Política: usuários autenticados
-```
-
-### RLS Policies para Storage
-```sql
--- Política para fotos de jovens
-create policy "fotos_jovens_hierarchy" on storage.objects
-  for all using (
-    bucket_id = 'fotos_jovens' and
-    exists (
-      select 1 from user_roles ur 
-      where ur.user_id = auth.uid() 
-      and (
-        ur.role_id = 'administrador' or
-        ur.role_id = 'colaborador' or
-        (ur.role_id like 'lider_%' and ur.estado_id = (select estado_id from jovens where id::text = (storage.foldername(name))[1]))
-      )
-    )
-  );
-
--- Política para fotos de usuários
-create policy "fotos_usuarios_self" on storage.objects
-  for all using (
-    bucket_id = 'fotos_usuarios' and
-    auth.uid()::text = (storage.foldername(name))[1]
-  );
-
--- Política para documentos
-create policy "documentos_hierarchy" on storage.objects
-  for all using (
-    bucket_id = 'documentos' and
-    exists (
-      select 1 from user_roles ur 
-      where ur.user_id = auth.uid() 
-      and ur.role_id in ('administrador', 'colaborador', 'lider_estadual_iurd', 'lider_estadual_fju', 'lider_bloco_iurd', 'lider_bloco_fju', 'lider_regional_iurd', 'lider_igreja_iurd')
-    )
-  );
-
--- Política para backups
-create policy "backups_admin" on storage.objects
-  for all using (
-    bucket_id = 'backups' and
-    exists (
-      select 1 from user_roles ur 
-      where ur.user_id = auth.uid() 
-      and ur.role_id = 'administrador'
-    )
-  );
-
--- Política para temp
-create policy "temp_authenticated" on storage.objects
-  for all using (bucket_id = 'temp');
-```
-
-### Edge Functions
-```sql
--- Função para recalcular idade
-create or replace function recalcular_idade()
-returns trigger as $$
-begin
-  new.idade = date_part('year', age(new.data_nasc))::int;
-  return new;
-end;
-$$ language plpgsql;
-
--- Trigger para atualizar idade automaticamente
-create trigger trigger_recalcular_idade
-  before insert or update on jovens
-  for each row execute function recalcular_idade();
-```
-
-### Performance Tips
-- **Lazy loading** para imagens + thumbnails
-- **Compressão client-side** antes do upload
-- **URLs temporários** para fotos privadas
-- **Índices otimizados** em campos de busca
+- Filtros: edição, sexo, condição, aprovação, idade, estado, bloco, região, igreja
+- Avaliações: espírito, caráter, disposição, texto livre e nota 1..10
+- Ações rápidas: Aprovar/Pré-aprovar (governado por RLS e funções)
 
 ---
 
-## 🔒 REGRAS DE NEGÓCIO E PERMISSÕES (RBAC + RLS)
+## 11) Publicação e QA
 
-### Sistema de Papéis (Roles)
-```sql
--- Papéis disponíveis no sistema
-roles:
-- administrador (Acesso total ao sistema)
-- colaborador (Acesso amplo para colaboração)
-- lider_nacional_iurd (Responsável nacional IURD)
-- lider_nacional_fju (Responsável nacional FJU)
-- lider_estadual_iurd (Líder estadual IURD)
-- lider_estadual_fju (Líder estadual FJU)
-- lider_bloco_iurd (Líder de bloco IURD)
-- lider_bloco_fju (Líder de bloco FJU)
-- lider_regional_iurd (Líder regional IURD)
-- lider_igreja_iurd (Líder de igreja IURD)
-```
+- Checklist antes do deploy:
+  - RLS revisada para novas consultas
+  - Novas funções documentadas
+  - Campos/colunas sincronizados com `ESTRUTURA_TABELAS_BANCO.md`
+  - Teste manual: cadastro, upload, avaliações, filtros, notificações
+  - Responsividade e A11y sem regressões
 
-### Controle de Acesso por Localização
-- **lider_estadual_***: Acesso apenas aos jovens do estado específico
-- **lider_bloco_***: Acesso apenas aos jovens do bloco específico
-- **lider_regional_***: Acesso apenas aos jovens da região específica
-- **lider_igreja_***: Acesso apenas aos jovens da igreja específica
-- **colaborador**: Acesso a todos os jovens
-- **administrador**: Acesso total ao sistema
-
-### RLS Policies (Row-Level Security)
-```sql
--- Exemplo de regra RLS
-lider_estadual_* pode SELECT/UPDATE apenas onde:
-jovens.estado_id = user_role.estado_id
-
--- Avaliadores só podem criar/editar suas próprias avaliações
-avaliacoes.user_id = auth.uid()
-
--- Editar avaliação por outro avaliador só por admin
-admin pode editar qualquer avaliação
-```
-
-### Regras de Negócio
-- **Troca de liderança**: Formulário que cria nova entrada em user_roles e cria log
-- **Avaliações**: Múltiplos avaliadores por jovem, cada um cria sua própria avaliação
-- **Aprovação**: Apenas líderes com permissão podem aprovar/pré-aprovar jovens
-- **Logs de auditoria**: Todas as ações importantes são registradas em logs_historico
+- Deploy: Vercel + variáveis de ambiente (ver `CONFIGURACAO_SUPABASE.md`/`env.example`).
 
 ---
 
-## 📊 RELATÓRIOS E MÉTRICAS (PRIORIDADES)
+## 12) Próximos passos
 
-### Relatórios Principais
-- **Média de notas por edição/região/igreja**
-- **Distribuição por categoria** (espírito, caráter, disposição)
-- **Lista de jovens "a observar"** (filtrar por avaliações que tenham "Ser observado" ou nota ≤ X)
-- **Export CSV** com filtros aplicados
-- **Relatório PDF** por jovem (Ficha + avaliações)
-
-### Métricas de Acompanhamento
-- Número total de jovens por edição
-- Taxa de aprovação por região
-- Evolução das avaliações ao longo do tempo
-- Jovens com avaliações pendentes
-- Distribuição por faixa etária
+- Revisar este roteiro e priorizar o backlog (seção 7)
+- Abrir issues/tarefas por item com referência direta às tabelas/funcs/RLS afetadas
+- Iniciar pelas telas de perfil por papel e gestão de papéis/escopos
 
 ---
 
-## 🔔 NOTIFICAÇÕES & COMUNICAÇÃO
+# 13) Backlog rastreável (por tela/endpoint/tabela/função)
 
-### Notificações Internas
-- **Inbox** para novos cadastros no alcance do líder
-- **Alertas** para avaliações pendentes
-- **Notificações** de mudanças de status (aprovado/pré-aprovado)
-- **Lembretes** para líderes sobre jovens sem avaliação
+Abaixo, tarefas com indicação de:
+- Arquivos front (Svelte) afetados
+- Stores/endpoints (
+  `src/lib/stores/*.js` ou RPCs SQL)
+- Tabelas/FKs/Functions/Policies envolvidas (ver 3 docs de referência)
 
-### Integrações Opcionais
-- **WhatsApp API** (externa) para avisos - plugin opcional por custos
-- **Emails** (via provider SMTP) para confirmações e resets
-- **SMS** para notificações críticas
+### 13.1 Perfis por papel (UI)
+- Criar páginas de perfil:
+  - jovem: `src/routes/profile/+page.svelte` (ou ajustar `usuarios/`)
+  - líder/admin: `src/routes/seguranca/+page.svelte` ou novas rotas por papel
+- Mostrar cards com KPIs e atalhos filtrados por escopo
+- Stores: reaproveitar `jovens.js`, `avaliacoes.js`, `notificacoes.js`
+- Tabelas: `jovens`, `avaliacoes`, `notificacoes`
+- Policies/Functions: `has_role`, `can_access_jovem`, políticas `jovens_*`
 
----
+### 13.2 Gestão de user_roles (CRUD) e troca de liderança
+- Nova tela: `src/routes/seguranca/auditoria/+page.svelte` (ou `usuarios/roles/+page.svelte`)
+- Listar, criar, editar, remover `user_roles` com escopos (estado/bloco/região/igreja)
+- Ação “Transferir liderança” (mover escopo entre usuários, gerar `logs_historico`)
+- Stores: criar `src/lib/stores/roles.js` ou ampliar `usuarios.js`
+- Tabelas: `user_roles`, `usuarios`, `roles`
+- Functions: `has_role`, `is_admin_user`, `criar_log_auditoria`
+- Policies: `user_roles_*`, `usuarios_*`
 
-## 🔒 SEGURANÇA & CONFORMIDADE
+### 13.3 Avaliações: timeline e KPIs
+- Jovem: componente `src/lib/components/jovens/JovemProfile.svelte` mostrar timeline
+- KPIs no card: média/última nota/contagem por avaliador
+- Tabelas: `avaliacoes`, `jovens`
+- SQL/RPC: agregações por jovem (médias e últimas datas)
+- Policies: `avaliacoes_allow_select`, `jovens_*`
 
-### Autenticação e Autorização
-- **Supabase Auth** com e-mail e senha forte obrigatória
-- **RLS bem configurado** e testado (cenários: usuário X não deve ver registros fora do alcance)
-- **Sanitização** de textos nas avaliações
-- **Logs de auditoria** (troca de líder, alteração de condição, exclusões)
+### 13.4 Auditoria e sessões
+- Auditoria:
+  - Tela `src/routes/seguranca/auditoria/+page.svelte` (listagem `logs_auditoria`, filtros por usuário/ação/intervalo)
+- Histórico:
+  - Reaproveitar página de auditoria ou `src/routes/seguranca/+page.svelte` para `logs_historico`
+- Sessões:
+  - Página `src/routes/seguranca/sessoes/+page.svelte` (listar `sessoes_usuario`, revogar)
+- Tabelas: `logs_auditoria`, `logs_historico`, `sessoes_usuario`
+- Functions: `limpar_logs_antigos`, `obter_estatisticas_sistema`
 
-### Backup e Recuperação
-- **Backup periódico** de dados e cópia do storage
-- **Export manual** antes de cada edição
-- **Versionamento** de dados críticos
-- **Recuperação** de dados em caso de falhas
+### 13.5 Preferências de notificações
+- Página `src/routes/notificacoes/configuracoes/+page.svelte` já existe; ampliar para categorias e opt-in/out
+- Tabela: `configuracoes_sistema`
+- Functions: (opcional) adicionar getters/setters RPC específicos (documentar se criar)
 
----
+### 13.6 Relatórios por papel com export
+- Rotas em `src/routes/relatorios/**` já existem; alinhar por papel (nacional/estadual/bloco/região/igreja)
+- Exportação: gerar CSV/Excel a partir de consultas com os mesmos filtros (client ou server)
+- Tabelas: `jovens`, `avaliacoes`, `notificacoes`
+- Policies/Functions: `can_access_jovem`, agregações específicas
 
-## 🎨 ESTÉTICA / UI SUGGESTIONS (VISUAL)
-
-### Paleta de Cores
-```css
-:root {
-  --primary: #1e40af;      /* Azul escuro (confiança) */
-  --secondary: #fbbf24;    /* Amarelo/dourado (IURD) */
-  --accent: #dc2626;       /* Vermelho de destaque */
-  --neutral: #6b7280;      /* Cinza neutro */
-  --background: #f8fafc;   /* Fundo claro */
-  --surface: #ffffff;      /* Superfície */
-  --text: #1f2937;         /* Texto principal */
-}
-```
-
-### Design Elements
-- **Cards** com sombra suave, bordas arredondadas (2xl), espaçamentos confortáveis
-- **Foto grande** na ficha; thumbnails circulares em listas
-- **Micro-interações** com confirmações suaves (framer motion para Svelte/animate)
-- **Loading skeletons** para melhor UX
-- **Tipografia** legível, tamanho médio maior para nomes
-
----
-
-## ✅ CHECKLIST DE ACEITAÇÃO PARA CADA ENTREGA
-
-### Cadastro de Jovem
-- [ ] Seleção em cascata Estado→Bloco→Região→Igreja funcionando
-- [ ] Upload de foto com compressão
-- [ ] Validação de todos os campos obrigatórios
-- [ ] Cálculo automático de idade
-- [ ] Salvamento no banco com RLS aplicado
-
-### Visualização da Ficha
-- [ ] Ficha completa com todas as abas
-- [ ] Informações organizadas e legíveis
-- [ ] Botões de ação funcionais (Editar, Exportar, Aprovar)
-- [ ] Responsividade em mobile
-
-### Sistema de Avaliação
-- [ ] Modal de avaliação com todos os campos
-- [ ] Múltiplos avaliadores por jovem
-- [ ] Nota de 1 a 10 com radio buttons
-- [ ] Histórico de avaliações organizado
-- [ ] Cálculo de médias automático
-
-### Permissões e Segurança
-- [ ] Líder estadual só vê jovens do estado
-- [ ] Líder igreja só vê jovens da igreja
-- [ ] Avaliadores só editam suas próprias avaliações
-- [ ] Admin tem acesso total
-- [ ] RLS funcionando corretamente
-
-### Export e Relatórios
-- [ ] Export CSV com filtros aplicados
-- [ ] Relatório PDF por jovem
-- [ ] Gráficos de estatísticas
-- [ ] Filtros funcionando corretamente
-
-### Troca de Liderança
-- [ ] Formulário de transferência
-- [ ] Atualização de user_roles
-- [ ] Log de auditoria criado
-- [ ] Notificação enviada
+### 13.7 Polimento A11y e UX
+- Passar linter A11y nas páginas de forms/modais onde ainda há avisos (ver `read_lints` locais)
+- Garantir `role/aria/label/keyboard` em elementos clicáveis
 
 ---
 
-## ⚠️ RISCOS E RECOMENDAÇÕES
+## 14) Referências diretas para cada tarefa
+- RLS/Policies: `POLITICAS_RLS_COMPLETAS.md`
+- Functions/Triggers: `DOCUMENTACAO_FUNCOES_BANCO.md`
+- Tabelas/FKs/Tipos: `ESTRUTURA_TABELAS_BANCO.md`
 
-### Riscos Identificados
-- **RLS mal configurado** → exposição de dados
-  - *Mitigação*: testes automatizados das políticas
-- **Imagens grandes / storage caro** → custos elevados
-  - *Mitigação*: redimensionamento client-side + thumbnails + compressão
-- **Performance com muitos dados** → lentidão
-  - *Mitigação*: paginação server-side + índices otimizados
-- **Nomes de buckets inconsistentes** → erro "Bucket not found"
-  - *Mitigação*: usar sempre fotos_usuarios e fotos_jovens (com underscore)
-- **Recursão infinita em políticas RLS** → erro "infinite recursion detected"
-  - *Mitigação*: usar funções auxiliares e evitar consultas circulares
-
-### Recomendações
-- **Registrar cada edição** como dado primário para histórico
-- **Não sobrescrever** dados de edições passadas
-- **Criar seeds** (Estados, Blocos, Regiões, Igrejas) para agilizar cadastros
-- **Implementar cache** para consultas frequentes
-- **Monitorar uso** de storage e otimizar regularmente
+Cada PR deve citar explicitamente quais itens do backlog acima atende e quais seções/linhas desses 3 documentos foram consideradas/alteradas.
 
 ---
 
-## 📱 RESPONSIVIDADE
+# 15) Issues/tarefas numeradas com checklist e estimativas
 
-### Breakpoints
-- **Mobile:** < 640px
-- **Tablet:** 640px - 1024px
-- **Desktop:** > 1024px
+Formato de estimativa: P (Pequena ~2-4h), M (Média ~1-2 dias), G (Grande ~3-5 dias).
 
-### Adaptações
-- Menu hambúrguer no mobile
-- Cards empilhados em telas pequenas
-- Formulários em coluna única
-- Botões de ação otimizados
+## I-01 Perfis por papel (UI) [M]
+Checklist:
+- [ ] Criar rota `profile` para jovem com visão do próprio cadastro e status
+- [ ] Criar rota(s) de perfil para líderes/admin com KPIs e atalhos por escopo
+- [ ] Reutilizar stores (`jovens`, `avaliacoes`, `notificacoes`) e aplicar filtros por escopo
+- [ ] Validar acesso via RLS (`can_access_jovem`, policies)
+Referências: seções 2, 3, 5, 13.1; 3 docs base.
 
----
+## I-02 CRUD de user_roles e troca de liderança [G]
+Checklist:
+- [ ] Tela de listagem/edição de `user_roles` (criar/editar/remover)
+- [ ] Seleção de escopos (estado/bloco/região/igreja) com dependências
+- [ ] Ação “Transferir liderança” (mover escopo, registrar `logs_historico`)
+- [ ] RLS e validações de integridade
+Referências: seções 2, 3, 13.2; 3 docs base.
 
-## 🔧 TROUBLESHOOTING
+## I-03 Avaliações: timeline e KPIs por jovem [M]
+Checklist:
+- [ ] Timeline no `JovemProfile.svelte` com avaliações e datas
+- [ ] Cálculo de média, última avaliação e contagem por avaliador
+- [ ] Seletores/filtros por período
+- [ ] Garantir policies de leitura
+Referências: seções 5, 6, 13.3; 3 docs base.
 
-### Problemas Comuns e Soluções
+## I-04 UI de Auditoria e Sessões [M]
+Checklist:
+- [ ] Listagem `logs_auditoria` com filtros (usuário, ação, intervalo)
+- [ ] Listagem `logs_historico` (eventos de negócio)
+- [ ] Sessões ativas (`sessoes_usuario`) com revogação manual
+- [ ] Botões utilitários (limpar logs antigos via RPC)
+Referências: seções 3, 6, 13.4; 3 docs base.
 
-#### 1. Erro "Bucket not found" no upload de fotos
-**Causa:** Nomes de buckets inconsistentes entre código e Supabase
-**Solução:** 
-- Verificar se os buckets no Supabase são: `fotos_usuarios`, `fotos_jovens`
-- Usar sempre underscore (_) nos nomes dos buckets
-- Atualizar código para usar nomes corretos
+## I-05 Preferências de Notificações [P]
+Checklist:
+- [ ] UI para categorias/opt-in no `notificacoes/configuracoes`
+- [ ] Persistência em `configuracoes_sistema`
+- [ ] Ajustes de leitura em lote
+Referências: seções 5, 6, 13.5; 3 docs base.
 
-#### 2. Erro de conexão com Supabase
-**Causa:** Variáveis de ambiente não configuradas
-**Solução:**
-- Criar arquivo `.env.local` com credenciais corretas
-- Verificar se `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` estão definidas
+## I-06 Relatórios por papel com export [M]
+Checklist:
+- [ ] KPIs por papel (nacional/estadual/bloco/região/igreja)
+- [ ] Exports CSV/Excel com filtros atuais
+- [ ] Garantir RLS e consistência com listagens
+Referências: seções 6, 10, 13.6; 3 docs base.
 
-#### 3. Erro de permissão no upload
-**Causa:** Políticas RLS não configuradas ou usuário não autenticado
-**Solução:**
-- Verificar se o usuário está logado
-- Verificar se as políticas RLS estão ativas
-- Verificar se o usuário tem permissão para o bucket
-
-#### 4. Erro "infinite recursion detected in policy for relation usuarios"
-**Causa:** Políticas RLS da tabela usuarios causando recursão infinita
-**Solução:**
-- Usar função auxiliar `is_admin_user()` para evitar recursão
-- Simplificar políticas RLS para não consultar a própria tabela
-- Executar script `SOLUCAO_DEFINITIVA_RECURSAO.sql`
-
-## 🎯 PRÓXIMOS PASSOS
-
-1. **Revisão do Roteiro** - Aguardar feedback
-2. **Ajustes e Refinamentos** - Baseado nas sugestões
-3. **Roteiro Definitivo** - Versão final aprovada
-4. **Início do Desenvolvimento** - Implementação das funcionalidades
-
----
-
-## 💡 SUGESTÕES E MELHORIAS
-
-### Funcionalidades Adicionais
-- **Notificações** - Sistema de alertas
-- **Chat** - Comunicação entre líderes
-- **Calendário** - Eventos e cronogramas
-- **Backup** - Exportação automática de dados
-- **API** - Integração com sistemas externos
-
-### Melhorias de UX
-- **Tema escuro** - Alternância de tema
-- **Atalhos de teclado** - Navegação rápida
-- **Drag & Drop** - Upload de fotos
-- **Autocomplete** - Busca inteligente
-- **Tutorial** - Onboarding para novos usuários
-
----
-
-**Data de Criação:** [Data atual]
-**Versão:** 1.0
-**Status:** Aguardando revisão
+## I-07 A11y e polimento [P]
+Checklist:
+- [ ] Corrigir avisos do linter A11y mais comuns (labels/roles)
+- [ ] Padronizar placeholders/helps e estados vazios
+- [ ] Revisar responsividade em páginas críticas
+Referências: seções 5, 6, 13.7; 3 docs base.

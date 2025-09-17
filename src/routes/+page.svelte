@@ -209,7 +209,7 @@
   <div class="fb-card p-6">
     <h3 class="text-lg font-semibold text-gray-900 mb-4">Resumo Geral</h3>
     {#if loading}
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-4">
         {#each Array(4) as _}
           <div class="text-center">
             <div class="w-12 h-12 bg-gray-200 rounded-full mx-auto mb-2 animate-pulse"></div>
@@ -219,7 +219,7 @@
         {/each}
       </div>
     {:else}
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-4">
         <div class="text-center">
           <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2">
             <svg class="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -314,7 +314,7 @@
   <!-- Quick actions -->
   <div class="fb-card p-6">
     <h3 class="text-lg font-semibold text-gray-900 mb-4">Ações Rápidas</h3>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       <Button href="/jovens/cadastrar" variant="primary" class="w-full justify-center">
         <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />

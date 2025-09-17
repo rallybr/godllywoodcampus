@@ -64,7 +64,7 @@
     
     // Informações familiares
     pais_na_igreja: false,
-    observacao_pais: '',
+    obs_pais: '',
     familiares_igreja: false,
     
     // Informações adicionais
@@ -76,7 +76,7 @@
     instagram: '',
     facebook: '',
     tiktok: '',
-    observacao_redes: '',
+    obs_redes: '',
     
     // IntelliMen
     formado_intellimen: false,
@@ -126,6 +126,110 @@
     } else {
       return `(${limitedNumbers.slice(0, 2)}) ${limitedNumbers.slice(2, 7)}-${limitedNumbers.slice(7)}`;
     }
+  }
+
+  // ====== Sistema de Campos de Data (híbrido: texto + seletor nativo) ======
+  let dateNascText = '';
+  let nascDateRef;
+  let batismoAguasText = '';
+  let batismoAguasRef;
+  let batismoEsText = '';
+  let batismoEsRef;
+  let afastamentoText = '';
+  let afastamentoRef;
+  let retornoText = '';
+  let retornoRef;
+
+  function toISOFromBr(dateBr) {
+    // dateBr esperado: DD/MM/AAAA
+    const onlyNums = (dateBr || '').replace(/\D/g, '');
+    if (onlyNums.length !== 8) return '';
+    const day = onlyNums.slice(0, 2);
+    const month = onlyNums.slice(2, 4);
+    const year = onlyNums.slice(4, 8);
+    const iso = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    return iso;
+  }
+
+  function toBrFromISO(iso) {
+    if (!iso) return '';
+    const [y, m, d] = iso.split('-');
+    if (!y || !m || !d) return '';
+    return `${d.padStart(2, '0')}/${m.padStart(2, '0')}/${y}`;
+  }
+
+  function maskDateBr(input) {
+    const digits = (input || '').replace(/\D/g, '').slice(0, 8);
+    const parts = [];
+    if (digits.length >= 2) parts.push(digits.slice(0, 2));
+    if (digits.length >= 4) parts.push(digits.slice(2, 4));
+    if (digits.length > 4) parts.push(digits.slice(4));
+    return parts.join('/');
+  }
+
+  // Funções genéricas para campos de data
+  function handleDateTextInput(event, textVar, isoVar) {
+    const masked = maskDateBr(event.target?.value || '');
+    textVar = masked;
+    return textVar;
+  }
+
+  function handleDateTextBlur(textVar, isoVar) {
+    const iso = toISOFromBr(textVar);
+    if (iso) {
+      formData[isoVar] = iso;
+    }
+  }
+
+  function openDatePicker(dateRef) {
+    if (dateRef?.showPicker) {
+      dateRef.showPicker();
+    } else if (dateRef) {
+      dateRef.click();
+    }
+  }
+
+  // Funções específicas para cada campo
+  function handleNascTextInput(event) {
+    dateNascText = handleDateTextInput(event, dateNascText, 'data_nasc');
+  }
+
+  function handleNascTextBlur() {
+    handleDateTextBlur(dateNascText, 'data_nasc');
+  }
+
+  function handleBatismoAguasTextInput(event) {
+    batismoAguasText = handleDateTextInput(event, batismoAguasText, 'data_batismo_aguas');
+  }
+
+  function handleBatismoAguasTextBlur() {
+    handleDateTextBlur(batismoAguasText, 'data_batismo_aguas');
+  }
+
+  function handleBatismoEsTextInput(event) {
+    batismoEsText = handleDateTextInput(event, batismoEsText, 'data_batismo_es');
+  }
+
+  function handleBatismoEsTextBlur() {
+    handleDateTextBlur(batismoEsText, 'data_batismo_es');
+  }
+
+  function handleAfastamentoTextInput(event) {
+    afastamentoText = handleDateTextInput(event, afastamentoText, 'data_afastamento');
+  }
+
+  function handleAfastamentoTextBlur() {
+    handleDateTextBlur(afastamentoText, 'data_afastamento');
+  }
+
+  function handleRetornoTextInput(event) {
+    retornoText = handleDateTextInput(event, retornoText, 'data_retorno');
+  }
+
+  function handleRetornoTextBlur() {
+    handleDateTextBlur(retornoText, 'data_retorno');
   }
   
   // Função para lidar com mudanças no WhatsApp
@@ -372,6 +476,27 @@
   function onCropMouseUp() {
     isDragging = false;
   }
+
+  // Funções para touch (mobile)
+  function onCropTouchStart(event) {
+    event.preventDefault();
+    const touch = event.touches[0];
+    isDragging = true;
+    dragStartX = touch.clientX - cropOffsetX;
+    dragStartY = touch.clientY - cropOffsetY;
+  }
+  
+  function onCropTouchMove(event) {
+    if (!isDragging) return;
+    event.preventDefault();
+    const touch = event.touches[0];
+    cropOffsetX = touch.clientX - dragStartX;
+    cropOffsetY = touch.clientY - dragStartY;
+  }
+  
+  function onCropTouchEnd() {
+    isDragging = false;
+  }
   
   async function confirmCrop() {
     try {
@@ -457,6 +582,30 @@
       console.log('Campo edicao:', formData.edicao);
       console.log('Campo edicao_id:', formData.edicao_id);
       console.log('Foto file:', fotoFile);
+      console.log('=== REDES SOCIAIS ===');
+      console.log('Instagram:', formData.instagram);
+      console.log('Facebook:', formData.facebook);
+      console.log('TikTok:', formData.tiktok);
+      console.log('Obs Redes:', formData.obs_redes);
+      
+      // Limpar campos vazios que podem causar problemas no banco
+      const dadosLimpos = { ...formData };
+      Object.keys(dadosLimpos).forEach(key => {
+        if (dadosLimpos[key] === '') {
+          // Remover campos de data vazios
+          if (key.includes('data')) {
+            console.log('handleSubmit - Removendo campo de data vazio:', key);
+            delete dadosLimpos[key];
+          }
+          // Remover campos numéricos vazios
+          else if (key === 'valor_divida') {
+            console.log('handleSubmit - Removendo campo numérico vazio:', key);
+            delete dadosLimpos[key];
+          }
+        }
+      });
+      
+      console.log('handleSubmit - Dados após limpeza:', dadosLimpos);
       
       // Upload da foto se houver
       if (fotoFile) {
@@ -467,8 +616,11 @@
         console.log('ID temporário gerado:', tempId);
         
         try {
-          formData.foto = await uploadJovemPhoto(tempId, fotoFile);
-          console.log('✅ Foto enviada com sucesso:', formData.foto);
+          const fotoUrl = await uploadJovemPhoto(tempId, fotoFile);
+          console.log('✅ Foto enviada com sucesso:', fotoUrl);
+          // Atualizar tanto formData quanto dadosLimpos
+          formData.foto = fotoUrl;
+          dadosLimpos.foto = fotoUrl;
         } catch (uploadError) {
           console.error('❌ Erro no upload da foto:', uploadError);
           throw new Error(`Erro no upload da foto: ${uploadError.message}`);
@@ -478,10 +630,11 @@
       }
       
       console.log('=== CRIAÇÃO DO JOVEM ===');
-      console.log('Criando jovem com dados finais:', formData);
+      console.log('Criando jovem com dados finais:', dadosLimpos);
+      console.log('Campo foto nos dados limpos:', dadosLimpos.foto);
       
       // Criar jovem
-      const jovem = await createJovem(formData);
+      const jovem = await createJovem(dadosLimpos);
       console.log('✅ Jovem criado com sucesso:', jovem);
       
       success = true;
@@ -545,62 +698,78 @@
           </div>
           
           <!-- Foto -->
-          <div class="flex items-start space-x-6 p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-100">
-            <div class="flex-shrink-0">
-              <!-- Input file oculto para clique no ícone -->
-              <input
-                type="file"
-                accept="image/*"
-                on:change={handleFotoUpload}
-                bind:this={fotoInputRef}
-                class="hidden"
-              />
-              
-              {#if fotoPreview}
-                <div class="relative cursor-pointer" on:click={() => fotoInputRef?.click()}>
-                  <img class="w-28 h-28 rounded-full object-cover border-4 border-white shadow-lg hover:shadow-xl transition-shadow" src={fotoPreview} alt="Preview" />
-                  <div class="absolute -bottom-1 -right-1 w-8 h-8 bg-green-500 rounded-full flex items-center justify-center border-2 border-white">
-                    <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                    </svg>
-                  </div>
-                  <!-- Overlay para indicar que é clicável -->
-                  <div class="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-10 rounded-full transition-all duration-200 flex items-center justify-center">
-                    <div class="opacity-0 hover:opacity-100 transition-opacity duration-200">
-                      <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                    </div>
-                  </div>
-                </div>
-              {:else}
-                <div 
-                  class="w-28 h-28 bg-gradient-to-br from-blue-100 to-indigo-200 rounded-full flex items-center justify-center border-4 border-white shadow-lg cursor-pointer hover:shadow-xl hover:from-blue-200 hover:to-indigo-300 transition-all duration-200" 
-                  on:click={() => fotoInputRef?.click()}
-                >
-                  <div class="text-center">
-                    <svg class="w-10 h-10 text-blue-500 mx-auto mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                    <div class="text-xs text-blue-600 font-medium">Adicionar Foto</div>
-                  </div>
-                </div>
-              {/if}
-            </div>
-            <div class="flex-1">
-              <label class="block text-sm font-semibold text-gray-800 mb-3">Foto do Jovem</label>
-              <div class="space-y-3">
+          <div class="p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-100 iphone-pro-max">
+            <div class="flex flex-col sm:flex-row items-center sm:items-start space-y-4 sm:space-y-0 sm:space-x-6">
+              <div class="flex-shrink-0">
+                <!-- Input file oculto para clique no ícone -->
                 <input
                   type="file"
                   accept="image/*"
                   on:change={handleFotoUpload}
-                  class="block w-full text-sm text-gray-600 file:mr-4 file:py-2.5 file:px-6 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 transition-colors cursor-pointer"
+                  bind:this={fotoInputRef}
+                  class="hidden"
                 />
-                <div class="flex items-center space-x-2 text-xs text-gray-500">
-                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <span>JPG, PNG ou WEBP. Máximo 5MB</span>
+                
+                {#if fotoPreview}
+                  <div class="relative cursor-pointer" on:click={() => fotoInputRef?.click()}>
+                    <img class="w-28 h-28 rounded-full object-cover border-4 border-white shadow-lg hover:shadow-xl transition-shadow" src={fotoPreview} alt="Preview" />
+                    <div class="absolute -bottom-1 -right-1 w-8 h-8 bg-green-500 rounded-full flex items-center justify-center border-2 border-white">
+                      <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <!-- Overlay para indicar que é clicável -->
+                    <div class="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-10 rounded-full transition-all duration-200 flex items-center justify-center">
+                      <div class="opacity-0 hover:opacity-100 transition-opacity duration-200">
+                        <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                {:else}
+                  <div 
+                    class="w-28 h-28 bg-gradient-to-br from-blue-100 to-indigo-200 rounded-full flex items-center justify-center border-4 border-white shadow-lg cursor-pointer hover:shadow-xl hover:from-blue-200 hover:to-indigo-300 transition-all duration-200" 
+                    on:click={() => fotoInputRef?.click()}
+                  >
+                    <div class="text-center">
+                      <svg class="w-10 h-10 text-blue-500 mx-auto mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                      <div class="text-xs text-blue-600 font-medium">Adicionar Foto</div>
+                    </div>
+                  </div>
+                {/if}
+              </div>
+              <div class="flex-1 w-full min-w-0">
+                <label class="block text-sm font-semibold text-gray-800 mb-3">Foto do Jovem</label>
+                <div class="space-y-3">
+                  <!-- Input de arquivo customizado para mobile -->
+                  <div class="w-full">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      on:change={handleFotoUpload}
+                      bind:this={fotoInputRef}
+                      class="hidden"
+                      id="foto-input"
+                    />
+                    <label
+                      for="foto-input"
+                      class="flex items-center justify-center w-full px-4 py-3 bg-blue-600 text-white text-sm font-semibold rounded-lg cursor-pointer hover:bg-blue-700 transition-colors min-h-[44px]"
+                    >
+                      <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      Escolher Arquivo
+                    </label>
+                  </div>
+                  <div class="flex items-center space-x-2 text-xs text-gray-500">
+                    <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span class="break-words">JPG, PNG ou WEBP. Máximo 5MB</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -608,21 +777,24 @@
 
           {#if showCropper}
             <!-- Modal Cropper responsivo -->
-            <div class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-2 sm:p-4" on:mouseup={onCropMouseUp} on:mouseleave={onCropMouseUp}>
-              <div class="bg-white rounded-2xl p-4 sm:p-6 shadow-2xl w-full max-w-sm sm:max-w-md md:max-w-2xl max-h-[95vh] overflow-y-auto">
+            <div class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-2 sm:p-4" on:mouseup={onCropMouseUp} on:mouseleave={onCropMouseUp} on:touchend={onCropTouchEnd}>
+              <div class="bg-white rounded-2xl p-4 sm:p-6 shadow-2xl w-full max-w-xs sm:max-w-md md:max-w-2xl max-h-[95vh] overflow-y-auto">
                 <h3 class="text-lg font-semibold text-gray-900 mb-4">Ajustar foto</h3>
                 <div class="flex flex-col space-y-4 sm:space-y-6">
                   <!-- Viewport quadrado -->
                   <div class="flex justify-center">
-                    <div class="relative rounded-xl border-2 border-blue-200 bg-gray-100 overflow-hidden" style={`width:${cropContainerSize}px;height:${cropContainerSize}px`}>
+                    <div class="crop-container relative rounded-xl border-2 border-blue-200 bg-gray-100 overflow-hidden" style={`width:${cropContainerSize}px;height:${cropContainerSize}px`}>
                       {#if cropImageSrc}
                         <img src={cropImageSrc}
                              alt="crop"
-                             class="absolute top-1/2 left-1/2 select-none cursor-move max-w-none"
+                             class="crop-image absolute top-1/2 left-1/2 select-none max-w-none"
                              style={`transform: translate(calc(-50% + ${cropOffsetX}px), calc(-50% + ${cropOffsetY}px)) scale(${cropScale});`}
                              draggable={false}
                              on:mousedown={onCropMouseDown}
                              on:mousemove={onCropMouseMove}
+                             on:touchstart={onCropTouchStart}
+                             on:touchmove={onCropTouchMove}
+                             on:touchend={onCropTouchEnd}
                         />
                       {/if}
                     </div>
@@ -631,19 +803,19 @@
                   <div class="space-y-3 sm:space-y-4">
                     <label class="block text-sm font-medium text-gray-700">Zoom: {Math.round(cropScale * 100)}%</label>
                     <input type="range" {minScale} {maxScale} min={minScale} max={maxScale} step="0.01" bind:value={cropScale} class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" />
-                    <div class="text-xs text-gray-500">Arraste a imagem para posicionar</div>
+                    <div class="text-xs text-gray-500">Arraste a imagem para posicionar (toque e arraste no mobile)</div>
                   </div>
                 </div>
                 <div class="flex flex-col sm:flex-row gap-2 sm:gap-3 mt-4 sm:mt-6">
-                  <button class="flex-1 px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors" on:click={cancelCrop}>Cancelar</button>
-                  <button class="flex-1 px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors" on:click={confirmCrop}>Confirmar</button>
+                  <button class="modal-button flex-1 px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors" on:click={cancelCrop}>Cancelar</button>
+                  <button class="modal-button flex-1 px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors" on:click={confirmCrop}>Confirmar</button>
                 </div>
               </div>
             </div>
           {/if}
           
           <div class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">Nome Completo *</label>
                 <input
@@ -659,11 +831,37 @@
               
               <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">Data de Nascimento *</label>
-                <input
-                  type="date"
-                  bind:value={formData.data_nasc}
-                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors {validationErrors.data_nasc ? 'border-red-300 focus:ring-red-500' : ''}"
-                />
+                <!-- Campo híbrido: texto (DD/MM/AAAA) + botão calendário + input date oculto acessível -->
+                <div class="relative">
+                  <input
+                    type="text"
+                    inputmode="numeric"
+                    placeholder="DD/MM/AAAA"
+                    value={dateNascText || toBrFromISO(formData.data_nasc)}
+                    on:input={handleNascTextInput}
+                    on:blur={handleNascTextBlur}
+                    class="w-full pr-12 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors {validationErrors.data_nasc ? 'border-red-300 focus:ring-red-500' : ''}"
+                  />
+                  <button
+                    type="button"
+                    class="absolute inset-y-0 right-0 px-3 flex items-center text-gray-500 hover:text-gray-700"
+                    aria-label="Abrir calendário"
+                    on:click={() => openDatePicker(nascDateRef)}
+                  >
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </button>
+                  <!-- Input date nativo para abrir o seletor e manter compatibilidade -->
+                  <input
+                    type="date"
+                    bind:this={nascDateRef}
+                    bind:value={formData.data_nasc}
+                    class="sr-only"
+                    aria-hidden="true"
+                    tabindex="-1"
+                  />
+                </div>
                 {#if validationErrors.data_nasc}
                   <p class="mt-1 text-sm text-red-600">{validationErrors.data_nasc}</p>
                 {/if}
@@ -671,14 +869,22 @@
               
               <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">Sexo *</label>
-                <select
-                  bind:value={formData.sexo}
-                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors {validationErrors.sexo ? 'border-red-300 focus:ring-red-500' : ''}"
-                >
-                  <option value="">Selecione o sexo</option>
-                  <option value="masculino">Masculino</option>
-                  <option value="feminino">Feminino</option>
-                </select>
+                <div class="relative">
+                  <select
+                    bind:value={formData.sexo}
+                    class="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors appearance-none bg-white cursor-pointer {validationErrors.sexo ? 'border-red-300 focus:ring-red-500' : ''}"
+                  >
+                    <option value="">Selecione o sexo</option>
+                    <option value="masculino">Masculino</option>
+                    <option value="feminino">Feminino</option>
+                  </select>
+                  <!-- Ícone de dropdown customizado -->
+                  <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                    <svg class="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
                 {#if validationErrors.sexo}
                   <p class="mt-1 text-sm text-red-600">{validationErrors.sexo}</p>
                 {/if}
@@ -686,16 +892,24 @@
               
               <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">Estado Civil *</label>
-                <select
-                  bind:value={formData.estado_civil}
-                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors {validationErrors.estado_civil ? 'border-red-300 focus:ring-red-500' : ''}"
-                >
-                  <option value="">Selecione o estado civil</option>
-                  <option value="solteiro">Solteiro(a)</option>
-                  <option value="casado">Casado(a)</option>
-                  <option value="divorciado">Divorciado(a)</option>
-                  <option value="viuvo">Viúvo(a)</option>
-                </select>
+                <div class="relative">
+                  <select
+                    bind:value={formData.estado_civil}
+                    class="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors appearance-none bg-white cursor-pointer {validationErrors.estado_civil ? 'border-red-300 focus:ring-red-500' : ''}"
+                  >
+                    <option value="">Selecione o estado civil</option>
+                    <option value="solteiro">Solteiro(a)</option>
+                    <option value="casado">Casado(a)</option>
+                    <option value="divorciado">Divorciado(a)</option>
+                    <option value="viuvo">Viúvo(a)</option>
+                  </select>
+                  <!-- Ícone de dropdown customizado -->
+                  <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                    <svg class="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
                 {#if validationErrors.estado_civil}
                   <p class="mt-1 text-sm text-red-600">{validationErrors.estado_civil}</p>
                 {/if}
@@ -738,18 +952,26 @@
               Localização Geográfica
             </h3>
             
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">Estado *</label>
-                <select
-                  bind:value={formData.estado_id}
-                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors {validationErrors.estado_id ? 'border-red-300 focus:ring-red-500' : ''}"
-                >
-                  <option value="">Selecione o estado</option>
-                  {#each $estados as estado}
-                    <option value={estado.id}>{estado.nome}</option>
-                  {/each}
-                </select>
+                <div class="relative">
+                  <select
+                    bind:value={formData.estado_id}
+                    class="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors appearance-none bg-white cursor-pointer {validationErrors.estado_id ? 'border-red-300 focus:ring-red-500' : ''}"
+                  >
+                    <option value="">Selecione o estado</option>
+                    {#each $estados as estado}
+                      <option value={estado.id}>{estado.nome}</option>
+                    {/each}
+                  </select>
+                  <!-- Ícone de dropdown customizado -->
+                  <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                    <svg class="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
                 {#if validationErrors.estado_id}
                   <p class="mt-1 text-sm text-red-600">{validationErrors.estado_id}</p>
                 {/if}
@@ -757,16 +979,24 @@
               
               <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">Bloco *</label>
-                <select
-                  bind:value={formData.bloco_id}
-                  disabled={!formData.estado_id}
-                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors disabled:bg-gray-100 disabled:cursor-not-allowed {validationErrors.bloco_id ? 'border-red-300 focus:ring-red-500' : ''}"
-                >
-                  <option value="">Selecione o bloco</option>
-                  {#each $blocos as bloco}
-                    <option value={bloco.id}>{bloco.nome}</option>
-                  {/each}
-                </select>
+                <div class="relative">
+                  <select
+                    bind:value={formData.bloco_id}
+                    disabled={!formData.estado_id}
+                    class="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors appearance-none bg-white cursor-pointer disabled:bg-gray-100 disabled:cursor-not-allowed {validationErrors.bloco_id ? 'border-red-300 focus:ring-red-500' : ''}"
+                  >
+                    <option value="">Selecione o bloco</option>
+                    {#each $blocos as bloco}
+                      <option value={bloco.id}>{bloco.nome}</option>
+                    {/each}
+                  </select>
+                  <!-- Ícone de dropdown customizado -->
+                  <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                    <svg class="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
                 {#if validationErrors.bloco_id}
                   <p class="mt-1 text-sm text-red-600">{validationErrors.bloco_id}</p>
                 {/if}
@@ -774,16 +1004,24 @@
               
               <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">Região *</label>
-                <select
-                  bind:value={formData.regiao_id}
-                  disabled={!formData.bloco_id}
-                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors disabled:bg-gray-100 disabled:cursor-not-allowed {validationErrors.regiao_id ? 'border-red-300 focus:ring-red-500' : ''}"
-                >
-                  <option value="">Selecione a região</option>
-                  {#each $regioes as regiao}
-                    <option value={regiao.id}>{regiao.nome}</option>
-                  {/each}
-                </select>
+                <div class="relative">
+                  <select
+                    bind:value={formData.regiao_id}
+                    disabled={!formData.bloco_id}
+                    class="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors appearance-none bg-white cursor-pointer disabled:bg-gray-100 disabled:cursor-not-allowed {validationErrors.regiao_id ? 'border-red-300 focus:ring-red-500' : ''}"
+                  >
+                    <option value="">Selecione a região</option>
+                    {#each $regioes as regiao}
+                      <option value={regiao.id}>{regiao.nome}</option>
+                    {/each}
+                  </select>
+                  <!-- Ícone de dropdown customizado -->
+                  <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                    <svg class="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
                 {#if validationErrors.regiao_id}
                   <p class="mt-1 text-sm text-red-600">{validationErrors.regiao_id}</p>
                 {/if}
@@ -791,16 +1029,24 @@
               
               <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">Igreja *</label>
-                <select
-                  bind:value={formData.igreja_id}
-                  disabled={!formData.regiao_id}
-                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors disabled:bg-gray-100 disabled:cursor-not-allowed {validationErrors.igreja_id ? 'border-red-300 focus:ring-red-500' : ''}"
-                >
-                  <option value="">Selecione a igreja</option>
-                  {#each $igrejas as igreja}
-                    <option value={igreja.id}>{igreja.nome}</option>
-                  {/each}
-                </select>
+                <div class="relative">
+                  <select
+                    bind:value={formData.igreja_id}
+                    disabled={!formData.regiao_id}
+                    class="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors appearance-none bg-white cursor-pointer disabled:bg-gray-100 disabled:cursor-not-allowed {validationErrors.igreja_id ? 'border-red-300 focus:ring-red-500' : ''}"
+                  >
+                    <option value="">Selecione a igreja</option>
+                    {#each $igrejas as igreja}
+                      <option value={igreja.id}>{igreja.nome}</option>
+                    {/each}
+                  </select>
+                  <!-- Ícone de dropdown customizado -->
+                  <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                    <svg class="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
                 {#if validationErrors.igreja_id}
                   <p class="mt-1 text-sm text-red-600">{validationErrors.igreja_id}</p>
                 {/if}
@@ -819,18 +1065,100 @@
             
             <div class="max-w-md">
               <label class="block text-sm font-semibold text-gray-700 mb-2">Edição *</label>
-              <select
-                bind:value={formData.edicao_id}
-                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors {validationErrors.edicao_id ? 'border-red-300 focus:ring-red-500' : ''}"
-              >
-                <option value="">Selecione a edição</option>
-                {#each $edicoes as edicao}
-                  <option value={edicao.id}>{edicao.nome}</option>
-                {/each}
-              </select>
+              <div class="relative">
+                <select
+                  bind:value={formData.edicao_id}
+                  class="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors appearance-none bg-white cursor-pointer {validationErrors.edicao_id ? 'border-red-300 focus:ring-red-500' : ''}"
+                >
+                  <option value="">Selecione a edição</option>
+                  {#each $edicoes as edicao}
+                    <option value={edicao.id}>{edicao.nome}</option>
+                  {/each}
+                </select>
+                <!-- Ícone de dropdown customizado -->
+                <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                  <svg class="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
               {#if validationErrors.edicao_id}
                 <p class="mt-1 text-sm text-red-600">{validationErrors.edicao_id}</p>
               {/if}
+            </div>
+          </div>
+          
+          <!-- Seção de Redes Sociais -->
+          <div class="bg-gradient-to-br from-green-50 to-teal-50 rounded-xl border border-green-100 p-6">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+              <svg class="w-5 h-5 text-green-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4V2a1 1 0 011-1h8a1 1 0 011 1v2h3a1 1 0 110 2h-1v12a2 2 0 01-2 2H7a2 2 0 01-2-2V6H4a1 1 0 110-2h3zM9 6v10h6V6H9z" />
+              </svg>
+              Redes Sociais
+            </h3>
+            <p class="text-sm text-gray-600 mb-6">Informe os perfis nas redes sociais (opcional)</p>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Instagram</label>
+                <div class="relative">
+                  <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg class="h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 6.62 5.367 11.987 11.988 11.987s11.987-5.367 11.987-11.987C24.014 5.367 18.647.001 12.017.001zM8.449 16.988c-1.297 0-2.448-.49-3.323-1.297C4.198 14.895 3.708 13.744 3.708 12.447s.49-2.448 1.297-3.323c.875-.807 2.026-1.297 3.323-1.297s2.448.49 3.323 1.297c.807.875 1.297 2.026 1.297 3.323s-.49 2.448-1.297 3.323c-.875.807-2.026 1.297-3.323 1.297zm7.718-1.297c-.875.807-2.026 1.297-3.323 1.297s-2.448-.49-3.323-1.297c-.807-.875-1.297-2.026-1.297-3.323s.49-2.448 1.297-3.323c.875-.807 2.026-1.297 3.323-1.297s2.448.49 3.323 1.297c.807.875 1.297 2.026 1.297 3.323s-.49 2.448-1.297 3.323z"/>
+                    </svg>
+                  </div>
+                  <input
+                    type="text"
+                    bind:value={formData.instagram}
+                    placeholder="@usuario"
+                    class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors"
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Facebook</label>
+                <div class="relative">
+                  <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg class="h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                    </svg>
+                  </div>
+                  <input
+                    type="text"
+                    bind:value={formData.facebook}
+                    placeholder="facebook.com/usuario"
+                    class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors"
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">TikTok</label>
+                <div class="relative">
+                  <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg class="h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/>
+                    </svg>
+                  </div>
+                  <input
+                    type="text"
+                    bind:value={formData.tiktok}
+                    placeholder="@usuario"
+                    class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors"
+                  />
+                </div>
+              </div>
+            </div>
+            
+            <div class="mt-6">
+              <label class="block text-sm font-semibold text-gray-700 mb-2">Observações sobre Redes Sociais</label>
+              <textarea
+                bind:value={formData.obs_redes}
+                placeholder="Informações adicionais sobre as redes sociais do jovem..."
+                rows="3"
+                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors resize-none"
+              ></textarea>
             </div>
           </div>
         </div>
@@ -888,22 +1216,30 @@
               Formação Educacional
             </h3>
             
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">Escolaridade</label>
-                <select
-                  bind:value={formData.escolaridade}
-                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                >
-                  <option value="">Selecione a escolaridade</option>
-                  <option value="fundamental_incompleto">Fundamental Incompleto</option>
-                  <option value="fundamental_completo">Fundamental Completo</option>
-                  <option value="medio_incompleto">Médio Incompleto</option>
-                  <option value="medio_completo">Médio Completo</option>
-                  <option value="superior_incompleto">Superior Incompleto</option>
-                  <option value="superior_completo">Superior Completo</option>
-                  <option value="pos_graduacao">Pós-graduação</option>
-                </select>
+                <div class="relative">
+                  <select
+                    bind:value={formData.escolaridade}
+                    class="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors appearance-none bg-white cursor-pointer"
+                  >
+                    <option value="">Selecione a escolaridade</option>
+                    <option value="fundamental_incompleto">Fundamental Incompleto</option>
+                    <option value="fundamental_completo">Fundamental Completo</option>
+                    <option value="medio_incompleto">Médio Incompleto</option>
+                    <option value="medio_completo">Médio Completo</option>
+                    <option value="superior_incompleto">Superior Incompleto</option>
+                    <option value="superior_completo">Superior Completo</option>
+                    <option value="pos_graduacao">Pós-graduação</option>
+                  </select>
+                  <!-- Ícone de dropdown customizado -->
+                  <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                    <svg class="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
               </div>
               
               <div>
@@ -978,7 +1314,7 @@
           </div>
           
           <div class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">Tempo na Igreja *</label>
                 <input
@@ -994,19 +1330,27 @@
               
               <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">Condição *</label>
-                <select
-                  bind:value={formData.condicao}
-                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors {validationErrors.condicao ? 'border-red-300 focus:ring-red-500' : ''}"
-                >
-                  <option value="">Selecione a condição</option>
-                  <option value="jovem_batizado_es">Jovem Batizado(a) ES</option>
-                  <option value="cpo">CPO</option>
-                  <option value="colaborador">Colaborador(a)</option>
-                  <option value="obreiro">Obreiro(a)</option>
-                  <option value="iburd">IBURD</option>
-                  <option value="namorada">Namorada</option>
-                  <option value="noiva">Noiva</option>
-                </select>
+                <div class="relative">
+                  <select
+                    bind:value={formData.condicao}
+                    class="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors appearance-none bg-white cursor-pointer {validationErrors.condicao ? 'border-red-300 focus:ring-red-500' : ''}"
+                  >
+                    <option value="">Selecione a condição</option>
+                    <option value="jovem_batizado_es">Jovem Batizado(a) ES</option>
+                    <option value="cpo">CPO</option>
+                    <option value="colaborador">Colaborador(a)</option>
+                    <option value="obreiro">Obreiro(a)</option>
+                    <option value="iburd">IBURD</option>
+                    <option value="namorada">Namorada</option>
+                    <option value="noiva">Noiva</option>
+                  </select>
+                  <!-- Ícone de dropdown customizado -->
+                  <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                    <svg class="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
                 {#if validationErrors.condicao}
                   <p class="mt-1 text-sm text-red-600">{validationErrors.condicao}</p>
                 {/if}
@@ -1043,11 +1387,37 @@
                 {#if formData.batizado_aguas}
                   <div class="mt-4">
                     <label class="block text-sm font-medium text-gray-700 mb-2">Data do Batismo nas Águas</label>
-                    <input
-                      type="date"
-                      bind:value={formData.data_batismo_aguas}
-                      class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                    />
+                    <!-- Campo híbrido: texto (DD/MM/AAAA) + botão calendário + input date oculto acessível -->
+                    <div class="relative">
+                      <input
+                        type="text"
+                        inputmode="numeric"
+                        placeholder="DD/MM/AAAA"
+                        value={batismoAguasText || toBrFromISO(formData.data_batismo_aguas)}
+                        on:input={handleBatismoAguasTextInput}
+                        on:blur={handleBatismoAguasTextBlur}
+                        class="w-full pr-12 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                      />
+                      <button
+                        type="button"
+                        class="absolute inset-y-0 right-0 px-3 flex items-center text-gray-500 hover:text-gray-700"
+                        aria-label="Abrir calendário"
+                        on:click={() => openDatePicker(batismoAguasRef)}
+                      >
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      </button>
+                      <!-- Input date nativo para abrir o seletor e manter compatibilidade -->
+                      <input
+                        type="date"
+                        bind:this={batismoAguasRef}
+                        bind:value={formData.data_batismo_aguas}
+                        class="sr-only"
+                        aria-hidden="true"
+                        tabindex="-1"
+                      />
+                    </div>
                   </div>
                 {/if}
               </div>
@@ -1071,11 +1441,37 @@
                 {#if formData.batizado_es}
                   <div class="mt-4">
                     <label class="block text-sm font-medium text-gray-700 mb-2">Data do Batismo com o Espírito Santo</label>
-                    <input
-                      type="date"
-                      bind:value={formData.data_batismo_es}
-                      class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                    />
+                    <!-- Campo híbrido: texto (DD/MM/AAAA) + botão calendário + input date oculto acessível -->
+                    <div class="relative">
+                      <input
+                        type="text"
+                        inputmode="numeric"
+                        placeholder="DD/MM/AAAA"
+                        value={batismoEsText || toBrFromISO(formData.data_batismo_es)}
+                        on:input={handleBatismoEsTextInput}
+                        on:blur={handleBatismoEsTextBlur}
+                        class="w-full pr-12 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                      />
+                      <button
+                        type="button"
+                        class="absolute inset-y-0 right-0 px-3 flex items-center text-gray-500 hover:text-gray-700"
+                        aria-label="Abrir calendário"
+                        on:click={() => openDatePicker(batismoEsRef)}
+                      >
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      </button>
+                      <!-- Input date nativo para abrir o seletor e manter compatibilidade -->
+                      <input
+                        type="date"
+                        bind:this={batismoEsRef}
+                        bind:value={formData.data_batismo_es}
+                        class="sr-only"
+                        aria-hidden="true"
+                        tabindex="-1"
+                      />
+                    </div>
                   </div>
                 {/if}
               </div>
@@ -1091,7 +1487,7 @@
               Informações Adicionais
             </h3>
             
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">Tempo na Condição</label>
                 <input
@@ -1133,7 +1529,7 @@
               Dados Relacionado a Obra de Deus
             </h3>
             
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div class="bg-white rounded-lg p-4 border border-blue-100 min-w-0">
                 <label class="flex items-center space-x-3 cursor-pointer">
                   <input
@@ -1228,23 +1624,75 @@
                 {#if formData.afastado}
                   <div class="mt-4 space-y-4">
                     <!-- Linha com as duas datas -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Data do Afastamento</label>
-                        <input
-                          type="date"
-                          bind:value={formData.data_afastamento}
-                          class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                        />
+                        <!-- Campo híbrido: texto (DD/MM/AAAA) + botão calendário + input date oculto acessível -->
+                        <div class="relative">
+                          <input
+                            type="text"
+                            inputmode="numeric"
+                            placeholder="DD/MM/AAAA"
+                            value={afastamentoText || toBrFromISO(formData.data_afastamento)}
+                            on:input={handleAfastamentoTextInput}
+                            on:blur={handleAfastamentoTextBlur}
+                            class="w-full pr-12 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                          />
+                          <button
+                            type="button"
+                            class="absolute inset-y-0 right-0 px-3 flex items-center text-gray-500 hover:text-gray-700"
+                            aria-label="Abrir calendário"
+                            on:click={() => openDatePicker(afastamentoRef)}
+                          >
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                          </button>
+                          <!-- Input date nativo para abrir o seletor e manter compatibilidade -->
+                          <input
+                            type="date"
+                            bind:this={afastamentoRef}
+                            bind:value={formData.data_afastamento}
+                            class="sr-only"
+                            aria-hidden="true"
+                            tabindex="-1"
+                          />
+                        </div>
                       </div>
                       
                       <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Data de Retorno</label>
-                        <input
-                          type="date"
-                          bind:value={formData.data_retorno}
-                          class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                        />
+                        <!-- Campo híbrido: texto (DD/MM/AAAA) + botão calendário + input date oculto acessível -->
+                        <div class="relative">
+                          <input
+                            type="text"
+                            inputmode="numeric"
+                            placeholder="DD/MM/AAAA"
+                            value={retornoText || toBrFromISO(formData.data_retorno)}
+                            on:input={handleRetornoTextInput}
+                            on:blur={handleRetornoTextBlur}
+                            class="w-full pr-12 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                          />
+                          <button
+                            type="button"
+                            class="absolute inset-y-0 right-0 px-3 flex items-center text-gray-500 hover:text-gray-700"
+                            aria-label="Abrir calendário"
+                            on:click={() => openDatePicker(retornoRef)}
+                          >
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                          </button>
+                          <!-- Input date nativo para abrir o seletor e manter compatibilidade -->
+                          <input
+                            type="date"
+                            bind:this={retornoRef}
+                            bind:value={formData.data_retorno}
+                            class="sr-only"
+                            aria-hidden="true"
+                            tabindex="-1"
+                          />
+                        </div>
                       </div>
                     </div>
                     
@@ -1273,7 +1721,7 @@
               Família
             </h3>
             
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div class="bg-white rounded-lg p-4 border border-green-100 min-w-0">
                 <label class="flex items-center space-x-3 cursor-pointer">
                   <input
@@ -1305,6 +1753,17 @@
                   </div>
                 </label>
               </div>
+            </div>
+            
+            <!-- Campo de observações sobre os pais -->
+            <div class="mt-6">
+              <label class="block text-sm font-semibold text-gray-700 mb-2">Observações sobre a Família</label>
+              <textarea
+                bind:value={formData.obs_pais}
+                placeholder="Informações adicionais sobre a família do jovem..."
+                rows="3"
+                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors resize-none"
+              ></textarea>
             </div>
           </div>
           
@@ -1376,7 +1835,7 @@
             Projeto IntelliMen
           </h3>
           
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <!-- Formado no IntelliMen -->
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-3">Formado no IntelliMen</label>

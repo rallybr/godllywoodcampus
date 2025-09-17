@@ -5,6 +5,7 @@
   import Card from '$lib/components/ui/Card.svelte';
   import RelatorioFiltros from './RelatorioFiltros.svelte';
   
+  /** @type {any[]} */
   let dados = [];
   let loading = false;
   let error = '';
@@ -18,25 +19,26 @@
     handleGerarRelatorio({});
   });
   
-  // Função para gerar relatório
-  async function handleGerarRelatorio(novosFiltros) {
-    filtros = novosFiltros;
+  /** @type {(novosFiltros?: any, page?: number) => Promise<void>} */
+  const handleGerarRelatorio = async (novosFiltros = /** @type {any} */({}), page = 1) => {
+    filtros = novosFiltros || filtros;
+    paginaAtual = page || paginaAtual || 1;
     loading = true;
     error = '';
-    
+
     try {
-      const resultado = await gerarRelatorioAvaliacoes(filtros);
-      dados = resultado;
-      totalRegistros = resultado.length;
-      paginaAtual = 1;
+      const { data, total } = await gerarRelatorioAvaliacoes(filtros, { page: paginaAtual, pageSize: registrosPorPagina });
+      dados = data;
+      totalRegistros = total || 0;
     } catch (err) {
-      error = err.message;
+      const e = /** @type {{ message?: string }} */ (err);
+      error = e && e.message ? e.message : String(err);
     } finally {
       loading = false;
     }
   }
   
-  // Função para exportar
+  /** @param {any} novosFiltros */
   async function handleExportar(novosFiltros) {
     if (dados.length === 0) {
       error = 'Nenhum dado para exportar. Gere o relatório primeiro.';
@@ -46,21 +48,17 @@
     try {
       const nomeArquivo = `relatorio_avaliacoes_${new Date().toISOString().split('T')[0]}`;
       
-      // Exportar para CSV
       exportarParaCSV(dados, `${nomeArquivo}.csv`);
-      
-      // Exportar para Excel
       await exportarParaExcel(dados, `${nomeArquivo}.xlsx`);
-      
-      // Exportar para PDF
       await exportarParaPDF(dados, 'Relatório de Avaliações', `${nomeArquivo}.pdf`);
       
     } catch (err) {
-      error = err.message;
+      const e = /** @type {{ message?: string }} */ (err);
+      error = (e && e.message) ? e.message : 'Erro ao exportar';
     }
   }
   
-  // Função para obter cor da nota
+  /** @param {number} nota */
   function getNotaColor(nota) {
     if (nota >= 8) return 'text-green-600 bg-green-100';
     if (nota >= 6) return 'text-yellow-600 bg-yellow-100';
@@ -68,7 +66,7 @@
     return 'text-red-600 bg-red-100';
   }
   
-  // Função para obter cor da avaliação
+  /** @param {string} valor @param {'espirito'|'caractere'|'disposicao'} tipo */
   function getAvaliacaoColor(valor, tipo) {
     const colors = {
       espirito: {
@@ -91,10 +89,10 @@
       }
     };
     
-    return colors[tipo]?.[valor] || 'text-gray-600 bg-gray-100';
+    return /** @type {any} */ (colors)[tipo]?.[valor] || 'text-gray-600 bg-gray-100';
   }
   
-  // Função para obter texto da avaliação
+  /** @param {string} valor @param {'espirito'|'caractere'|'disposicao'} tipo */
   function getAvaliacaoText(valor, tipo) {
     const texts = {
       espirito: {
@@ -117,10 +115,10 @@
       }
     };
     
-    return texts[tipo]?.[valor] || valor;
+    return /** @type {any} */ (texts)[tipo]?.[valor] || valor;
   }
   
-  // Função para formatar data
+  /** @param {string} dateString */
   function formatDate(dateString) {
     return new Date(dateString).toLocaleDateString('pt-BR', {
       day: '2-digit',
@@ -131,22 +129,18 @@
     });
   }
   
-  // Função para obter dados paginados
   function getDadosPaginados() {
-    const inicio = (paginaAtual - 1) * registrosPorPagina;
-    const fim = inicio + registrosPorPagina;
-    return dados.slice(inicio, fim);
+    return dados;
   }
   
-  // Função para obter total de páginas
   function getTotalPaginas() {
     return Math.ceil(totalRegistros / registrosPorPagina);
   }
   
-  // Função para mudar página
+  /** @param {number} novaPagina */
   function mudarPagina(novaPagina) {
     if (novaPagina >= 1 && novaPagina <= getTotalPaginas()) {
-      paginaAtual = novaPagina;
+      handleGerarRelatorio(filtros, novaPagina);
     }
   }
 </script>
@@ -156,14 +150,14 @@
   <RelatorioFiltros
     {filtros}
     tipoRelatorio="avaliacoes"
-    onFiltrosChange={(novosFiltros) => filtros = novosFiltros}
-    onGerarRelatorio={handleGerarRelatorio}
-    onExportar={handleExportar}
+    on:FiltrosChange={(e) => { filtros = /** @type {any} */(e).detail; }}
+    on:GerarRelatorio={() => handleGerarRelatorio(filtros, 1)}
+    on:Exportar={() => handleExportar(filtros)}
     {loading}
   />
-  
+
   <!-- Resultados -->
-  <Card class="p-6">
+  <Card>
     <div class="flex items-center justify-between mb-6">
       <div>
         <h3 class="text-lg font-semibold text-gray-900">Relatório de Avaliações</h3>
@@ -202,14 +196,14 @@
             on:click={() => exportarParaPDF(dados, 'Relatório de Avaliações', 'relatorio_avaliacoes.pdf')}
           >
             <svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 01-2 2z" />
             </svg>
             PDF
           </Button>
         </div>
       {/if}
     </div>
-    
+
     {#if loading}
       <div class="flex items-center justify-center py-12">
         <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -318,8 +312,7 @@
           </tbody>
         </table>
       </div>
-      
-      <!-- Paginação -->
+
       {#if getTotalPaginas() > 1}
         <div class="flex items-center justify-between mt-6">
           <div class="text-sm text-gray-700">

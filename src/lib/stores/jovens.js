@@ -67,27 +67,87 @@ export async function loadJovens(page = 1, limit = 20) {
   error.set(null);
   
   try {
+    console.log('=== CARREGANDO JOVENS ===');
+    console.log('Página:', page, 'Limite:', limit);
+    
+    // Consulta mais simples para testar
     const { data, error: fetchError, count } = await supabase
       .from('jovens')
-      .select(`
-        *,
-        estado:estados(nome, sigla),
-        bloco:blocos(nome),
-        regiao:regioes(nome),
-        igreja:igrejas(nome),
-        edicao_obj:edicoes(nome, numero),
-        avaliacoes:avaliacoes(count)
-      `, { count: 'exact' })
+      .select('*', { count: 'exact' })
       .order('data_cadastro', { ascending: false })
       .range((page - 1) * limit, page * limit - 1);
     
-    if (fetchError) throw fetchError;
+    console.log('Erro da consulta:', fetchError);
+    console.log('Dados recebidos:', data);
+    console.log('Count:', count);
     
-    // Processar dados para incluir informação sobre avaliações
-    const processedData = (data || []).map(jovem => ({
-      ...jovem,
-      tem_avaliacoes: jovem.avaliacoes && jovem.avaliacoes.length > 0
-    }));
+    if (fetchError) {
+      console.error('Erro detalhado:', fetchError);
+      throw fetchError;
+    }
+    
+    // Buscar dados relacionados separadamente
+    const jovensIds = (data || []).map(j => j.id);
+    
+    // Buscar estados
+    const { data: estadosData } = await supabase
+      .from('estados')
+      .select('id, nome, sigla')
+      .in('id', [...new Set((data || []).map(j => j.estado_id))]);
+    
+    // Buscar blocos
+    const { data: blocosData } = await supabase
+      .from('blocos')
+      .select('id, nome')
+      .in('id', [...new Set((data || []).map(j => j.bloco_id))]);
+    
+    // Buscar regiões
+    const { data: regioesData } = await supabase
+      .from('regioes')
+      .select('id, nome')
+      .in('id', [...new Set((data || []).map(j => j.regiao_id))]);
+    
+    // Buscar igrejas
+    const { data: igrejasData } = await supabase
+      .from('igrejas')
+      .select('id, nome')
+      .in('id', [...new Set((data || []).map(j => j.igreja_id))]);
+    
+    // Buscar edições
+    const { data: edicoesData } = await supabase
+      .from('edicoes')
+      .select('id, nome, numero')
+      .in('id', [...new Set((data || []).map(j => j.edicao_id))]);
+    
+    // Buscar avaliações
+    const { data: avaliacoesData } = await supabase
+      .from('avaliacoes')
+      .select('jovem_id')
+      .in('jovem_id', jovensIds);
+    
+    console.log('Dados relacionados carregados');
+    
+    // Processar dados
+    const processedData = (data || []).map(jovem => {
+      const estado = estadosData?.find(e => e.id === jovem.estado_id);
+      const bloco = blocosData?.find(b => b.id === jovem.bloco_id);
+      const regiao = regioesData?.find(r => r.id === jovem.regiao_id);
+      const igreja = igrejasData?.find(i => i.id === jovem.igreja_id);
+      const edicao = edicoesData?.find(e => e.id === jovem.edicao_id);
+      const temAvaliacoes = avaliacoesData?.some(av => av.jovem_id === jovem.id) || false;
+      
+      return {
+        ...jovem,
+        estado,
+        bloco,
+        regiao,
+        igreja,
+        edicao_obj: edicao,
+        tem_avaliacoes: temAvaliacoes
+      };
+    });
+    
+    console.log('Dados processados:', processedData);
     
     jovens.set(processedData);
     pagination.set({
@@ -96,9 +156,12 @@ export async function loadJovens(page = 1, limit = 20) {
       total: count || 0,
       totalPages: Math.ceil((count || 0) / limit)
     });
+    
+    console.log('=== JOVENS CARREGADOS COM SUCESSO ===');
   } catch (err) {
+    console.error('=== ERRO AO CARREGAR JOVENS ===');
+    console.error('Erro completo:', err);
     error.set(err.message);
-    console.error('Error loading jovens:', err);
   } finally {
     loading.set(false);
   }
@@ -140,6 +203,12 @@ export async function createJovem(jovemData) {
     console.log('createJovem - Dados recebidos:', jovemData);
     console.log('createJovem - Campo edicao:', jovemData.edicao);
     console.log('createJovem - Campo edicao_id:', jovemData.edicao_id);
+    console.log('createJovem - Campo foto:', jovemData.foto);
+    console.log('=== REDES SOCIAIS NO CREATEJOVEM ===');
+    console.log('Instagram:', jovemData.instagram);
+    console.log('Facebook:', jovemData.facebook);
+    console.log('TikTok:', jovemData.tiktok);
+    console.log('Obs Redes:', jovemData.obs_redes);
     
     // Validar dados obrigatórios
     if (!jovemData.nome_completo) throw new Error('Nome completo é obrigatório');
@@ -209,15 +278,28 @@ export async function createJovem(jovemData) {
       aprovado: 'null' // Status inicial
     };
     
-    // Remover campos de data vazios
+    // Remover campos vazios que podem causar problemas no banco
     Object.keys(dadosCompletos).forEach(key => {
-      if (dadosCompletos[key] === '' && key.includes('data')) {
-        console.log('createJovem - Removendo campo de data vazio:', key);
-        delete dadosCompletos[key];
+      if (dadosCompletos[key] === '') {
+        // Remover campos de data vazios
+        if (key.includes('data')) {
+          console.log('createJovem - Removendo campo de data vazio:', key);
+          delete dadosCompletos[key];
+        }
+        // Remover campos numéricos vazios
+        else if (key === 'valor_divida') {
+          console.log('createJovem - Removendo campo numérico vazio:', key);
+          delete dadosCompletos[key];
+        }
+        // NÃO remover campo foto vazio - pode ser intencional
+        else if (key === 'foto') {
+          console.log('createJovem - Mantendo campo foto vazio (opcional)');
+        }
       }
     });
     
     console.log('createJovem - Dados após limpeza:', dadosCompletos);
+    console.log('createJovem - Campo foto após limpeza:', dadosCompletos.foto);
     
     console.log('createJovem - Tentando inserir dados:', dadosCompletos);
     

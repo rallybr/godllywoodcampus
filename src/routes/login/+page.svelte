@@ -130,7 +130,7 @@
           </div>
         {/if}
         
-        <div class="flex flex-col sm:flex-row gap-4">
+        <div class="flex flex-col gap-4">
           <Button
             type="submit"
             variant="primary"

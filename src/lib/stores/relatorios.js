@@ -1,17 +1,62 @@
 import { writable } from 'svelte/store';
 import { supabase } from '$lib/utils/supabase';
 
+/**
+ * @typedef {{
+ *  estado_id?: string;
+ *  bloco_id?: string;
+ *  regiao_id?: string;
+ *  igreja_id?: string;
+ *  edicao_id?: string;
+ *  aprovado?: string;
+ *  sexo?: string;
+ *  idade_min?: number;
+ *  idade_max?: number;
+ *  data_inicio?: string;
+ *  data_fim?: string;
+ * }} FiltrosJovens
+ */
+
+/**
+ * @typedef {{
+ *  avaliador_id?: string;
+ *  nota_min?: number;
+ *  nota_max?: number;
+ *  data_inicio?: string;
+ *  data_fim?: string;
+ * }} FiltrosAvaliacoes
+ */
+
+/**
+ * @typedef {{
+ *  page?: number;
+ *  pageSize?: number;
+ *  orderBy?: string;
+ *  ascending?: boolean;
+ * }} QueryOptions
+ */
+
 // Stores para relatórios
 export const relatorios = writable([]);
 export const loading = writable(false);
 export const error = writable(null);
 
 // Função para gerar relatório de jovens
-export async function gerarRelatorioJovens(filtros = {}) {
+/**
+ * @param {FiltrosJovens} filtros
+ * @param {QueryOptions} options
+ * @returns {Promise<{ data: any[]; total: number }>}
+ */
+export async function gerarRelatorioJovens(filtros = {}, options = {}) {
   loading.set(true);
   error.set(null);
   
   try {
+    const page = Number(options.page) > 0 ? Number(options.page) : 1;
+    const pageSize = Number(options.pageSize) > 0 ? Number(options.pageSize) : 50;
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
+
     let query = supabase
       .from('jovens')
       .select(`
@@ -21,7 +66,7 @@ export async function gerarRelatorioJovens(filtros = {}) {
         regiao:regioes(nome),
         igreja:igrejas(nome),
         edicao:edicoes(nome, numero)
-      `);
+      `, { count: 'exact' });
     
     // Aplicar filtros
     if (filtros.estado_id) {
@@ -59,35 +104,56 @@ export async function gerarRelatorioJovens(filtros = {}) {
     }
     
     // Ordenar
-    query = query.order('nome_completo');
+    const orderBy = options.orderBy || 'nome_completo';
+    const ascending = options.ascending !== false;
+    query = query.order(orderBy, { ascending });
+
+    // Paginação server-side
+    query = query.range(from, to);
     
-    const { data, error: fetchError } = await query;
+    const { data, error: fetchError, count } = await query;
     
     if (fetchError) throw fetchError;
     
-    return data || [];
+    return { data: data || [], total: count ?? 0 };
   } catch (err) {
-    error.set(err.message);
+    const msg = err && /** @type {any} */ (err).message ? /** @type {any} */ (err).message : String(err);
+    error.set(msg);
     console.error('Error generating relatório jovens:', err);
-    return [];
+    return { data: [], total: 0 };
   } finally {
     loading.set(false);
   }
 }
 
 // Função para gerar relatório de avaliações
-export async function gerarRelatorioAvaliacoes(filtros = {}) {
+/**
+ * @param {FiltrosAvaliacoes} filtros
+ * @param {QueryOptions} options
+ * @returns {Promise<{ data: any[]; total: number }>}
+ */
+export async function gerarRelatorioAvaliacoes(filtros = {}, options = {}) {
   loading.set(true);
   error.set(null);
   
   try {
+    const page = Number(options.page) > 0 ? Number(options.page) : 1;
+    const pageSize = Number(options.pageSize) > 0 ? Number(options.pageSize) : 50;
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
+
     let query = supabase
       .from('avaliacoes')
       .select(`
-        *,
+        id,
         jovem_id,
-        user_id
-      `);
+        user_id,
+        espirito,
+        caractere,
+        disposicao,
+        nota,
+        criado_em
+      `, { count: 'exact' });
     
     // Aplicar filtros simples
     if (filtros.avaliador_id) {
@@ -108,23 +174,53 @@ export async function gerarRelatorioAvaliacoes(filtros = {}) {
     
     // Ordenar
     query = query.order('criado_em', { ascending: false });
+
+    // Paginação server-side
+    query = query.range(from, to);
     
-    const { data, error: fetchError } = await query;
+    const { data, error: fetchError, count } = await query;
     
     if (fetchError) throw fetchError;
     
-    // Processar dados para adicionar informações básicas
-    const dadosProcessados = (data || []).map(avaliacao => ({
+    // Enriquecer com dados reais de jovem e avaliador
+    const avaliacoes = data || [];
+    const jovemIds = Array.from(new Set(avaliacoes.map(a => a.jovem_id).filter(Boolean)));
+    const userIds = Array.from(new Set(avaliacoes.map(a => a.user_id).filter(Boolean)));
+
+    /** @type {Record<string, any>} */
+    let jovensById = {};
+    if (jovemIds.length > 0) {
+      const { data: jovensData, error: jovensErr } = await supabase
+        .from('jovens')
+        .select(`id, nome_completo, estado:estados(nome), bloco:blocos(nome)`) 
+        .in('id', jovemIds);
+      if (jovensErr) throw jovensErr;
+      jovensById = (jovensData || []).reduce((acc, j) => { acc[String(j.id)] = j; return acc; }, /** @type {Record<string, any>} */({}));
+    }
+
+    /** @type {Record<string, any>} */
+    let usuariosById = {};
+    if (userIds.length > 0) {
+      const { data: usuariosData, error: usuariosErr } = await supabase
+        .from('usuarios')
+        .select(`id, nome, email`)
+        .in('id', userIds);
+      if (usuariosErr) throw usuariosErr;
+      usuariosById = (usuariosData || []).reduce((acc, u) => { acc[String(u.id)] = u; return acc; }, /** @type {Record<string, any>} */({}));
+    }
+
+    const dadosProcessados = avaliacoes.map((avaliacao) => ({
       ...avaliacao,
-      jovem: { nome_completo: 'Jovem ID: ' + avaliacao.jovem_id },
-      avaliador: { nome: 'Avaliador ID: ' + avaliacao.user_id, email: '' }
+      jovem: /** @type {Record<string, any>} */ (jovensById)[String(avaliacao.jovem_id)] || null,
+      avaliador: /** @type {Record<string, any>} */ (usuariosById)[String(avaliacao.user_id)] || null
     }));
     
-    return dadosProcessados;
+    return { data: dadosProcessados, total: count ?? dadosProcessados.length };
   } catch (err) {
-    error.set(err.message);
+    const msg = err && /** @type {any} */ (err).message ? /** @type {any} */ (err).message : String(err);
+    error.set(msg);
     console.error('Error generating relatório avaliações:', err);
-    return [];
+    return { data: [], total: 0 };
   } finally {
     loading.set(false);
   }
@@ -169,7 +265,8 @@ export async function gerarEstatisticasGerais(filtros = {}) {
       const somaNotas = avaliacoes.reduce((acc, av) => acc + (av.nota || 0), 0);
       stats.mediaGeral = somaNotas / avaliacoes.length;
       
-      // Calcular médias por categoria (convertendo enums para números)
+      // Calcular médias por categoria (suporta int direto ou string enum)
+      /** @type {Record<string, number>} */
       const enumToNumber = {
         'ruim': 1,
         'ser_observar': 2,
@@ -181,9 +278,16 @@ export async function gerarEstatisticasGerais(filtros = {}) {
         'desanimado': 1
       };
       
-      const somaEspirito = avaliacoes.reduce((acc, av) => acc + (enumToNumber[av.espirito] || 0), 0);
-      const somaCaractere = avaliacoes.reduce((acc, av) => acc + (enumToNumber[av.caractere] || 0), 0);
-      const somaDisposicao = avaliacoes.reduce((acc, av) => acc + (enumToNumber[av.disposicao] || 0), 0);
+      /** @param {any} v */
+      const asNumber = (v) => {
+        if (typeof v === 'number') return v;
+        if (v == null) return 0;
+        return /** @type {Record<string, number>} */ (enumToNumber)[String(v)] || 0;
+      };
+      
+      const somaEspirito = avaliacoes.reduce((acc, av) => acc + asNumber(av.espirito), 0);
+      const somaCaractere = avaliacoes.reduce((acc, av) => acc + asNumber(av.caractere), 0);
+      const somaDisposicao = avaliacoes.reduce((acc, av) => acc + asNumber(av.disposicao), 0);
       
       stats.mediaEspirito = somaEspirito / avaliacoes.length;
       stats.mediaCaractere = somaCaractere / avaliacoes.length;
@@ -192,7 +296,8 @@ export async function gerarEstatisticasGerais(filtros = {}) {
     
     return stats;
   } catch (err) {
-    error.set(err.message);
+    const msg = err && /** @type {any} */ (err).message ? /** @type {any} */ (err).message : String(err);
+    error.set(msg);
     console.error('Error generating estatísticas gerais:', err);
     return null;
   } finally {
@@ -201,6 +306,9 @@ export async function gerarEstatisticasGerais(filtros = {}) {
 }
 
 // Função para gerar relatório por localização
+/**
+ * @param {FiltrosJovens} filtros
+ */
 export async function gerarRelatorioPorLocalizacao(filtros = {}) {
   loading.set(true);
   error.set(null);
@@ -237,6 +345,7 @@ export async function gerarRelatorioPorLocalizacao(filtros = {}) {
     if (fetchError) throw fetchError;
     
     // Agrupar por localização
+    /** @type {Record<string, {estado: string; bloco: string; regiao: string; igreja: string; total: number; aprovados: number; preAprovados: number; pendentes: number; masculino: number; feminino: number; idadeMedia: number; idades: number[]}>} */
     const agrupado = {};
     
     data.forEach(jovem => {
@@ -255,14 +364,14 @@ export async function gerarRelatorioPorLocalizacao(filtros = {}) {
           masculino: 0,
           feminino: 0,
           idadeMedia: 0,
-          idades: []
+          /** @type {number[]} */ idades: []
         };
       }
       
       agrupado[chave].total++;
       agrupado[chave].idades.push(jovem.idade);
       
-      if (jovem.aprovado === true) agrupado[chave].aprovados++;
+      if (jovem.aprovado === 'aprovado') agrupado[chave].aprovados++;
       else if (jovem.aprovado === 'pre_aprovado') agrupado[chave].preAprovados++;
       else agrupado[chave].pendentes++;
       
@@ -271,15 +380,16 @@ export async function gerarRelatorioPorLocalizacao(filtros = {}) {
     });
     
     // Calcular idade média
-    Object.values(agrupado).forEach(local => {
+    Object.values(agrupado).forEach((local) => {
       if (local.idades.length > 0) {
-        local.idadeMedia = local.idades.reduce((acc, idade) => acc + idade, 0) / local.idades.length;
+        local.idadeMedia = local.idades.reduce((acc, idade) => acc + (idade || 0), 0) / local.idades.length;
       }
     });
     
     return Object.values(agrupado);
   } catch (err) {
-    error.set(err.message);
+    const msg = err && /** @type {any} */ (err).message ? /** @type {any} */ (err).message : String(err);
+    error.set(msg);
     console.error('Error generating relatório por localização:', err);
     return [];
   } finally {
@@ -287,14 +397,88 @@ export async function gerarRelatorioPorLocalizacao(filtros = {}) {
   }
 }
 
+/**
+ * Relatório de jovens via RPC com filtros complexos (executa no servidor sob RLS)
+ * @param {FiltrosJovens} filtros
+ * @param {QueryOptions} options
+ * @returns {Promise<{ data: any[]; total: number }>}
+ */
+export async function gerarRelatorioJovensRPC(filtros = {}, options = {}) {
+  loading.set(true);
+  error.set(null);
+  try {
+    const page = Number(options.page) > 0 ? Number(options.page) : 1;
+    const pageSize = Number(options.pageSize) > 0 ? Number(options.pageSize) : 50;
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
+
+    // Sugestão: a RPC pode implementar count via window function
+    const { data, error: rpcError } = await supabase
+      .rpc('filtrar_jovens', { filters: filtros })
+      .range(from, to);
+
+    if (rpcError) throw rpcError;
+
+    // Para obter total com precisão, podemos rodar sem range e pegar length (ou criar RPC que retorna total)
+    let total = 0;
+    {
+      const { data: allData, error: countErr } = await supabase.rpc('filtrar_jovens', { filters: filtros });
+      if (countErr) {
+        // fallback silencioso
+        total = Array.isArray(data) ? data.length : 0;
+      } else {
+        total = Array.isArray(allData) ? allData.length : 0;
+      }
+    }
+
+    return { data: data || [], total };
+  } catch (err) {
+    const msg = err && /** @type {any} */ (err).message ? /** @type {any} */ (err).message : String(err);
+    error.set(msg);
+    console.error('Error generating relatório jovens (RPC):', err);
+    return { data: [], total: 0 };
+  } finally {
+    loading.set(false);
+  }
+}
+
+/**
+ * Estatísticas do sistema via RPC (server-side)
+ * @returns {Promise<any>}
+ */
+export async function obterEstatisticasSistemaRPC() {
+  loading.set(true);
+  error.set(null);
+  try {
+    const { data, error: rpcError } = await supabase.rpc('obter_estatisticas_sistema');
+    if (rpcError) throw rpcError;
+    return data;
+  } catch (err) {
+    const msg = err && /** @type {any} */ (err).message ? /** @type {any} */ (err).message : String(err);
+    error.set(msg);
+    console.error('Error on obterEstatisticasSistemaRPC:', err);
+    return null;
+  } finally {
+    loading.set(false);
+  }
+}
+
 // Função para exportar dados para CSV
+/**
+ * @param {any[]} dados
+ * @param {string=} nomeArquivo
+ */
 export function exportarParaCSV(dados, nomeArquivo = 'relatorio.csv') {
   if (!dados || dados.length === 0) {
     throw new Error('Nenhum dado para exportar');
   }
   
   // Função para limpar e formatar dados
+  /**
+   * @param {Record<string, any>} objeto
+   */
   function limparDados(objeto) {
+    /** @type {Record<string, any>} */
     const limpo = {};
     for (const [chave, valor] of Object.entries(objeto)) {
       if (valor === null || valor === undefined) {
@@ -318,6 +502,7 @@ export function exportarParaCSV(dados, nomeArquivo = 'relatorio.csv') {
   }
   
   // Limpar dados
+  /** @type {Record<string, any>[]} */
   const dadosLimpos = dados.map(limparDados);
   
   // Obter cabeçalhos
@@ -348,13 +533,13 @@ export function exportarParaCSV(dados, nomeArquivo = 'relatorio.csv') {
   };
   
   const cabecalhosFormatados = cabecalhos.map(cabecalho => 
-    mapeamentoCabecalhos[cabecalho] || cabecalho
+    /** @type {Record<string, string>} */ (mapeamentoCabecalhos)[cabecalho] || cabecalho
   );
   
   // Criar CSV com BOM para UTF-8
   let csv = '\uFEFF' + cabecalhosFormatados.join(',') + '\n';
   
-  dadosLimpos.forEach(linha => {
+  dadosLimpos.forEach((linha) => {
     const valores = cabecalhos.map(cabecalho => {
       const valor = linha[cabecalho];
       if (typeof valor === 'string' && valor.includes(',')) {
@@ -379,6 +564,10 @@ export function exportarParaCSV(dados, nomeArquivo = 'relatorio.csv') {
 }
 
 // Função para exportar dados para Excel (usando SheetJS)
+/**
+ * @param {any[]} dados
+ * @param {string=} nomeArquivo
+ */
 export async function exportarParaExcel(dados, nomeArquivo = 'relatorio.xlsx') {
   if (!dados || dados.length === 0) {
     throw new Error('Nenhum dado para exportar');
@@ -388,7 +577,11 @@ export async function exportarParaExcel(dados, nomeArquivo = 'relatorio.xlsx') {
   const XLSX = await import('xlsx');
   
   // Função para limpar e formatar dados
+  /**
+   * @param {Record<string, any>} objeto
+   */
   function limparDados(objeto) {
+    /** @type {Record<string, any>} */
     const limpo = {};
     for (const [chave, valor] of Object.entries(objeto)) {
       if (valor === null || valor === undefined) {
@@ -423,13 +616,14 @@ export async function exportarParaExcel(dados, nomeArquivo = 'relatorio.xlsx') {
   const ws = XLSX.utils.json_to_sheet(dadosLimpos);
   
   // Configurar largura das colunas
+  /** @type {{ wch: number }[]} */
   const colWidths = [];
   const cabecalhos = Object.keys(dadosLimpos[0]);
   
   cabecalhos.forEach((cabecalho, index) => {
     const maxLength = Math.max(
       cabecalho.length,
-      ...dadosLimpos.map(linha => String(linha[cabecalho] || '').length)
+      ...dadosLimpos.map((linha) => String(linha[cabecalho] || '').length)
     );
     colWidths[index] = { wch: Math.min(maxLength + 2, 50) };
   });
@@ -453,6 +647,11 @@ export async function exportarParaExcel(dados, nomeArquivo = 'relatorio.xlsx') {
 }
 
 // Função para gerar PDF (usando jsPDF)
+/**
+ * @param {any[]} dados
+ * @param {string=} titulo
+ * @param {string=} nomeArquivo
+ */
 export async function exportarParaPDF(dados, titulo = 'Relatório', nomeArquivo = 'relatorio.pdf') {
   if (!dados || dados.length === 0) {
     throw new Error('Nenhum dado para exportar');
@@ -463,7 +662,11 @@ export async function exportarParaPDF(dados, titulo = 'Relatório', nomeArquivo 
   const { autoTable } = await import('jspdf-autotable');
   
   // Função para limpar e formatar dados
+  /**
+   * @param {Record<string, any>} objeto
+   */
   function limparDados(objeto) {
+    /** @type {Record<string, any>} */
     const limpo = {};
     for (const [chave, valor] of Object.entries(objeto)) {
       if (valor === null || valor === undefined) {
@@ -541,7 +744,7 @@ export async function exportarParaPDF(dados, titulo = 'Relatório', nomeArquivo 
   // Preparar dados para tabela
   const cabecalhos = Object.keys(dadosLimpos[0]);
   const cabecalhosFormatados = cabecalhos.map(cabecalho => 
-    mapeamentoCabecalhos[cabecalho] || cabecalho
+    /** @type {Record<string, string>} */ (mapeamentoCabecalhos)[cabecalho] || cabecalho
   );
   
   const linhas = dadosLimpos.map(linha => 
@@ -600,7 +803,9 @@ export async function exportarParaPDF(dados, titulo = 'Relatório', nomeArquivo 
   });
   
   // Adicionar rodapé
-  const pageCount = doc.internal.getNumberOfPages();
+  const pageCount = (/** @type {any} */(doc) && typeof /** @type {any} */(doc).getNumberOfPages === 'function')
+    ? /** @type {any} */(doc).getNumberOfPages()
+    : /** @type {any} */(doc).internal.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
     doc.setFontSize(8);

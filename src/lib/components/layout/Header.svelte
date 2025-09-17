@@ -8,6 +8,7 @@
   
   let showUserMenu = false;
   let showNotifications = false;
+  let showMobileSearch = false;
   
   function handleToggleSidebar() {
     dispatch('toggleSidebar');
@@ -24,6 +25,14 @@
   
   function toggleNotifications() {
     showNotifications = !showNotifications;
+  }
+  
+  function toggleMobileSearch() {
+    showMobileSearch = !showMobileSearch;
+  }
+
+  function goToProfile() {
+    goto('/profile');
   }
 </script>
 
@@ -66,15 +75,27 @@
     
     <!-- Right side -->
     <div class="flex items-center space-x-2">
+      <!-- Mobile Search Button -->
+      <button
+        type="button"
+        class="md:hidden p-2 rounded-full hover:bg-gray-100 transition-colors"
+        on:click={toggleMobileSearch}
+      >
+        <svg class="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+      </button>
+      
       <!-- Notifications -->
       <NotificacoesDropdown />
       
-      <!-- User menu -->
-      <div class="relative">
+      <!-- User: avatar (vai para perfil) + caret (abre menu) -->
+      <div class="relative flex items-center">
         <button
           type="button"
-          class="flex items-center space-x-2 p-1 rounded-full hover:bg-gray-100 transition-colors"
-          on:click={toggleUserMenu}
+          class="flex items-center p-1 rounded-full hover:bg-gray-100 transition-colors"
+          on:click={goToProfile}
+          aria-label="Ir para meu perfil"
         >
           {#if $userProfile?.foto}
             <img
@@ -89,6 +110,13 @@
               </span>
             </div>
           {/if}
+        </button>
+        <button
+          type="button"
+          class="p-1 rounded-full hover:bg-gray-100 transition-colors"
+          on:click={toggleUserMenu}
+          aria-label="Abrir menu do usuário"
+        >
           <svg class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
           </svg>
@@ -96,7 +124,7 @@
         
         <!-- User dropdown menu -->
         {#if showUserMenu}
-          <div class="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+          <div class="absolute right-0 mt-10 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
             <div class="p-4 border-b border-gray-200">
               <div class="flex items-center space-x-3">
                 {#if $userProfile?.foto}
@@ -129,7 +157,7 @@
               </a>
               <a href="/settings" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                 <svg class="w-4 h-4 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
                 Configurações
               </a>
@@ -150,4 +178,33 @@
       </div>
     </div>
   </div>
+  
+  <!-- Mobile Search Modal -->
+  {#if showMobileSearch}
+    <div class="md:hidden border-t border-gray-200 bg-white">
+      <div class="px-4 py-3">
+        <div class="relative">
+          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+          <input
+            type="text"
+            placeholder="Pesquisar jovens, avaliações..."
+            class="w-full pl-10 pr-4 py-2 bg-gray-100 border-0 rounded-full focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors"
+          />
+          <button
+            type="button"
+            class="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 rounded-full hover:bg-gray-200 transition-colors"
+            on:click={toggleMobileSearch}
+          >
+            <svg class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  {/if}
 </header>
