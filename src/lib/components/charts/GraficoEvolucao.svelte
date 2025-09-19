@@ -1,4 +1,5 @@
 <script>
+  // @ts-nocheck
   import { onMount } from 'svelte';
   import { Chart, registerables } from 'chart.js';
   import { Chart as SvelteChart } from 'svelte-chartjs';
@@ -217,21 +218,23 @@
   };
 </script>
 
-<div class="w-full" style="height: {altura}px;">
-  {#if chartData.labels.length > 0}
-    <SvelteChart
-      {chartData}
-      {options}
-      type={tipo}
-    />
-  {:else}
-    <div class="flex items-center justify-center h-full bg-gray-50 rounded-lg">
-      <div class="text-center">
-        <svg class="w-12 h-12 text-gray-400 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-        </svg>
-        <p class="text-gray-500 text-sm">Nenhum dado disponível para o gráfico</p>
+<div class="w-full max-w-full overflow-x-auto">
+  <div class="min-w-[360px]" style="height: {altura}px;">
+    {#if chartData.labels.length > 0}
+      <SvelteChart
+        {chartData}
+        {options}
+        type={tipo}
+      />
+    {:else}
+      <div class="flex items-center justify-center h-full bg-gray-50 rounded-lg">
+        <div class="text-center">
+          <svg class="w-12 h-12 text-gray-400 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+          </svg>
+          <p class="text-gray-500 text-sm">Nenhum dado disponível para o gráfico</p>
+        </div>
       </div>
-    </div>
-  {/if}
+    {/if}
+  </div>
 </div>

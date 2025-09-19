@@ -88,6 +88,7 @@ export interface Jovem {
   edicao_id?: string;
   foto?: string;
   nome_completo: string;
+  viagem?: Viagem | null;
   whatsapp?: string;
   data_nasc: string;
   idade?: number;
@@ -172,6 +173,25 @@ export interface Avaliacao {
   // Relations
   jovem?: Jovem;
   avaliador?: Usuario;
+}
+
+// Viagens
+export interface Viagem {
+  id: string;
+  jovem_id: string;
+  edicao_id: string;
+  pagou_despesas: boolean;
+  comprovante_pagamento?: string;
+  data_passagem_ida?: string; // ISO string (timestamptz)
+  comprovante_passagem_ida?: string;
+  data_passagem_volta?: string; // ISO string (timestamptz)
+  comprovante_passagem_volta?: string;
+  data_cadastro: string;
+  atualizado_em?: string;
+}
+
+export interface JovemComViagem extends Jovem {
+  viagem?: Viagem | null;
 }
 
 export interface LogHistorico {

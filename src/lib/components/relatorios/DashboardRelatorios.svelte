@@ -89,7 +89,7 @@
 
 <div class="space-y-6">
   <!-- Header -->
-  <div class="flex items-center justify-between">
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
     <div>
       <h1 class="text-2xl font-bold text-gray-900">Dashboard de Relatórios</h1>
       <p class="text-gray-600">Visão geral das estatísticas do sistema</p>
@@ -117,8 +117,8 @@
     </div>
   {:else if estatisticas}
     <!-- Estatísticas Principais -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-      <Card class="p-6">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+      <Card class="p-4 sm:p-6">
         <div class="flex items-center">
           <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mr-4">
             <svg class="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -132,7 +132,7 @@
         </div>
       </Card>
       
-      <Card class="p-6">
+      <Card class="p-4 sm:p-6">
         <div class="flex items-center">
           <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mr-4">
             <svg class="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -146,7 +146,7 @@
         </div>
       </Card>
       
-      <Card class="p-6">
+      <Card class="p-4 sm:p-6">
         <div class="flex items-center">
           <div class="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center mr-4">
             <svg class="w-6 h-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -160,7 +160,7 @@
         </div>
       </Card>
       
-      <Card class="p-6">
+      <Card class="p-4 sm:p-6">
         <div class="flex items-center">
           <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mr-4">
             <svg class="w-6 h-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -176,8 +176,8 @@
     </div>
     
     <!-- Estatísticas de Avaliações -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <Card class="p-6">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+      <Card class="p-4 sm:p-6">
         <h3 class="text-lg font-semibold text-gray-900 mb-4">Médias de Avaliações</h3>
         <div class="space-y-4">
           <div>
@@ -242,7 +242,7 @@
         </div>
       </Card>
       
-      <Card class="p-6">
+      <Card class="p-4 sm:p-6">
         <h3 class="text-lg font-semibold text-gray-900 mb-4">Resumo de Avaliações</h3>
         <div class="space-y-4">
           <div class="flex items-center justify-between">
@@ -269,7 +269,7 @@
     
     <!-- Relatório por Localização -->
     {#if relatorioLocalizacao.length > 0}
-      <Card class="p-6">
+      <Card class="p-4 sm:p-6">
         <h3 class="text-lg font-semibold text-gray-900 mb-4">Distribuição por Localização</h3>
         <div class="overflow-x-auto">
           <table class="min-w-full divide-y divide-gray-200">
@@ -381,7 +381,7 @@
       </div>
       
       <!-- Gráfico de Evolução -->
-      <Card class="p-6">
+      <Card class="p-4 sm:p-6">
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-lg font-semibold text-gray-900">Evolução Temporal</h3>
           <div class="flex space-x-2">

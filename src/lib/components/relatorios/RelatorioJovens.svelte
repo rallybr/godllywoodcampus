@@ -136,8 +136,8 @@
   />
   
   <!-- Resultados -->
-  <Card class="p-6">
-    <div class="flex items-center justify-between mb-6">
+  <Card class="p-4 sm:p-6">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 mb-4 sm:mb-6">
       <div>
         <h3 class="text-lg font-semibold text-gray-900">Relatório de Jovens</h3>
         <p class="text-sm text-gray-600">
@@ -146,7 +146,7 @@
       </div>
       
       {#if dados.length > 0}
-        <div class="flex space-x-2">
+        <div class="flex flex-wrap gap-2">
           <Button
             variant="outline"
             size="sm"
@@ -209,8 +209,8 @@
     {:else}
       <!-- Gráficos -->
       {#if mostrarGraficos}
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <Card class="p-6">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 sm:mb-8">
+          <Card class="p-4 sm:p-6">
             <div class="flex items-center justify-between mb-4">
               <h4 class="text-md font-semibold text-gray-900">Distribuição por Estado</h4>
               <select
@@ -231,7 +231,7 @@
             />
           </Card>
           
-          <Card class="p-6">
+          <Card class="p-4 sm:p-6">
             <div class="flex items-center justify-between mb-4">
               <h4 class="text-md font-semibold text-gray-900">Evolução Temporal</h4>
               <select
@@ -255,7 +255,7 @@
       {/if}
       
       <!-- Tabela de dados -->
-      <div class="overflow-x-auto">
+      <div class="overflow-x-auto -mx-4 sm:mx-0">
         <table class="min-w-full divide-y divide-gray-200">
           <thead class="bg-gray-50">
             <tr>
@@ -285,7 +285,7 @@
           <tbody class="bg-white divide-y divide-gray-200">
             {#each getDadosPaginados() as jovem}
               <tr class="hover:bg-gray-50">
-                <td class="px-6 py-4 whitespace-nowrap">
+                <td class="px-4 sm:px-6 py-4 whitespace-nowrap">
                   <div class="flex items-center">
                     <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mr-3">
                       <span class="text-white font-bold text-sm">
@@ -302,13 +302,13 @@
                     </div>
                   </div>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                <td class="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   {jovem.idade} anos
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                <td class="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   {jovem.sexo === 'masculino' ? 'Masculino' : 'Feminino'}
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                <td class="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   {jovem.estado_civil || 'N/A'}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -319,12 +319,12 @@
                     </div>
                   </div>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap">
+                <td class="px-4 sm:px-6 py-4 whitespace-nowrap">
                   <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {getStatusColor(jovem.aprovado)}">
                     {getStatusText(jovem.aprovado)}
                   </span>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td class="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {formatDate(jovem.data_cadastro)}
                 </td>
               </tr>

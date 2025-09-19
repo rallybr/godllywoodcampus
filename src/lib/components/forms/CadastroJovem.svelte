@@ -1,4 +1,5 @@
 <script>
+  // @ts-nocheck
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
   import { createJovem } from '$lib/stores/jovens';
@@ -49,6 +50,7 @@
     batizado_es: false,
     data_batismo_es: '',
     condicao: '',
+    condicao_campus: '',
     tempo_condicao: '',
     responsabilidade_igreja: '',
     
@@ -278,6 +280,7 @@
         if (!formData.sexo) validationErrors.sexo = 'Sexo é obrigatório';
         if (!formData.estado_civil) validationErrors.estado_civil = 'Estado civil é obrigatório';
         if (!formData.whatsapp) validationErrors.whatsapp = 'WhatsApp é obrigatório';
+        if (!fotoFile) validationErrors.foto = 'Foto é obrigatória';
         
         // Validação adicional para data
         if (formData.data_nasc && typeof formData.data_nasc === 'string') {
@@ -657,7 +660,7 @@
   $: progress = (currentStep / totalSteps) * 100;
 </script>
 
-<div class="max-w-4xl mx-auto">
+<div class="max-w-4xl mx-auto px-4 sm:px-6">
   <!-- Header -->
   <div class="mb-8">
     <h1 class="text-3xl font-bold text-gray-900 mb-2">Cadastro de Jovem</h1>
@@ -676,7 +679,7 @@
   </div>
   
   <!-- Form -->
-  <Card padding="p-8">
+  <Card padding="p-6 sm:p-8">
     {#if success}
       <!-- Success Message -->
       <div class="text-center py-12">
@@ -698,7 +701,7 @@
           </div>
           
           <!-- Foto -->
-          <div class="p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-100 iphone-pro-max">
+          <div class="p-4 sm:p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border {validationErrors.foto ? 'border-red-300' : 'border-blue-100'} iphone-pro-max">
             <div class="flex flex-col sm:flex-row items-center sm:items-start space-y-4 sm:space-y-0 sm:space-x-6">
               <div class="flex-shrink-0">
                 <!-- Input file oculto para clique no ícone -->
@@ -711,7 +714,7 @@
                 />
                 
                 {#if fotoPreview}
-                  <div class="relative cursor-pointer" on:click={() => fotoInputRef?.click()}>
+                  <button type="button" class="relative cursor-pointer" on:click={() => fotoInputRef?.click()} aria-label="Alterar foto do jovem">
                     <img class="w-28 h-28 rounded-full object-cover border-4 border-white shadow-lg hover:shadow-xl transition-shadow" src={fotoPreview} alt="Preview" />
                     <div class="absolute -bottom-1 -right-1 w-8 h-8 bg-green-500 rounded-full flex items-center justify-center border-2 border-white">
                       <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -726,23 +729,22 @@
                         </svg>
                       </div>
                     </div>
-                  </div>
+                  </button>
                 {:else}
-                  <div 
+                  <button type="button"
                     class="w-28 h-28 bg-gradient-to-br from-blue-100 to-indigo-200 rounded-full flex items-center justify-center border-4 border-white shadow-lg cursor-pointer hover:shadow-xl hover:from-blue-200 hover:to-indigo-300 transition-all duration-200" 
-                    on:click={() => fotoInputRef?.click()}
-                  >
+                    on:click={() => fotoInputRef?.click()} aria-label="Adicionar foto do jovem">
                     <div class="text-center">
                       <svg class="w-10 h-10 text-blue-500 mx-auto mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                       </svg>
                       <div class="text-xs text-blue-600 font-medium">Adicionar Foto</div>
                     </div>
-                  </div>
+                  </button>
                 {/if}
               </div>
               <div class="flex-1 w-full min-w-0">
-                <label class="block text-sm font-semibold text-gray-800 mb-3">Foto do Jovem</label>
+                <label class="block text-sm font-semibold text-gray-800 mb-3" for="foto-input">Foto do Jovem *</label>
                 <div class="space-y-3">
                   <!-- Input de arquivo customizado para mobile -->
                   <div class="w-full">
@@ -770,6 +772,9 @@
                     </svg>
                     <span class="break-words">JPG, PNG ou WEBP. Máximo 5MB</span>
                   </div>
+                  {#if validationErrors.foto}
+                    <p class="text-sm text-red-600">{validationErrors.foto}</p>
+                  {/if}
                 </div>
               </div>
             </div>
@@ -777,7 +782,7 @@
 
           {#if showCropper}
             <!-- Modal Cropper responsivo -->
-            <div class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-2 sm:p-4" on:mouseup={onCropMouseUp} on:mouseleave={onCropMouseUp} on:touchend={onCropTouchEnd}>
+            <div class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-2 sm:p-4" role="presentation" on:mouseup={onCropMouseUp} on:mouseleave={onCropMouseUp} on:touchend={onCropTouchEnd}>
               <div class="bg-white rounded-2xl p-4 sm:p-6 shadow-2xl w-full max-w-xs sm:max-w-md md:max-w-2xl max-h-[95vh] overflow-y-auto">
                 <h3 class="text-lg font-semibold text-gray-900 mb-4">Ajustar foto</h3>
                 <div class="flex flex-col space-y-4 sm:space-y-6">
@@ -814,14 +819,15 @@
             </div>
           {/if}
           
-          <div class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+          <div class="bg-white rounded-xl border border-gray-200 p-4 sm:p-6 shadow-sm">
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-2">Nome Completo *</label>
+                <label class="block text-sm font-semibold text-gray-700 mb-2" for="nome_completo">Nome Completo *</label>
                 <input
                   type="text"
                   bind:value={formData.nome_completo}
                   placeholder="Digite o nome completo"
+                  id="nome_completo"
                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors {validationErrors.nome_completo ? 'border-red-300 focus:ring-red-500' : ''}"
                 />
                 {#if validationErrors.nome_completo}
@@ -830,7 +836,7 @@
               </div>
               
               <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-2">Data de Nascimento *</label>
+                <label class="block text-sm font-semibold text-gray-700 mb-2" for="data_nasc_input">Data de Nascimento *</label>
                 <!-- Campo híbrido: texto (DD/MM/AAAA) + botão calendário + input date oculto acessível -->
                 <div class="relative">
                   <input
@@ -840,6 +846,7 @@
                     value={dateNascText || toBrFromISO(formData.data_nasc)}
                     on:input={handleNascTextInput}
                     on:blur={handleNascTextBlur}
+                    id="data_nasc_input"
                     class="w-full pr-12 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors {validationErrors.data_nasc ? 'border-red-300 focus:ring-red-500' : ''}"
                   />
                   <button
@@ -868,10 +875,11 @@
               </div>
               
               <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-2">Sexo *</label>
+                <label class="block text-sm font-semibold text-gray-700 mb-2" for="sexo_select">Sexo *</label>
                 <div class="relative">
                   <select
                     bind:value={formData.sexo}
+                    id="sexo_select"
                     class="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors appearance-none bg-white cursor-pointer {validationErrors.sexo ? 'border-red-300 focus:ring-red-500' : ''}"
                   >
                     <option value="">Selecione o sexo</option>
@@ -891,10 +899,11 @@
               </div>
               
               <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-2">Estado Civil *</label>
+                <label class="block text-sm font-semibold text-gray-700 mb-2" for="estado_civil_select">Estado Civil *</label>
                 <div class="relative">
                   <select
                     bind:value={formData.estado_civil}
+                    id="estado_civil_select"
                     class="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors appearance-none bg-white cursor-pointer {validationErrors.estado_civil ? 'border-red-300 focus:ring-red-500' : ''}"
                   >
                     <option value="">Selecione o estado civil</option>
@@ -916,13 +925,14 @@
               </div>
               
               <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-2">WhatsApp *</label>
+                <label class="block text-sm font-semibold text-gray-700 mb-2" for="whatsapp_input">WhatsApp *</label>
                 <input
                   type="tel"
                   value={formData.whatsapp}
                   on:input={handleWhatsAppChange}
                   placeholder="(11) 99999-9999"
                   maxlength="15"
+                  id="whatsapp_input"
                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors {validationErrors.whatsapp ? 'border-red-300 focus:ring-red-500' : ''}"
                 />
                 {#if validationErrors.whatsapp}
@@ -943,7 +953,7 @@
           </div>
           
           <!-- Seção de Localização Geográfica -->
-          <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-100 p-6">
+          <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-100 p-4 sm:p-6">
             <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
               <svg class="w-5 h-5 text-blue-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -954,10 +964,11 @@
             
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-2">Estado *</label>
+                <label class="block text-sm font-semibold text-gray-700 mb-2" for="estado_id">Estado *</label>
                 <div class="relative">
                   <select
                     bind:value={formData.estado_id}
+                    id="estado_id"
                     class="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors appearance-none bg-white cursor-pointer {validationErrors.estado_id ? 'border-red-300 focus:ring-red-500' : ''}"
                   >
                     <option value="">Selecione o estado</option>
@@ -978,10 +989,11 @@
               </div>
               
               <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-2">Bloco *</label>
+                <label class="block text-sm font-semibold text-gray-700 mb-2" for="bloco_id">Bloco *</label>
                 <div class="relative">
                   <select
                     bind:value={formData.bloco_id}
+                    id="bloco_id"
                     disabled={!formData.estado_id}
                     class="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors appearance-none bg-white cursor-pointer disabled:bg-gray-100 disabled:cursor-not-allowed {validationErrors.bloco_id ? 'border-red-300 focus:ring-red-500' : ''}"
                   >
@@ -1003,10 +1015,11 @@
               </div>
               
               <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-2">Região *</label>
+                <label class="block text-sm font-semibold text-gray-700 mb-2" for="regiao_id">Região *</label>
                 <div class="relative">
                   <select
                     bind:value={formData.regiao_id}
+                    id="regiao_id"
                     disabled={!formData.bloco_id}
                     class="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors appearance-none bg-white cursor-pointer disabled:bg-gray-100 disabled:cursor-not-allowed {validationErrors.regiao_id ? 'border-red-300 focus:ring-red-500' : ''}"
                   >
@@ -1028,10 +1041,11 @@
               </div>
               
               <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-2">Igreja *</label>
+                <label class="block text-sm font-semibold text-gray-700 mb-2" for="igreja_id">Igreja *</label>
                 <div class="relative">
                   <select
                     bind:value={formData.igreja_id}
+                    id="igreja_id"
                     disabled={!formData.regiao_id}
                     class="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors appearance-none bg-white cursor-pointer disabled:bg-gray-100 disabled:cursor-not-allowed {validationErrors.igreja_id ? 'border-red-300 focus:ring-red-500' : ''}"
                   >
@@ -1063,11 +1077,12 @@
               Edição do Evento
             </h3>
             
-            <div class="max-w-md">
-              <label class="block text-sm font-semibold text-gray-700 mb-2">Edição *</label>
+            <div class="max-w-md w-full">
+              <label class="block text-sm font-semibold text-gray-700 mb-2" for="edicao_id">Edição *</label>
               <div class="relative">
                 <select
                   bind:value={formData.edicao_id}
+                  id="edicao_id"
                   class="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors appearance-none bg-white cursor-pointer {validationErrors.edicao_id ? 'border-red-300 focus:ring-red-500' : ''}"
                 >
                   <option value="">Selecione a edição</option>
@@ -1089,7 +1104,7 @@
           </div>
           
           <!-- Seção de Redes Sociais -->
-          <div class="bg-gradient-to-br from-green-50 to-teal-50 rounded-xl border border-green-100 p-6">
+          <div class="bg-gradient-to-br from-green-50 to-teal-50 rounded-xl border border-green-100 p-4 sm:p-6">
             <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
               <svg class="w-5 h-5 text-green-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4V2a1 1 0 011-1h8a1 1 0 011 1v2h3a1 1 0 110 2h-1v12a2 2 0 01-2 2H7a2 2 0 01-2-2V6H4a1 1 0 110-2h3zM9 6v10h6V6H9z" />
@@ -1173,7 +1188,7 @@
           </div>
           
           <!-- Seção de Trabalho -->
-          <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border border-green-100 p-6">
+          <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border border-green-100 p-4 sm:p-6">
             <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
               <svg class="w-5 h-5 text-green-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2-2v2m8 0V6a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V8a2 2 0 012-2V6" />
@@ -1206,7 +1221,7 @@
           </div>
           
           <!-- Seção de Educação -->
-          <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-100 p-6">
+          <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-100 p-4 sm:p-6">
             <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
               <svg class="w-5 h-5 text-blue-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5z" />
@@ -1255,7 +1270,7 @@
           </div>
           
           <!-- Seção de Dívidas -->
-          <div class="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-xl border border-yellow-100 p-6">
+          <div class="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-xl border border-yellow-100 p-4 sm:p-6">
             <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
               <svg class="w-5 h-5 text-yellow-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
@@ -1314,7 +1329,8 @@
           </div>
           
           <div class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div class="space-y-6">
+              <!-- Primeira linha: Tempo na Igreja -->
               <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">Tempo na Igreja *</label>
                 <input
@@ -1328,32 +1344,62 @@
                 {/if}
               </div>
               
-              <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-2">Condição *</label>
-                <div class="relative">
-                  <select
-                    bind:value={formData.condicao}
-                    class="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors appearance-none bg-white cursor-pointer {validationErrors.condicao ? 'border-red-300 focus:ring-red-500' : ''}"
-                  >
-                    <option value="">Selecione a condição</option>
-                    <option value="jovem_batizado_es">Jovem Batizado(a) ES</option>
-                    <option value="cpo">CPO</option>
-                    <option value="colaborador">Colaborador(a)</option>
-                    <option value="obreiro">Obreiro(a)</option>
-                    <option value="iburd">IBURD</option>
-                    <option value="namorada">Namorada</option>
-                    <option value="noiva">Noiva</option>
-                  </select>
-                  <!-- Ícone de dropdown customizado -->
-                  <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                    <svg class="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                    </svg>
+              <!-- Segunda linha: Condição e Condição no Campus -->
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div>
+                  <label class="block text-sm font-semibold text-gray-700 mb-2">Condição *</label>
+                  <div class="relative">
+                    <select
+                      bind:value={formData.condicao}
+                      class="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors appearance-none bg-white cursor-pointer {validationErrors.condicao ? 'border-red-300 focus:ring-red-500' : ''}"
+                    >
+                      <option value="">Selecione a condição</option>
+                      <option value="jovem_batizado_es">Jovem Batizado(a) ES</option>
+                      <option value="cpo">CPO</option>
+                      <option value="colaborador">Colaborador(a)</option>
+                      <option value="obreiro">Obreiro(a)</option>
+                      <option value="iburd">IBURD</option>
+                      <option value="auxiliar_pastor">Auxiliar de Pastor</option>
+                      <option value="namorada">Namorada</option>
+                      <option value="noiva">Noiva</option>
+                    </select>
+                    <!-- Ícone de dropdown customizado -->
+                    <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                      <svg class="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                  </div>
+                  {#if validationErrors.condicao}
+                    <p class="mt-1 text-sm text-red-600">{validationErrors.condicao}</p>
+                  {/if}
+                </div>
+                
+                <div>
+                  <label class="block text-sm font-semibold text-gray-700 mb-2">Foi para o Campus em que condição?</label>
+                  <div class="relative">
+                    <select
+                      bind:value={formData.condicao_campus}
+                      class="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors appearance-none bg-white cursor-pointer"
+                    >
+                      <option value="">Selecione a condição no Campus</option>
+                      <option value="jovem_batizado_es">Jovem Batizado(a) ES</option>
+                      <option value="cpo">CPO</option>
+                      <option value="colaborador">Colaborador(a)</option>
+                      <option value="obreiro">Obreiro(a)</option>
+                      <option value="iburd">IBURD</option>
+                      <option value="auxiliar_pastor">Auxiliar de Pastor</option>
+                      <option value="namorada">Namorada</option>
+                      <option value="noiva">Noiva</option>
+                    </select>
+                    <!-- Ícone de dropdown customizado -->
+                    <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                      <svg class="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
                   </div>
                 </div>
-                {#if validationErrors.condicao}
-                  <p class="mt-1 text-sm text-red-600">{validationErrors.condicao}</p>
-                {/if}
               </div>
             </div>
           </div>

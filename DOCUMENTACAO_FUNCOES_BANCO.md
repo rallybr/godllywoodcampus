@@ -206,6 +206,23 @@ Observação: tipos foram inferidos a partir dos trechos fornecidos e do padrão
 
 ---
 
+## set_usuario_id_on_insert_dados_viagem (sugerida)
+- Assinatura: `set_usuario_id_on_insert_dados_viagem() RETURNS trigger`
+- Propósito: Preenche `NEW.usuario_id` com o usuário atual ao inserir em `dados_viagem`.
+- Parâmetros: usa `NEW` via trigger e `auth.uid()`.
+- Retorno: `NEW`.
+- Uso típico: BEFORE INSERT em `public.dados_viagem`.
+
+---
+
+## criar_log_viagem_update (opcional)
+- Assinatura: `criar_log_viagem_update() RETURNS trigger`
+- Propósito: Grava em `logs_historico` alterações de `dados_viagem` com `acao = 'viagem_update'`.
+- Parâmetros: `OLD`, `NEW`.
+- Retorno: `NEW`.
+- Uso típico: AFTER INSERT/UPDATE em `public.dados_viagem`.
+
+---
 ## Mapas de Uso (Triggers sugeridos)
 
 - `usuarios`

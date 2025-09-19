@@ -1,5 +1,7 @@
 import { writable } from 'svelte/store';
 import { supabase } from '$lib/utils/supabase';
+import { initializeAccessLevels } from './niveis-acesso';
+import { initializeCadastroCheck, marcarJovemNaoCadastrado } from './jovem-cadastro';
 import { browser } from '$app/environment';
 
 export const user = writable(null);
@@ -23,6 +25,7 @@ if (browser) {
       loadUserProfile(session.user.id);
     } else {
       userProfile.set(null);
+      marcarJovemNaoCadastrado();
     }
   });
 }
@@ -85,6 +88,12 @@ export async function loadUserProfile(userId) {
       throw error;
     }
     userProfile.set(data);
+    
+    // Inicializar sistema de níveis de acesso
+    await initializeAccessLevels();
+    
+    // Inicializar verificação de cadastro do jovem
+    await initializeCadastroCheck();
   } catch (error) {
     console.error('Error loading user profile:', error);
     console.error('Error details:', JSON.stringify(error, null, 2));
@@ -162,45 +171,42 @@ export async function signOut() {
   const { error } = await supabase.auth.signOut();
   user.set(null);
   userProfile.set(null);
+  marcarJovemNaoCadastrado();
   return { error };
 }
 
 export function hasRole(roleSlug) {
   return (profile) => {
-    if (!profile?.user_roles) return false;
-    return profile.user_roles.some(ur => ur.roles?.slug === roleSlug && ur.ativo);
+    if (!profile?.nivel) return false;
+    return profile.nivel === roleSlug;
   };
 }
 
 export function hasPermission(permission) {
   return (profile) => {
-    if (!profile?.user_roles) return false;
+    if (!profile?.nivel) return false;
     
     // Admin has all permissions
-    if (profile.user_roles.some(ur => ur.roles?.slug === 'administrador' && ur.ativo)) {
+    if (profile.nivel === 'administrador') {
       return true;
     }
     
     // Check specific permissions based on role
-    return profile.user_roles.some(ur => {
-      if (!ur.ativo) return false;
-      
-      const role = ur.roles?.slug;
-      switch (permission) {
-        case 'view_jovens':
-          return ['administrador', 'colaborador', 'lider_estadual_iurd', 'lider_estadual_fju', 
-                  'lider_bloco_iurd', 'lider_bloco_fju', 'lider_regional_iurd', 'lider_igreja_iurd'].includes(role);
-        case 'edit_jovens':
-          return ['administrador', 'colaborador', 'lider_estadual_iurd', 'lider_estadual_fju', 
-                  'lider_bloco_iurd', 'lider_bloco_fju', 'lider_regional_iurd', 'lider_igreja_iurd'].includes(role);
-        case 'manage_users':
-          return ['administrador', 'colaborador'].includes(role);
-        case 'view_reports':
-          return ['administrador', 'colaborador', 'lider_estadual_iurd', 'lider_estadual_fju', 
-                  'lider_bloco_iurd', 'lider_bloco_fju', 'lider_regional_iurd', 'lider_igreja_iurd'].includes(role);
-        default:
-          return false;
-      }
-    });
+    const role = profile.nivel;
+    switch (permission) {
+      case 'view_jovens':
+        return ['administrador', 'lider_nacional_iurd', 'lider_nacional_fju', 'colaborador', 'lider_estadual_iurd', 'lider_estadual_fju', 
+                'lider_bloco_iurd', 'lider_bloco_fju', 'lider_regional_iurd', 'lider_igreja_iurd'].includes(role);
+      case 'edit_jovens':
+        return ['administrador', 'lider_nacional_iurd', 'lider_nacional_fju', 'colaborador', 'lider_estadual_iurd', 'lider_estadual_fju', 
+                'lider_bloco_iurd', 'lider_bloco_fju', 'lider_regional_iurd', 'lider_igreja_iurd'].includes(role);
+      case 'manage_users':
+        return ['administrador', 'lider_nacional_iurd', 'lider_nacional_fju', 'colaborador'].includes(role);
+      case 'view_reports':
+        return ['administrador', 'lider_nacional_iurd', 'lider_nacional_fju', 'colaborador', 'lider_estadual_iurd', 'lider_estadual_fju', 
+                'lider_bloco_iurd', 'lider_bloco_fju', 'lider_regional_iurd', 'lider_igreja_iurd'].includes(role);
+      default:
+        return false;
+    }
   };
 }

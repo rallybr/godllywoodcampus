@@ -27,6 +27,9 @@ Sistema de avaliação de jovens para acampamentos IntelliMen Campus.
 - [ ] Gerenciamento de usuários
 - [ ] Configurações do sistema
 
+### ✈️ Módulo de Viagens (novo)
+Controle por edição do acampamento. Nova tabela `public.dados_viagem` armazena pagamento de despesas e passagens (ida/volta) por jovem/edição, com URLs de comprovantes no storage. UI em `routes/viagem` lista cards por jovem incluindo foto, nome e hierarquia (igreja/região/bloco/estado) e permite upload independente dos três comprovantes.
+
 ## 🛠️ Instalação
 
 1. **Clone o repositório**

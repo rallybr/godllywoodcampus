@@ -60,6 +60,7 @@
     { value: 'colaborador', label: 'Colaborador(a)' },
     { value: 'obreiro', label: 'Obreiro(a)' },
     { value: 'iburd', label: 'IBURD' },
+    { value: 'auxiliar_pastor', label: 'Auxiliar de Pastor' },
     { value: 'namorada', label: 'Namorada' },
     { value: 'noiva', label: 'Noiva' }
   ];

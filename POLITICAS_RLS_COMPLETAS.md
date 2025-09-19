@@ -152,6 +152,21 @@ Sempre que houver acrescimo de policy no banco de dados ou modificações de per
 
 ---
 
+## 16. Tabela `dados_viagem` (novo)
+
+| Nome da Política | Comando | Aplicado a | Descrição |
+|------------------|---------|------------|-----------|
+| `dados_viagem_select_scoped` | SELECT | authenticated | Acesso conforme `can_access_jovem(...)` via join em `jovens` e também o próprio jovem (por `jovens.usuario_id = auth.uid()`)
+| `dados_viagem_insert_scoped` | INSERT | authenticated | Admin/colab/líderes com escopo; jovem pode inserir seu próprio registro
+| `dados_viagem_update_scoped` | UPDATE | authenticated | Admin/colab/líderes com escopo; jovem pode atualizar o próprio
+| `dados_viagem_delete_admin` | DELETE | authenticated | Apenas administradores
+
+Notas:
+- RLS habilitado. Índice UNIQUE `(jovem_id, edicao_id)` para controle por edição.
+- Trigger `atualizar_timestamp()` em UPDATE.
+
+---
+
 ## Resumo por Tipo de Acesso
 
 ### Acesso Total (ALL)

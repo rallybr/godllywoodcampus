@@ -1,5 +1,8 @@
 import { writable, derived } from 'svelte/store';
 import { supabase } from '$lib/utils/supabase';
+import { createAuditLog } from '$lib/stores/security';
+import { createLogHistorico } from '$lib/stores/logs-historico';
+import { marcarJovemCadastrado } from '$lib/stores/jovem-cadastro';
 
 export const jovens = writable([]);
 export const loading = writable(false);
@@ -322,17 +325,28 @@ export async function createJovem(jovemData) {
       throw createError;
     }
     
-    // Criar log de auditoria
+    // Criar logs de auditoria e histórico
     try {
-      await supabase.rpc('criar_log_auditoria', {
-        p_jovem_id: data.id,
-        p_acao: 'cadastro',
-        p_detalhe: 'Jovem cadastrado no sistema',
-        p_dados_novos: JSON.stringify(dadosCompletos)
-      });
+      await createAuditLog(
+        'cadastro',
+        `Jovem ${data.nome_completo} foi cadastrado no sistema`,
+        null,
+        data
+      );
+      
+      await createLogHistorico(
+        data.id,
+        'cadastro',
+        `Jovem ${data.nome_completo} foi cadastrado no sistema`,
+        null,
+        data
+      );
     } catch (logError) {
-      console.warn('Erro ao criar log de auditoria:', logError);
+      console.warn('Erro ao criar logs:', logError);
     }
+    
+    // Marcar jovem como cadastrado
+    marcarJovemCadastrado();
     
     // Reload the list
     await loadJovens();
@@ -351,6 +365,13 @@ export async function updateJovem(id, updates) {
   error.set(null);
   
   try {
+    // Buscar dados antigos para auditoria
+    const { data: oldData } = await supabase
+      .from('jovens')
+      .select('*')
+      .eq('id', id)
+      .single();
+    
     const { data, error: updateError } = await supabase
       .from('jovens')
       .update(updates)
@@ -359,6 +380,26 @@ export async function updateJovem(id, updates) {
       .single();
     
     if (updateError) throw updateError;
+    
+    // Criar logs de auditoria e histórico
+    try {
+      await createAuditLog(
+        'edicao',
+        `Jovem ${data.nome_completo} foi editado`,
+        oldData,
+        data
+      );
+      
+      await createLogHistorico(
+        data.id,
+        'edicao',
+        `Jovem ${data.nome_completo} foi editado`,
+        oldData,
+        data
+      );
+    } catch (logError) {
+      console.warn('Erro ao criar logs:', logError);
+    }
     
     // Update local store
     jovens.update(jovens => 
@@ -380,12 +421,39 @@ export async function deleteJovem(id) {
   error.set(null);
   
   try {
+    // Buscar dados antes de deletar para auditoria
+    const { data: oldData } = await supabase
+      .from('jovens')
+      .select('*')
+      .eq('id', id)
+      .single();
+    
     const { error: deleteError } = await supabase
       .from('jovens')
       .delete()
       .eq('id', id);
     
     if (deleteError) throw deleteError;
+    
+    // Criar logs de auditoria e histórico
+    try {
+      await createAuditLog(
+        'exclusao',
+        `Jovem ${oldData?.nome_completo || 'ID: ' + id} foi excluído`,
+        oldData,
+        null
+      );
+      
+      await createLogHistorico(
+        id,
+        'exclusao',
+        `Jovem ${oldData?.nome_completo || 'ID: ' + id} foi excluído`,
+        oldData,
+        null
+      );
+    } catch (logError) {
+      console.warn('Erro ao criar logs:', logError);
+    }
     
     // Update local store
     jovens.update(jovens => jovens.filter(j => j.id !== id));

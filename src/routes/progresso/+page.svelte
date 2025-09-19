@@ -34,13 +34,13 @@
   <title>Progresso dos Jovens - IntelliMen Campus</title>
 </svelte:head>
 
-<div class="min-h-screen bg-gray-50 py-8">
+<div class="min-h-screen py-8" style="background-color: #333333; border-radius: 20px;">
   <div class="max-w-7xl mx-auto px-4">
-    <div class="mb-8">
-      <h1 class="text-3xl font-bold text-gray-900 mb-1">
-        {jovemNome ? `Progresso de ${jovemNome}` : 'Progresso dos Jovens'}
+    <div class="mb-8 text-center">
+      <h1 class="text-3xl sm:text-4xl font-bold text-white mb-2">
+        {jovemNome ? `${jovemNome}` : 'Progresso dos Jovens'}
       </h1>
-      <p class="text-gray-600">
+      <p class="text-gray-300 text-lg">
         {jovemNome ? 'Acompanhe a evolução espiritual deste jovem' : 'Acompanhe a evolução espiritual dos jovens através da timeline de progresso'}
       </p>
     </div>

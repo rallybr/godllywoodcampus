@@ -1,4 +1,5 @@
 <script>
+  // @ts-nocheck
   import { onMount } from 'svelte';
   import { userProfile } from '$lib/stores/auth';
   import { gerarRelatorioJovens, gerarRelatorioAvaliacoes, gerarEstatisticasGerais, exportarParaCSV, exportarParaExcel, exportarParaPDF } from '$lib/stores/relatorios';
@@ -198,7 +199,7 @@
 
 <div class="space-y-6">
   <!-- Header -->
-  <div class="flex items-center justify-between">
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
     <div>
       <h1 class="text-2xl font-bold text-gray-900">Relatórios Personalizados</h1>
       <p class="text-gray-600">Crie e gerencie seus próprios relatórios</p>
@@ -234,11 +235,11 @@
     </div>
   {/if}
   
-  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
     <!-- Painel de Criação -->
     <div class="lg:col-span-1 space-y-6">
       <!-- Configurações do Relatório -->
-      <Card class="p-6">
+      <Card class="p-4 sm:p-6">
         <h3 class="text-lg font-semibold text-gray-900 mb-4">Configurações</h3>
         
         <div class="space-y-4">
@@ -289,7 +290,7 @@
       </Card>
       
       <!-- Filtros -->
-      <Card class="p-6">
+      <Card class="p-4 sm:p-6">
         <h3 class="text-lg font-semibold text-gray-900 mb-4">Filtros</h3>
         
         <div class="space-y-4">
@@ -365,7 +366,7 @@
       
       <!-- Relatórios Salvos -->
       {#if relatoriosSalvos.length > 0}
-        <Card class="p-6">
+        <Card class="p-4 sm:p-6">
           <h3 class="text-lg font-semibold text-gray-900 mb-4">Relatórios Salvos</h3>
           
           <div class="space-y-2">
@@ -451,8 +452,8 @@
         
         <!-- Gráficos -->
         {#if mostrarGraficos && dados.length > 0}
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card class="p-6">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+            <Card class="p-4 sm:p-6">
               <div class="flex items-center justify-between mb-4">
                 <h4 class="text-md font-semibold text-gray-900">Distribuição</h4>
                 <select
@@ -483,7 +484,7 @@
               {/if}
             </Card>
             
-            <Card class="p-6">
+            <Card class="p-4 sm:p-6">
               <div class="flex items-center justify-between mb-4">
                 <h4 class="text-md font-semibold text-gray-900">Evolução</h4>
                 <select
@@ -509,7 +510,7 @@
         
         <!-- Tabela de Dados -->
         {#if dados.length > 0}
-          <Card class="p-6">
+          <Card class="p-4 sm:p-6">
             <h4 class="text-md font-semibold text-gray-900 mb-4">Dados do Relatório</h4>
             
             <div class="overflow-x-auto">
@@ -582,7 +583,7 @@
           </Card>
         {/if}
       {:else}
-        <Card class="p-12">
+        <Card class="p-8 sm:p-12">
           <div class="text-center">
             <svg class="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />

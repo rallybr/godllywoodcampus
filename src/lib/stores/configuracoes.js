@@ -59,55 +59,80 @@ export async function carregarConfiguracoes() {
   errorConfiguracoes.set(null);
   
   try {
-    // Aplicar valores padrão para todas as configurações
+    // Carregar configurações do banco de dados
+    const { data: configs, error: configError } = await supabase
+      .from('configuracoes_sistema')
+      .select('*');
+    
+    if (configError) {
+      console.warn('Erro ao carregar configurações do banco:', configError);
+      // Continuar com valores padrão se houver erro
+    }
+    
+    // Processar configurações do banco
+    const configMap = {};
+    if (configs) {
+      configs.forEach(config => {
+        try {
+          // Tentar fazer parse de JSON, senão usar valor direto
+          configMap[config.chave] = config.valor.startsWith('{') || config.valor.startsWith('[') 
+            ? JSON.parse(config.valor) 
+            : config.valor;
+        } catch {
+          configMap[config.chave] = config.valor;
+        }
+      });
+    }
+    
+    // Aplicar configurações do banco ou valores padrão
     configuracoesPerfil.set({
-      nome: '',
-      email: '',
-      telefone: '',
-      foto: '',
-      bio: '',
-      cargo: '',
-      departamento: ''
+      nome: configMap.nome || '',
+      email: configMap.email || '',
+      telefone: configMap.telefone || '',
+      foto: configMap.foto || '',
+      bio: configMap.bio || '',
+      cargo: configMap.cargo || '',
+      departamento: configMap.departamento || ''
     });
     
     const configuracoesPadrao = {
-      tema: 'light',
-      idioma: 'pt-BR',
-      fuso_horario: 'America/Sao_Paulo',
-      formato_data: 'DD/MM/YYYY',
-      formato_hora: '24h',
-      itens_por_pagina: 20,
-      notificacoes_email: true,
-      notificacoes_push: true,
-      notificacoes_som: true
+      tema: configMap.tema || 'light',
+      idioma: configMap.idioma || 'pt-BR',
+      fuso_horario: configMap.fuso_horario || 'America/Sao_Paulo',
+      formato_data: configMap.formato_data || 'DD/MM/YYYY',
+      formato_hora: configMap.formato_hora || '24h',
+      itens_por_pagina: parseInt(configMap.itens_por_pagina) || 20,
+      notificacoes_email: configMap.notificacoes_email !== 'false',
+      notificacoes_push: configMap.notificacoes_push !== 'false',
+      notificacoes_som: configMap.notificacoes_som !== 'false'
     };
     
     configuracoesSistema.set(configuracoesPadrao);
     
     const notificacoesPadrao = {
-      email_cadastros: true,
-      email_avaliacoes: true,
-      email_status: true,
-      email_lembretes: true,
-      email_relatorios: false,
-      push_cadastros: true,
-      push_avaliacoes: true,
-      push_status: true,
-      push_lembretes: true,
-      push_relatorios: false,
-      frequencia_lembretes: 'diario',
-      horario_lembretes: '09:00'
+      email_cadastros: configMap.email_cadastros !== 'false',
+      email_avaliacoes: configMap.email_avaliacoes !== 'false',
+      email_status: configMap.email_status !== 'false',
+      email_lembretes: configMap.email_lembretes !== 'false',
+      email_relatorios: configMap.email_relatorios === 'true',
+      push_cadastros: configMap.push_cadastros !== 'false',
+      push_avaliacoes: configMap.push_avaliacoes !== 'false',
+      push_status: configMap.push_status !== 'false',
+      push_lembretes: configMap.push_lembretes !== 'false',
+      push_relatorios: configMap.push_relatorios === 'true',
+      frequencia_lembretes: configMap.frequencia_lembretes || 'diario',
+      horario_lembretes: configMap.horario_lembretes || '09:00'
     };
     
     configuracoesNotificacoes.set(notificacoesPadrao);
     
     const segurancaPadrao = {
-      autenticacao_2f: false,
-      sessao_duracao: 24,
-      login_automatico: false,
-      notificar_logins: true,
-      backup_automatico: true,
-      criptografia_dados: true
+      autenticacao_2f: configMap.autenticacao_2f === 'true',
+      sessao_duracao: parseInt(configMap.sessao_duracao) || 24,
+      login_automatico: configMap.login_automatico === 'true',
+      notificar_logins: configMap.notificar_logins !== 'false',
+      backup_automatico: configMap.backup_automatico !== 'false',
+      criptografia_dados: configMap.criptografia_dados !== 'false'
     };
     
     configuracoesSeguranca.set(segurancaPadrao);

@@ -3,6 +3,7 @@
   import { userProfile, signOut } from '$lib/stores/auth';
   import { goto } from '$app/navigation';
   import NotificacoesDropdown from '$lib/components/notificacoes/NotificacoesDropdown.svelte';
+  import UserAccessLevel from '$lib/components/security/UserAccessLevel.svelte';
   
   const dispatch = createEventDispatcher();
   
@@ -142,9 +143,9 @@
                 {/if}
                 <div class="flex-1 min-w-0">
                   <p class="font-semibold text-gray-900 truncate">{$userProfile?.nome || 'Usuário'}</p>
-                  <p class="text-sm text-gray-500 truncate">
-                    {$userProfile?.user_roles?.[0]?.roles?.nome || 'Usuário'}
-                  </p>
+                  <div class="flex items-center space-x-2">
+                    <UserAccessLevel />
+                  </div>
                 </div>
               </div>
             </div>

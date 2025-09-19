@@ -176,7 +176,7 @@
   <title>Feed - IntelliMen Campus</title>
 </svelte:head>
 
-<div class="space-y-6">
+<div class="space-y-6 px-4 sm:px-6">
   <!-- Welcome post -->
   <div class="fb-card p-6">
     <div class="flex items-center space-x-4 mb-4">

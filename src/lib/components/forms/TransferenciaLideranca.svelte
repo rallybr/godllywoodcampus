@@ -1,4 +1,5 @@
 <script>
+  // @ts-nocheck
   import { onMount } from 'svelte';
   import { transferirLideranca, loadUsuarios, loadUserRoles } from '$lib/stores/usuarios';
   import { loadInitialData, estados, blocos, regioes, igrejas, loadBlocos, loadRegioes, loadIgrejas, clearHierarchy } from '$lib/stores/geographic';
@@ -175,7 +176,7 @@
 </script>
 
 <Modal bind:isOpen on:close={closeModal}>
-  <div class="max-w-2xl mx-auto">
+  <div class="max-w-2xl mx-auto px-4 sm:px-6">
     <!-- Header -->
     <div class="flex items-center justify-between mb-6">
       <div>
@@ -317,7 +318,7 @@
         {/if}
         
         <!-- Action Buttons -->
-        <div class="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+        <div class="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-3 pt-4 border-t border-gray-200">
           <Button
             type="button"
             variant="outline"

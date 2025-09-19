@@ -225,6 +225,34 @@ Campos:
 
 ---
 
+# Nova tabela
+
+## public.dados_viagem (novo)
+
+| Coluna | Tipo | Default | Notas |
+|---|---|---|---|
+| id | uuid | `gen_random_uuid()` | PK |
+| jovem_id | uuid | | FK -> public.jovens.id |
+| edicao_id | uuid | | FK -> public.edicoes.id |
+| pagou_despesas | boolean | `false` |  |
+| comprovante_pagamento | text | | URL no storage |
+| data_passagem_ida | timestamptz | |  |
+| comprovante_passagem_ida | text | | URL no storage |
+| data_passagem_volta | timestamptz | |  |
+| comprovante_passagem_volta | text | | URL no storage |
+| data_cadastro | timestamptz | `now()` |  |
+| atualizado_em | timestamptz | `now()` | via trigger `atualizar_timestamp` |
+| usuario_id | uuid | | FK -> public.usuarios.id |
+
+Índices sugeridos:
+- UNIQUE (jovem_id, edicao_id)
+
+RLS sugerido:
+- SELECT/INSERT/UPDATE conforme `can_access_jovem(j.estado_id, j.bloco_id, j.regiao_id, j.igreja_id)` e permissão do próprio jovem (via `jovens.usuario_id`).
+- DELETE apenas administradores.
+
+---
+
 # Tabelas adicionais (dos prints anexados)
 
 ## public.logs_auditoria

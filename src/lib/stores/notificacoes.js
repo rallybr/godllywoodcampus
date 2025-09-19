@@ -16,10 +16,10 @@ export const contadorNaoLidas = derived(
 
 // Tipos de notificação
 export const TIPOS_NOTIFICACAO = {
-  NOVO_CADASTRO: 'novo_cadastro',
-  AVALIACAO_PENDENTE: 'avaliacao_pendente',
-  STATUS_ALTERADO: 'status_alterado',
-  LEMBRETE_AVALIACAO: 'lembrete_avaliacao',
+  NOVO_CADASTRO: 'cadastro',
+  AVALIACAO_PENDENTE: 'avaliacao',
+  STATUS_ALTERADO: 'aprovacao',
+  LEMBRETE_AVALIACAO: 'sistema',
   SISTEMA: 'sistema'
 };
 
@@ -238,7 +238,7 @@ export async function notificarMudancaStatus(jovem, statusAnterior, statusNovo, 
   const promises = lideres.map(lider => 
     criarNotificacao(
       lider.user_id,
-      'status_alterado',
+      'aprovacao',
       titulo,
       mensagem,
       jovem.id,
@@ -257,7 +257,7 @@ export async function notificarLembreteAvaliacao(jovem, avaliador) {
   
   return await criarNotificacao(
     avaliador.id,
-    'lembrete_avaliacao',
+    'sistema',
     titulo,
     mensagem,
     jovem.id,
@@ -272,9 +272,9 @@ export function getIconeNotificacao(tipo) {
       return 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z';
     case 'avaliacao':
       return 'M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01';
-    case 'status_alterado':
+    case 'aprovacao':
       return 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z';
-    case 'lembrete_avaliacao':
+    case 'sistema':
       return 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z';
     case 'sistema':
       return 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z';
@@ -290,9 +290,9 @@ export function getCorNotificacao(tipo) {
       return 'text-green-600 bg-green-100';
     case 'avaliacao':
       return 'text-yellow-600 bg-yellow-100';
-    case 'status_alterado':
+    case 'aprovacao':
       return 'text-blue-600 bg-blue-100';
-    case 'lembrete_avaliacao':
+    case 'sistema':
       return 'text-orange-600 bg-orange-100';
     case 'sistema':
       return 'text-gray-600 bg-gray-100';

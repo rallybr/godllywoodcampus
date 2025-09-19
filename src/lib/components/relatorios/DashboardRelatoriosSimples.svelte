@@ -1,4 +1,5 @@
 <script>
+  // @ts-nocheck
   import { onMount } from 'svelte';
   import { gerarEstatisticasGerais } from '$lib/stores/relatorios';
   import Card from '$lib/components/ui/Card.svelte';
@@ -64,7 +65,7 @@
 
 <div class="space-y-6">
   <!-- Header -->
-  <div class="flex items-center justify-between">
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
     <div>
       <h1 class="text-2xl font-bold text-gray-900">Dashboard de Relatórios</h1>
       <p class="text-gray-600">Visão geral das estatísticas do sistema</p>
@@ -92,9 +93,9 @@
     </div>
   {:else if estatisticas}
     <!-- Estatísticas Principais -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
       <!-- Card Total de Jovens -->
-      <Card class="p-6 bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 hover:shadow-lg transition-all duration-300">
+      <Card class="p-4 sm:p-6 bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 hover:shadow-lg transition-all duration-300">
         <div class="flex items-center justify-between">
           <div class="flex-1">
             <div class="flex items-center space-x-3 mb-4">
@@ -117,7 +118,7 @@
       </Card>
       
       <!-- Card Aprovados -->
-      <Card class="p-6 bg-gradient-to-br from-green-50 to-green-100 border-green-200 hover:shadow-lg transition-all duration-300">
+      <Card class="p-4 sm:p-6 bg-gradient-to-br from-green-50 to-green-100 border-green-200 hover:shadow-lg transition-all duration-300">
         <div class="flex items-center justify-between">
           <div class="flex-1">
             <div class="flex items-center space-x-3 mb-4">
@@ -151,7 +152,7 @@
       </Card>
       
       <!-- Card Pré-aprovados -->
-      <Card class="p-6 bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200 hover:shadow-lg transition-all duration-300">
+      <Card class="p-4 sm:p-6 bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200 hover:shadow-lg transition-all duration-300">
         <div class="flex items-center justify-between">
           <div class="flex-1">
             <div class="flex items-center space-x-3 mb-4">
@@ -185,7 +186,7 @@
       </Card>
       
       <!-- Card Pendentes -->
-      <Card class="p-6 bg-gradient-to-br from-gray-50 to-gray-100 border-gray-200 hover:shadow-lg transition-all duration-300">
+      <Card class="p-4 sm:p-6 bg-gradient-to-br from-gray-50 to-gray-100 border-gray-200 hover:shadow-lg transition-all duration-300">
         <div class="flex items-center justify-between">
           <div class="flex-1">
             <div class="flex items-center space-x-3 mb-4">
@@ -220,9 +221,9 @@
     </div>
     
     <!-- Estatísticas de Avaliações -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
       <!-- Card Médias de Avaliações -->
-      <Card class="p-6 bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 hover:shadow-lg transition-all duration-300">
+      <Card class="p-4 sm:p-6 bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 hover:shadow-lg transition-all duration-300">
         <div class="flex items-center space-x-3 mb-6">
           <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
             <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -331,7 +332,7 @@
       </Card>
       
       <!-- Card Resumo de Avaliações -->
-      <Card class="p-6 bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200 hover:shadow-lg transition-all duration-300">
+      <Card class="p-4 sm:p-6 bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200 hover:shadow-lg transition-all duration-300">
         <div class="flex items-center space-x-3 mb-6">
           <div class="w-10 h-10 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg">
             <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -416,7 +417,7 @@
     </div>
     
     <!-- Links para Relatórios -->
-    <Card class="p-6 bg-gradient-to-br from-slate-50 to-slate-100 border-slate-200">
+    <Card class="p-4 sm:p-6 bg-gradient-to-br from-slate-50 to-slate-100 border-slate-200">
       <div class="flex items-center space-x-3 mb-6">
         <div class="w-10 h-10 bg-gradient-to-br from-slate-500 to-slate-600 rounded-xl flex items-center justify-center shadow-lg">
           <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -429,7 +430,7 @@
         </div>
       </div>
       
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
         <!-- Relatório de Jovens -->
         <a href="/relatorios/jovens" class="group block p-6 bg-white rounded-xl border border-blue-200 hover:border-blue-300 hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 h-full">
           <div class="flex flex-col h-full text-center">

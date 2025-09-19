@@ -9,7 +9,7 @@
   import EstatisticasUsuario from '$lib/components/estatisticas/EstatisticasUsuario.svelte';
   import '../app.css';
   
-  let showSidebar = false; // Começar fechado em mobile
+  let showSidebar = false; // Começar fechado em todas as telas
   let isMobile = false;
   
   onMount(() => {
@@ -18,10 +18,9 @@
     
     // Detectar se é mobile
     const checkMobile = () => {
+      // Detecta apenas o breakpoint; não altera o estado da sidebar
+      // para manter fechada por padrão em qualquer dispositivo
       isMobile = window.innerWidth < 768; // md breakpoint
-      if (!isMobile) {
-        showSidebar = true; // Sempre mostrar em desktop
-      }
     };
     
     checkMobile();
@@ -33,11 +32,17 @@
   });
   
   // Redirecionar automaticamente usuários com papel "jovem" para o cadastro
+  // (exceto para páginas permitidas como /viagem)
   $: (async () => {
     if (!$user || !$userProfile) return;
     const isJovem = hasRole('jovem')($userProfile);
     if (!isJovem) return;
     const currentPath = $page?.url?.pathname || '';
+    
+    // Páginas permitidas para jovens (além do cadastro)
+    const allowedPaths = ['/jovens/cadastrar', '/viagem', '/profile'];
+    const isAllowedPath = allowedPaths.some(path => currentPath.startsWith(path));
+    
     try {
       const { data, error } = await supabase
         .from('jovens')
@@ -47,9 +52,13 @@
         .maybeSingle();
       if (error) return;
       const hasCadastro = !!data?.id;
-      if (!hasCadastro && !currentPath.startsWith('/jovens/cadastrar')) {
+      
+      // Se não tem cadastro e não está em página permitida, redirecionar para cadastro
+      if (!hasCadastro && !isAllowedPath) {
         goto('/jovens/cadastrar');
-      } else if (hasCadastro && currentPath.startsWith('/jovens/cadastrar')) {
+      } 
+      // Se tem cadastro e está na página de cadastro, redirecionar para perfil
+      else if (hasCadastro && currentPath.startsWith('/jovens/cadastrar')) {
         goto(`/jovens/${data.id}`);
       }
     } catch (e) {
@@ -119,7 +128,7 @@
       </div>
     {:else}
       <!-- Main app layout - Facebook/Instagram style -->
-      <div class="flex h-screen">
+      <div class="flex min-h-screen">
         <!-- Left Sidebar -->
         <Sidebar bind:showSidebar on:linkClick={handleSidebarLink} />
         

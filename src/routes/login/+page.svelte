@@ -73,7 +73,7 @@
         IntelliMen Campus
       </h2>
       <p class="mt-2 text-sm sm:text-base lg:text-lg text-gray-600">
-        Sistema de avaliação de jovens
+        Sistema de Acompanhamento IntelliMen Campus
       </p>
     </div>
     

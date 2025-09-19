@@ -48,7 +48,7 @@
   <title>Jovens - IntelliMen Campus</title>
 </svelte:head>
 
-<div class="space-y-6">
+<div class="space-y-6 px-4 sm:px-6">
   <!-- Header -->
   <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
     <div>

@@ -73,8 +73,8 @@
   </style>
 </svelte:head>
 
-<div class="min-h-screen bg-gray-50 py-8">
-  <div class="max-w-6xl mx-auto px-4">
+<div class="min-h-screen bg-gray-50 py-6 sm:py-8">
+  <div class="max-w-6xl mx-auto px-4 sm:px-6">
     <!-- Header com ações -->
     <div class="mb-6 no-print">
       <div class="flex items-center justify-between">
