@@ -1376,7 +1376,7 @@
                 </div>
                 
                 <div>
-                  <label class="block text-sm font-semibold text-gray-700 mb-2">Foi para o Campus em que condição?</label>
+                  <label class="block text-sm font-semibold text-gray-700 mb-2">Condição que chegou no Campus</label>
                   <div class="relative">
                     <select
                       bind:value={formData.condicao_campus}
