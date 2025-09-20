@@ -43,6 +43,9 @@
     const allowedPaths = ['/jovens/cadastrar', '/viagem', '/profile'];
     const isAllowedPath = allowedPaths.some(path => currentPath.startsWith(path));
     
+    // Permitir edição do próprio perfil para jovens
+    const isEditingOwnProfile = currentPath.startsWith('/jovens/') && currentPath.endsWith('/editar');
+    
     try {
       const { data, error } = await supabase
         .from('jovens')
@@ -54,12 +57,20 @@
       const hasCadastro = !!data?.id;
       
       // Se não tem cadastro e não está em página permitida, redirecionar para cadastro
-      if (!hasCadastro && !isAllowedPath) {
+      if (!hasCadastro && !isAllowedPath && !isEditingOwnProfile) {
         goto('/jovens/cadastrar');
       } 
       // Se tem cadastro e está na página de cadastro, redirecionar para perfil
       else if (hasCadastro && currentPath.startsWith('/jovens/cadastrar')) {
         goto(`/jovens/${data.id}`);
+      }
+      // Se está tentando editar perfil de outro jovem, redirecionar para seu próprio perfil
+      else if (isEditingOwnProfile && hasCadastro) {
+        const pathParts = currentPath.split('/');
+        const jovemIdInPath = pathParts[2]; // /jovens/[id]/editar
+        if (jovemIdInPath !== data.id) {
+          goto(`/jovens/${data.id}/editar`);
+        }
       }
     } catch (e) {
       console.error('Falha ao verificar cadastro do jovem:', e);

@@ -3,11 +3,11 @@
   import { page } from '$app/stores';
   import { loadJovemById, updateJovem } from '$lib/stores/jovens-simple';
   import { goto } from '$app/navigation';
+  import { userProfile, hasRole } from '$lib/stores/auth';
+  import { supabase } from '$lib/utils/supabase';
   import Button from '$lib/components/ui/Button.svelte';
   import Card from '$lib/components/ui/Card.svelte';
   
-  // @ts-ignore
-  export let data;
   
   // @ts-ignore
   let jovem = null;
@@ -85,6 +85,28 @@
     error = '';
     
     try {
+      // Verificar se o usuário tem permissão para editar este jovem
+      if (hasRole('jovem')($userProfile)) {
+        // Se é jovem, só pode editar seu próprio perfil
+        const { data: jovemData, error: jovemError } = await supabase
+          .from('jovens')
+          .select('id')
+          .eq('usuario_id', $userProfile.id)
+          .single();
+        
+        if (jovemError || !jovemData) {
+          error = 'Acesso negado';
+          goto('/profile');
+          return;
+        }
+        
+        if (jovemData.id !== $page.params.id) {
+          error = 'Você só pode editar seu próprio perfil';
+          goto(`/jovens/${jovemData.id}/editar`);
+          return;
+        }
+      }
+      
       jovem = await loadJovemById($page.params.id);
       if (!jovem) {
         error = 'Jovem não encontrado';
@@ -501,23 +523,57 @@
                 <label for="condicao" class="block text-sm font-medium text-gray-700 mb-1">
                   Condição
                 </label>
-                <input
-                  type="text"
-                  id="condicao"
-                  bind:value={formData.condicao}
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
+                <div class="relative">
+                  <select
+                    id="condicao"
+                    bind:value={formData.condicao}
+                    class="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white cursor-pointer"
+                  >
+                    <option value="">Selecione a condição</option>
+                    <option value="jovem_batizado_es">Jovem Batizado(a) ES</option>
+                    <option value="cpo">CPO</option>
+                    <option value="colaborador">Colaborador(a)</option>
+                    <option value="obreiro">Obreiro(a)</option>
+                    <option value="iburd">IBURD</option>
+                    <option value="auxiliar_pastor">Auxiliar de Pastor</option>
+                    <option value="namorada">Namorada</option>
+                    <option value="noiva">Noiva</option>
+                  </select>
+                  <!-- Ícone de dropdown customizado -->
+                  <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                    <svg class="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
               </div>
               <div>
                 <label for="condicao_campus" class="block text-sm font-medium text-gray-700 mb-1">
                   Chegou no Campus Como?
                 </label>
-                <input
-                  type="text"
-                  id="condicao_campus"
-                  bind:value={formData.condicao_campus}
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
+                <div class="relative">
+                  <select
+                    id="condicao_campus"
+                    bind:value={formData.condicao_campus}
+                    class="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white cursor-pointer"
+                  >
+                    <option value="">Selecione a condição no Campus</option>
+                    <option value="jovem_batizado_es">Jovem Batizado(a) ES</option>
+                    <option value="cpo">CPO</option>
+                    <option value="colaborador">Colaborador(a)</option>
+                    <option value="obreiro">Obreiro(a)</option>
+                    <option value="iburd">IBURD</option>
+                    <option value="auxiliar_pastor">Auxiliar de Pastor</option>
+                    <option value="namorada">Namorada</option>
+                    <option value="noiva">Noiva</option>
+                  </select>
+                  <!-- Ícone de dropdown customizado -->
+                  <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                    <svg class="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
               </div>
             </div>
             
