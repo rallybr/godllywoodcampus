@@ -13,6 +13,16 @@ export const estatisticas = writable({
   crescimento: 0
 });
 
+// Store para estatísticas das condições
+export const condicoesStats = writable({
+  auxPastor: 0,
+  iburd: 0,
+  obreiro: 0,
+  colaborador: 0,
+  cpo: 0,
+  batizadoES: 0
+});
+
 export const loading = writable(false);
 export const error = writable(null);
 
@@ -25,14 +35,14 @@ export async function loadEstatisticas() {
     // Buscar estatísticas dos jovens
     const { data: jovensData, error: jovensError } = await supabase
       .from('jovens')
-      .select('aprovado, data_cadastro');
+      .select('aprovado, data_cadastro, id');
     
     if (jovensError) throw jovensError;
     
     // Buscar estatísticas das avaliações
     const { data: avaliacoesData, error: avaliacoesError } = await supabase
       .from('avaliacoes')
-      .select('nota, criado_em');
+      .select('nota, criado_em, jovem_id');
     
     if (avaliacoesError) throw avaliacoesError;
     
@@ -52,6 +62,10 @@ export async function loadEstatisticas() {
       j.aprovado === 'null' ||
       j.aprovado === undefined
     ).length;
+    
+    // Calcular jovens avaliados (que têm pelo menos uma avaliação)
+    const jovensAvaliadosIds = [...new Set(avaliacoesData.map(a => a.jovem_id))];
+    const avaliados = jovensAvaliadosIds.length;
     
     // Calcular estatísticas das avaliações
     const totalAvaliacoes = avaliacoesData.length;
@@ -82,6 +96,7 @@ export async function loadEstatisticas() {
       aprovados,
       pendentes,
       preAprovados,
+      avaliados,
       totalAvaliacoes,
       mediaGeral: Math.round(mediaGeral * 10) / 10,
       crescimento
@@ -188,3 +203,82 @@ export const estatisticasFiltradas = derived(
     };
   }
 );
+
+// Função para carregar estatísticas das condições
+export async function loadCondicoesStats() {
+  loading.set(true);
+  error.set(null);
+  
+  try {
+    // Buscar todos os jovens de todas as edições
+    const { data: jovensData, error: jovensError } = await supabase
+      .from('jovens')
+      .select('condicao, responsabilidade_igreja, ja_obreiro, foi_obreiro, ja_colaborador, foi_colaborador, batizado_es');
+    
+    if (jovensError) throw jovensError;
+    
+    console.log('Jovens carregados para estatísticas das condições:', jovensData.length);
+    console.log('Primeiros 5 jovens:', jovensData.slice(0, 5));
+    
+    const stats = calcularCondicoes(jovensData);
+    console.log('Estatísticas calculadas:', stats);
+    
+    condicoesStats.set(stats);
+    
+  } catch (err) {
+    error.set(err.message);
+    console.error('Error loading estatísticas das condições:', err);
+  } finally {
+    loading.set(false);
+  }
+}
+
+// Função auxiliar para calcular as condições
+function calcularCondicoes(jovensData) {
+  const stats = {
+    auxPastor: 0,
+    iburd: 0,
+    obreiro: 0,
+    colaborador: 0,
+    cpo: 0,
+    batizadoES: 0
+  };
+  
+  jovensData.forEach(jovem => {
+    const condicao = (jovem.condicao || '').toLowerCase();
+    const responsabilidade = (jovem.responsabilidade_igreja || '').toLowerCase();
+    
+    // Classificar por condição (valores exatos do formulário) - PRIORIDADE 1
+    if (condicao === 'auxiliar_pastor') {
+      stats.auxPastor++;
+    } else if (condicao === 'iburd') {
+      stats.iburd++;
+    } else if (condicao === 'obreiro') {
+      stats.obreiro++;
+    } else if (condicao === 'colaborador') {
+      stats.colaborador++;
+    } else if (condicao === 'cpo') {
+      stats.cpo++;
+    } else if (condicao === 'jovem_batizado_es') {
+      stats.batizadoES++;
+    } else {
+      // Se não tem condição definida, classificar por responsabilidade
+      if (responsabilidade.includes('aux') && responsabilidade.includes('pastor')) {
+        stats.auxPastor++;
+      } else if (responsabilidade.includes('iburd')) {
+        stats.iburd++;
+      } else if (responsabilidade.includes('obreiro') || jovem.ja_obreiro || jovem.foi_obreiro) {
+        stats.obreiro++;
+      } else if (responsabilidade.includes('colaborador') || jovem.ja_colaborador || jovem.foi_colaborador) {
+        stats.colaborador++;
+      } else if (responsabilidade.includes('cpo')) {
+        stats.cpo++;
+      } else {
+        // Se não se encaixa em nenhuma categoria, não conta (ou poderia ser uma categoria "Outros")
+        console.log('Jovem sem classificação:', jovem);
+      }
+    }
+  });
+  
+  return stats;
+}

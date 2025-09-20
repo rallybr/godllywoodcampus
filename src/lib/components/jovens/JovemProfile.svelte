@@ -326,15 +326,15 @@
                   <dd class="text-sm font-semibold text-gray-900 bg-blue-50 px-3 py-1 rounded">{formatDate(jovem.data_nasc)}</dd>
                 </div>
                 <div class="flex justify-between items-center py-2 border-b border-gray-100">
-                  <dt class="text-sm font-medium text-gray-500 uppercase tracking-wide">Estado Civil</dt>
+                  <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Estado Civil</dt>
                   <dd class="text-sm font-semibold text-gray-900">{jovem.estado_civil || 'Não informado'}</dd>
                 </div>
                 <div class="flex justify-between items-center py-2 border-b border-gray-100">
-                  <dt class="text-sm font-medium text-gray-500 uppercase tracking-wide">Namora</dt>
+                  <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Namora</dt>
                   <dd class="text-sm font-semibold text-gray-900">{jovem.namora ? 'Sim' : 'Não'}</dd>
                 </div>
                 <div class="flex justify-between items-center py-2">
-                  <dt class="text-sm font-medium text-gray-500 uppercase tracking-wide">Tem Filho</dt>
+                  <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Tem Filho</dt>
                   <dd class="text-sm font-semibold text-gray-900">{jovem.tem_filho ? 'Sim' : 'Não'}</dd>
                 </div>
               </dl>
@@ -350,23 +350,23 @@
             <div class="p-6">
               <dl class="space-y-4">
                 <div class="flex justify-between items-center py-2 border-b border-gray-100">
-                  <dt class="text-sm font-medium text-gray-500 uppercase tracking-wide">Estado</dt>
+                  <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Estado</dt>
                   <dd class="text-sm font-semibold text-gray-900">{jovem.estado?.nome || 'Não informado'}</dd>
                 </div>
                 <div class="flex justify-between items-center py-2 border-b border-gray-100">
-                  <dt class="text-sm font-medium text-gray-500 uppercase tracking-wide">Bloco</dt>
+                  <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Bloco</dt>
                   <dd class="text-sm font-semibold text-gray-900">{jovem.bloco?.nome || 'Não informado'}</dd>
                 </div>
                 <div class="flex justify-between items-center py-2 border-b border-gray-100">
-                  <dt class="text-sm font-medium text-gray-500 uppercase tracking-wide">Região</dt>
+                  <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Região</dt>
                   <dd class="text-sm font-semibold text-gray-900">{jovem.regiao?.nome || 'Não informado'}</dd>
                 </div>
                 <div class="flex justify-between items-center py-2 border-b border-gray-100">
-                  <dt class="text-sm font-medium text-gray-500 uppercase tracking-wide">Igreja</dt>
+                  <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Igreja</dt>
                   <dd class="text-sm font-semibold text-gray-900">{jovem.igreja?.nome || 'Não informado'}</dd>
                 </div>
                 <div class="flex justify-between items-center py-2">
-                  <dt class="text-sm font-medium text-gray-500 uppercase tracking-wide">Edição</dt>
+                  <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Edição</dt>
                   <dd class="text-sm font-semibold text-gray-900">{jovem.edicao || 'Não informado'}</dd>
                 </div>
               </dl>
@@ -382,23 +382,23 @@
             <div class="p-6">
               <dl class="space-y-4">
                 <div class="flex justify-between items-start py-2 border-b border-gray-100">
-                  <dt class="text-sm font-medium text-gray-500 uppercase tracking-wide">Observação</dt>
+                  <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Observação</dt>
                   <dd class="text-sm font-semibold text-gray-900 text-right max-w-md">{jovem.observacao || 'Não informado'}</dd>
                 </div>
                 <div class="flex justify-between items-start py-2 border-b border-gray-100">
-                  <dt class="text-sm font-medium text-gray-500 uppercase tracking-wide">Testemunho</dt>
+                  <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Testemunho</dt>
                   <dd class="text-sm font-semibold text-gray-900 text-right max-w-md">{jovem.testemunho || 'Não informado'}</dd>
                 </div>
                 <div class="flex justify-between items-center py-2 border-b border-gray-100">
-                  <dt class="text-sm font-medium text-gray-500 uppercase tracking-wide">Instagram</dt>
+                  <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Instagram</dt>
                   <dd class="text-sm font-semibold text-gray-900">{jovem.instagram || 'Não informado'}</dd>
                 </div>
                 <div class="flex justify-between items-center py-2 border-b border-gray-100">
-                  <dt class="text-sm font-medium text-gray-500 uppercase tracking-wide">Facebook</dt>
+                  <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Facebook</dt>
                   <dd class="text-sm font-semibold text-gray-900">{jovem.facebook || 'Não informado'}</dd>
                 </div>
                 <div class="flex justify-between items-center py-2">
-                  <dt class="text-sm font-medium text-gray-500 uppercase tracking-wide">TikTok</dt>
+                  <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">TikTok</dt>
                   <dd class="text-sm font-semibold text-gray-900">{jovem.tiktok || 'Não informado'}</dd>
                 </div>
               </dl>
@@ -440,20 +440,20 @@
         <!-- Dados Espirituais -->
         <div class="space-y-6">
           <!-- Informações Espirituais -->
-          <div class="bg-white rounded-lg shadow-sm border border-red-200 overflow-hidden">
-            <div class="bg-red-600 px-6 py-3 relative">
-              <div class="absolute left-0 top-0 bottom-0 w-2 bg-red-800 rounded-r"></div>
+          <div class="bg-white rounded-lg shadow-sm border border-blue-200 overflow-hidden">
+            <div class="bg-blue-600 px-6 py-3 relative">
+              <div class="absolute left-0 top-0 bottom-0 w-2 bg-blue-800 rounded-r"></div>
               <h3 class="text-lg font-semibold text-white ml-3">Informações Espirituais</h3>
             </div>
             <div class="p-6">
               <dl class="space-y-4">
                 <div class="flex justify-between items-center py-2 border-b border-gray-100">
-                  <dt class="text-sm font-medium text-red-600 uppercase tracking-wide font-bold">Tempo de Igreja</dt>
-                  <dd class="text-sm font-semibold text-gray-900 bg-red-50 px-3 py-1 rounded">{jovem.tempo_igreja || 'Não informado'}</dd>
+                  <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Tempo de Igreja</dt>
+                  <dd class="text-sm font-semibold text-gray-900 bg-blue-50 px-3 py-1 rounded">{jovem.tempo_igreja || 'Não informado'}</dd>
                 </div>
                 <div class="flex justify-between items-center py-2 border-b border-gray-100">
-                  <dt class="text-sm font-medium text-red-600 uppercase tracking-wide font-bold">Batizado nas Águas</dt>
-                  <dd class="text-sm font-semibold text-gray-900 bg-red-50 px-3 py-1 rounded">
+                  <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Batizado nas Águas</dt>
+                  <dd class="text-sm font-semibold text-gray-900 bg-blue-50 px-3 py-1 rounded">
                     {jovem.batizado_aguas ? 'Sim' : 'Não'}
                     {#if jovem.batizado_aguas && jovem.data_batismo_aguas}
                       <span class="text-gray-500 ml-2">({formatDate(jovem.data_batismo_aguas)})</span>
@@ -461,12 +461,12 @@
                   </dd>
                 </div>
                 <div class="flex justify-between items-center py-2 border-b border-gray-100">
-                  <dt class="text-sm font-medium text-gray-500 uppercase tracking-wide">Data do Batismo nas Águas</dt>
+                  <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Data do Batismo nas Águas</dt>
                   <dd class="text-sm font-semibold text-gray-900">{jovem.data_batismo_aguas ? formatDate(jovem.data_batismo_aguas) : 'Não informado'}</dd>
                 </div>
                 <div class="flex justify-between items-center py-2 border-b border-gray-100">
-                  <dt class="text-sm font-medium text-red-600 uppercase tracking-wide font-bold">Batizado com ES</dt>
-                  <dd class="text-sm font-semibold text-gray-900 bg-red-50 px-3 py-1 rounded">
+                  <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Batizado com ES</dt>
+                  <dd class="text-sm font-semibold text-gray-900 bg-blue-50 px-3 py-1 rounded">
                     {jovem.batizado_es ? 'Sim' : 'Não'}
                     {#if jovem.batizado_es && jovem.data_batismo_es}
                       <span class="text-gray-500 ml-2">({formatDate(jovem.data_batismo_es)})</span>
@@ -474,19 +474,19 @@
                   </dd>
                 </div>
                 <div class="flex justify-between items-center py-2 border-b border-gray-100">
-                  <dt class="text-sm font-medium text-gray-500 uppercase tracking-wide">Data do Batismo com ES</dt>
+                  <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Data do Batismo com ES</dt>
                   <dd class="text-sm font-semibold text-gray-900">{jovem.data_batismo_es ? formatDate(jovem.data_batismo_es) : 'Não informado'}</dd>
                 </div>
                 <div class="flex justify-between items-center py-2 border-b border-gray-100">
-                  <dt class="text-sm font-medium text-red-600 uppercase tracking-wide font-bold">Condição</dt>
-                  <dd class="text-sm font-semibold text-gray-900 bg-red-50 px-3 py-1 rounded">{jovem.condicao || 'Não informado'}</dd>
+                  <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Condição</dt>
+                  <dd class="text-sm font-semibold text-gray-900 bg-blue-50 px-3 py-1 rounded">{jovem.condicao || 'Não informado'}</dd>
                 </div>
                 <div class="flex justify-between items-center py-2 border-b border-gray-100">
-                  <dt class="text-sm font-medium text-gray-500 uppercase tracking-wide">Tempo de Condição</dt>
+                  <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Tempo de Condição</dt>
                   <dd class="text-sm font-semibold text-gray-900">{jovem.tempo_condicao || 'Não informado'}</dd>
                 </div>
                 <div class="flex justify-between items-center py-2">
-                  <dt class="text-sm font-medium text-gray-500 uppercase tracking-wide">Responsabilidade na Igreja</dt>
+                  <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Responsabilidade na Igreja</dt>
                   <dd class="text-sm font-semibold text-gray-900">{jovem.responsabilidade_igreja || 'Não informado'}</dd>
                 </div>
               </dl>
@@ -494,43 +494,43 @@
           </div>
 
           <!-- Experiência na Igreja -->
-          <div class="bg-white rounded-lg shadow-sm border border-red-200 overflow-hidden">
-            <div class="bg-red-600 px-6 py-3 relative">
-              <div class="absolute left-0 top-0 bottom-0 w-2 bg-red-800 rounded-r"></div>
+          <div class="bg-white rounded-lg shadow-sm border border-blue-200 overflow-hidden">
+            <div class="bg-blue-600 px-6 py-3 relative">
+              <div class="absolute left-0 top-0 bottom-0 w-2 bg-blue-800 rounded-r"></div>
               <h3 class="text-lg font-semibold text-white ml-3">Experiência na Igreja</h3>
             </div>
             <div class="p-6">
               <dl class="space-y-4">
                 <div class="flex justify-between items-center py-2 border-b border-gray-100">
-                  <dt class="text-sm font-medium text-gray-500 uppercase tracking-wide">Já Fez a Obra no Altar</dt>
+                  <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Já Fez a Obra no Altar</dt>
                   <dd class="text-sm font-semibold text-gray-900">{jovem.ja_obra_altar ? 'Sim' : 'Não'}</dd>
                 </div>
                 <div class="flex justify-between items-center py-2 border-b border-gray-100">
-                  <dt class="text-sm font-medium text-gray-500 uppercase tracking-wide">Já Foi Obreiro</dt>
+                  <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Já Foi Obreiro</dt>
                   <dd class="text-sm font-semibold text-gray-900">{jovem.ja_obreiro ? 'Sim' : 'Não'}</dd>
                 </div>
                 <div class="flex justify-between items-center py-2 border-b border-gray-100">
-                  <dt class="text-sm font-medium text-gray-500 uppercase tracking-wide">Já Foi Colaborador</dt>
+                  <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Já Foi Colaborador</dt>
                   <dd class="text-sm font-semibold text-gray-900">{jovem.ja_colaborador ? 'Sim' : 'Não'}</dd>
                 </div>
                 <div class="flex justify-between items-center py-2 border-b border-gray-100">
-                  <dt class="text-sm font-medium text-gray-500 uppercase tracking-wide">Já Se Afastou Alguma Vez</dt>
+                  <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Já Se Afastou Alguma Vez</dt>
                   <dd class="text-sm font-semibold text-gray-900">{jovem.afastado ? 'Sim' : 'Não'}</dd>
                 </div>
                 <div class="flex justify-between items-center py-2 border-b border-gray-100">
-                  <dt class="text-sm font-medium text-gray-500 uppercase tracking-wide">Os Pais São da Igreja</dt>
+                  <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Os Pais São da Igreja</dt>
                   <dd class="text-sm font-semibold text-gray-900">{jovem.pais_na_igreja ? 'Sim' : 'Não'}</dd>
                 </div>
                 <div class="flex justify-between items-center py-2 border-b border-gray-100">
-                  <dt class="text-sm font-medium text-gray-500 uppercase tracking-wide">Observação sobre os Pais</dt>
+                  <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Observação sobre os Pais</dt>
                   <dd class="text-sm font-semibold text-gray-900">{jovem.observacao_pais || 'Não informado'}</dd>
                 </div>
                 <div class="flex justify-between items-center py-2 border-b border-gray-100">
-                  <dt class="text-sm font-medium text-gray-500 uppercase tracking-wide">Tem Familiares na Igreja</dt>
+                  <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Tem Familiares na Igreja</dt>
                   <dd class="text-sm font-semibold text-gray-900">{jovem.familiares_igreja ? 'Sim' : 'Não'}</dd>
                 </div>
                 <div class="flex justify-between items-center py-2">
-                  <dt class="text-sm font-medium text-gray-500 uppercase tracking-wide">Deseja o Altar</dt>
+                  <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Deseja o Altar</dt>
                   <dd class="text-sm font-semibold text-gray-900">{jovem.deseja_altar ? 'Sim' : 'Não'}</dd>
                 </div>
               </dl>
@@ -556,29 +556,29 @@
                 </div>
                 {#if jovem.trabalha}
                   <div class="flex justify-between items-center py-2 border-b border-gray-100">
-                    <dt class="text-sm font-medium text-gray-500 uppercase tracking-wide">Nome da Empresa</dt>
+                    <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Nome da Empresa</dt>
                     <dd class="text-sm font-semibold text-gray-900">{jovem.local_trabalho || 'Não informado'}</dd>
                   </div>
                 {/if}
                 <div class="flex justify-between items-center py-2 border-b border-gray-100">
-                  <dt class="text-sm font-medium text-gray-500 uppercase tracking-wide">Trabalha Com</dt>
+                  <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Trabalha Com</dt>
                   <dd class="text-sm font-semibold text-gray-900">{jovem.formacao || 'Não informado'}</dd>
                 </div>
                 <div class="flex justify-between items-center py-2 border-b border-gray-100">
-                  <dt class="text-sm font-medium text-gray-500 uppercase tracking-wide">Profissão</dt>
+                  <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Profissão</dt>
                   <dd class="text-sm font-semibold text-gray-900">{jovem.formacao || 'Não informado'}</dd>
                 </div>
                 <div class="flex justify-between items-center py-2 border-b border-gray-100">
-                  <dt class="text-sm font-medium text-gray-500 uppercase tracking-wide">Escolaridade</dt>
+                  <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Escolaridade</dt>
                   <dd class="text-sm font-semibold text-gray-900">{jovem.escolaridade || 'Não informado'}</dd>
                 </div>
                 <div class="flex justify-between items-center py-2 border-b border-gray-100">
-                  <dt class="text-sm font-medium text-gray-500 uppercase tracking-wide">Tem Dívidas</dt>
+                  <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Tem Dívidas</dt>
                   <dd class="text-sm font-semibold text-gray-900">{jovem.tem_dividas ? 'Sim' : 'Não'}</dd>
                 </div>
                 {#if jovem.tem_dividas && jovem.valor_divida}
                   <div class="flex justify-between items-center py-2">
-                    <dt class="text-sm font-medium text-gray-500 uppercase tracking-wide">Valor da Dívida</dt>
+                    <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Valor da Dívida</dt>
                     <dd class="text-sm font-semibold text-gray-900">R$ {jovem.valor_divida.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</dd>
                   </div>
                 {/if}

@@ -4,14 +4,14 @@
   import { goto } from '$app/navigation';
   import Button from '$lib/components/ui/Button.svelte';
   import AvaliacoesChart from '$lib/components/charts/AvaliacoesChart.svelte';
-  import { estatisticas, loadEstatisticas } from '$lib/stores/estatisticas';
+  import { estatisticas, loadEstatisticas, condicoesStats, loadCondicoesStats } from '$lib/stores/estatisticas';
   import { supabase } from '$lib/utils/supabase';
   
   let stats = {
     totalJovens: 0,
     avaliacoesPendentes: 0,
-    mediaGeral: 0,
-    crescimento: 0,
+    avaliados: 0,
+    aprovados: 0,
     ultimosCadastros: []
   };
   
@@ -33,11 +33,23 @@
       // Carregar estatísticas gerais
       await loadEstatisticas();
       
+      // Carregar estatísticas das condições
+      await loadCondicoesStats();
+      
       // Carregar atividades recentes
       await loadRecentActivities();
       
       // Carregar últimos cadastros
       await loadUltimosCadastros();
+      
+      // Atualizar stats locais com dados do store
+      stats = {
+        totalJovens: $estatisticas.totalJovens || 0,
+        avaliacoesPendentes: $estatisticas.pendentes || 0,
+        avaliados: $estatisticas.avaliados || 0,
+        aprovados: $estatisticas.aprovados || 0,
+        ultimosCadastros: []
+      };
       
     } catch (err) {
       console.error('Erro ao carregar dados do dashboard:', err);
@@ -206,11 +218,109 @@
   </div>
   
   <!-- Stats overview -->
-  <div class="fb-card p-6">
-    <h3 class="text-lg font-semibold text-gray-900 mb-4">Resumo Geral</h3>
+  {#if $userProfile?.nivel !== 'jovem'}
+    <div class="fb-card p-6">
+      <h3 class="text-lg font-semibold text-gray-900 mb-4">Resumo Geral</h3>
     {#if loading}
-      <div class="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
         {#each Array(4) as _}
+          <div class="text-center">
+            <div class="w-10 h-10 sm:w-12 sm:h-12 bg-gray-200 rounded-full mx-auto mb-2 animate-pulse"></div>
+            <div class="h-6 sm:h-8 bg-gray-200 rounded w-12 sm:w-16 mx-auto mb-2 animate-pulse"></div>
+            <div class="h-3 sm:h-4 bg-gray-200 rounded w-16 sm:w-20 mx-auto animate-pulse"></div>
+          </div>
+        {/each}
+      </div>
+    {:else}
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+        {#if $userProfile?.nivel !== 'jovem'}
+          <a href="/jovens/todos" class="text-center group cursor-pointer hover:bg-gray-50 rounded-lg p-3 sm:p-4 transition-colors">
+            <div class="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2 group-hover:bg-blue-200 transition-colors">
+              <svg class="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+              </svg>
+            </div>
+            <p class="text-xl sm:text-2xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">{stats.totalJovens}</p>
+            <p class="text-xs sm:text-sm text-gray-500 group-hover:text-gray-700 transition-colors">Jovens</p>
+          </a>
+          <a href="/jovens/pendentes" class="text-center group cursor-pointer hover:bg-gray-50 rounded-lg p-3 sm:p-4 transition-colors">
+            <div class="w-10 h-10 sm:w-12 sm:h-12 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-2 group-hover:bg-yellow-200 transition-colors">
+              <svg class="w-5 h-5 sm:w-6 sm:h-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <p class="text-xl sm:text-2xl font-bold text-gray-900 group-hover:text-yellow-600 transition-colors">{stats.avaliacoesPendentes}</p>
+            <p class="text-xs sm:text-sm text-gray-500 group-hover:text-gray-700 transition-colors">Pendentes</p>
+          </a>
+          <a href="/jovens/avaliados" class="text-center group cursor-pointer hover:bg-gray-50 rounded-lg p-3 sm:p-4 transition-colors">
+            <div class="w-10 h-10 sm:w-12 sm:h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2 group-hover:bg-green-200 transition-colors">
+              <svg class="w-5 h-5 sm:w-6 sm:h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+            </div>
+            <p class="text-xl sm:text-2xl font-bold text-gray-900 group-hover:text-green-600 transition-colors">{stats.avaliados}</p>
+            <p class="text-xs sm:text-sm text-gray-500 group-hover:text-gray-700 transition-colors">Avaliados</p>
+          </a>
+          <a href="/jovens/aprovados" class="text-center group cursor-pointer hover:bg-gray-50 rounded-lg p-3 sm:p-4 transition-colors">
+            <div class="w-10 h-10 sm:w-12 sm:h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-2 group-hover:bg-purple-200 transition-colors">
+              <svg class="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <p class="text-xl sm:text-2xl font-bold text-gray-900 group-hover:text-purple-600 transition-colors">{stats.aprovados}</p>
+            <p class="text-xs sm:text-sm text-gray-500 group-hover:text-gray-700 transition-colors">Aprovados</p>
+          </a>
+        {:else}
+          <!-- Para usuários jovens, mostrar apenas os números sem links -->
+          <div class="text-center">
+            <div class="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2">
+              <svg class="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+              </svg>
+            </div>
+            <p class="text-xl sm:text-2xl font-bold text-gray-900">{stats.totalJovens}</p>
+            <p class="text-xs sm:text-sm text-gray-500">Jovens</p>
+          </div>
+          <div class="text-center">
+            <div class="w-10 h-10 sm:w-12 sm:h-12 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-2">
+              <svg class="w-5 h-5 sm:w-6 sm:h-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <p class="text-xl sm:text-2xl font-bold text-gray-900">{stats.avaliacoesPendentes}</p>
+            <p class="text-xs sm:text-sm text-gray-500">Pendentes</p>
+          </div>
+          <div class="text-center">
+            <div class="w-10 h-10 sm:w-12 sm:h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
+              <svg class="w-5 h-5 sm:w-6 sm:h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+            </div>
+            <p class="text-xl sm:text-2xl font-bold text-gray-900">{stats.avaliados}</p>
+            <p class="text-xs sm:text-sm text-gray-500">Avaliados</p>
+          </div>
+          <div class="text-center">
+            <div class="w-10 h-10 sm:w-12 sm:h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-2">
+              <svg class="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <p class="text-xl sm:text-2xl font-bold text-gray-900">{stats.aprovados}</p>
+            <p class="text-xs sm:text-sm text-gray-500">Aprovados</p>
+          </div>
+        {/if}
+      </div>
+    {/if}
+    </div>
+  {/if}
+  
+  <!-- Condições dos Jovens -->
+  {#if $userProfile?.nivel !== 'jovem'}
+    <div class="fb-card p-6">
+      <h3 class="text-lg font-semibold text-gray-900 mb-4">Condições dos Jovens</h3>
+    {#if loading}
+      <div class="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 gap-4">
+        {#each Array(6) as _}
           <div class="text-center">
             <div class="w-12 h-12 bg-gray-200 rounded-full mx-auto mb-2 animate-pulse"></div>
             <div class="h-8 bg-gray-200 rounded w-16 mx-auto mb-2 animate-pulse"></div>
@@ -219,50 +329,70 @@
         {/each}
       </div>
     {:else}
-      <div class="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="text-center">
-          <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2">
-            <svg class="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+        <a href="/condicoes?condicao=auxiliar_pastor" class="text-center group cursor-pointer hover:bg-gray-50 rounded-lg p-3 sm:p-4 transition-colors">
+          <div class="w-10 h-10 sm:w-12 sm:h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-2 group-hover:bg-purple-200 transition-colors">
+            <svg class="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+            </svg>
+          </div>
+          <p class="text-xl sm:text-2xl font-bold text-gray-900 group-hover:text-purple-600 transition-colors">{$condicoesStats.auxPastor}</p>
+          <p class="text-xs sm:text-sm text-gray-500 group-hover:text-gray-700 transition-colors">Aux. de Pastor</p>
+        </a>
+        <a href="/condicoes?condicao=iburd" class="text-center group cursor-pointer hover:bg-gray-50 rounded-lg p-3 sm:p-4 transition-colors">
+          <div class="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2 group-hover:bg-blue-200 transition-colors">
+            <svg class="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
             </svg>
           </div>
-          <p class="text-2xl font-bold text-gray-900">{stats.totalJovens}</p>
-          <p class="text-sm text-gray-500">Jovens</p>
-        </div>
-        <div class="text-center">
-          <div class="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-2">
-            <svg class="w-6 h-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          <p class="text-xl sm:text-2xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">{$condicoesStats.iburd}</p>
+          <p class="text-xs sm:text-sm text-gray-500 group-hover:text-gray-700 transition-colors">IBURD</p>
+        </a>
+        <a href="/condicoes?condicao=obreiro" class="text-center group cursor-pointer hover:bg-gray-50 rounded-lg p-3 sm:p-4 transition-colors">
+          <div class="w-10 h-10 sm:w-12 sm:h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2 group-hover:bg-green-200 transition-colors">
+            <svg class="w-5 h-5 sm:w-6 sm:h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2-2v2m8 0V6a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V8a2 2 0 012-2V6" />
             </svg>
           </div>
-          <p class="text-2xl font-bold text-gray-900">{stats.avaliacoesPendentes}</p>
-          <p class="text-sm text-gray-500">Pendentes</p>
-        </div>
-        <div class="text-center">
-          <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
-            <svg class="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+          <p class="text-xl sm:text-2xl font-bold text-gray-900 group-hover:text-green-600 transition-colors">{$condicoesStats.obreiro}</p>
+          <p class="text-xs sm:text-sm text-gray-500 group-hover:text-gray-700 transition-colors">Obreiro</p>
+        </a>
+        <a href="/condicoes?condicao=colaborador" class="text-center group cursor-pointer hover:bg-gray-50 rounded-lg p-3 sm:p-4 transition-colors">
+          <div class="w-10 h-10 sm:w-12 sm:h-12 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-2 group-hover:bg-orange-200 transition-colors">
+            <svg class="w-5 h-5 sm:w-6 sm:h-6 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
             </svg>
           </div>
-          <p class="text-2xl font-bold text-gray-900">{stats.mediaGeral}</p>
-          <p class="text-sm text-gray-500">Média</p>
-        </div>
-        <div class="text-center">
-          <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-2">
-            <svg class="w-6 h-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+          <p class="text-xl sm:text-2xl font-bold text-gray-900 group-hover:text-orange-600 transition-colors">{$condicoesStats.colaborador}</p>
+          <p class="text-xs sm:text-sm text-gray-500 group-hover:text-gray-700 transition-colors">Colaborador</p>
+        </a>
+        <a href="/condicoes?condicao=cpo" class="text-center group cursor-pointer hover:bg-gray-50 rounded-lg p-3 sm:p-4 transition-colors">
+          <div class="w-10 h-10 sm:w-12 sm:h-12 bg-teal-100 rounded-full flex items-center justify-center mx-auto mb-2 group-hover:bg-teal-200 transition-colors">
+            <svg class="w-5 h-5 sm:w-6 sm:h-6 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
-          <p class="text-2xl font-bold text-gray-900">{stats.crescimento > 0 ? '+' : ''}{stats.crescimento}%</p>
-          <p class="text-sm text-gray-500">Crescimento</p>
-        </div>
+          <p class="text-xl sm:text-2xl font-bold text-gray-900 group-hover:text-teal-600 transition-colors">{$condicoesStats.cpo}</p>
+          <p class="text-xs sm:text-sm text-gray-500 group-hover:text-gray-700 transition-colors">CPO</p>
+        </a>
+        <a href="/condicoes?condicao=jovem_batizado_es" class="text-center group cursor-pointer hover:bg-gray-50 rounded-lg p-3 sm:p-4 transition-colors">
+          <div class="w-10 h-10 sm:w-12 sm:h-12 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-2 group-hover:bg-pink-200 transition-colors">
+            <svg class="w-5 h-5 sm:w-6 sm:h-6 text-pink-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+            </svg>
+          </div>
+          <p class="text-xl sm:text-2xl font-bold text-gray-900 group-hover:text-pink-600 transition-colors">{$condicoesStats.batizadoES}</p>
+          <p class="text-xs sm:text-sm text-gray-500 group-hover:text-gray-700 transition-colors">Jovem</p>
+        </a>
       </div>
     {/if}
-  </div>
+    </div>
+  {/if}
   
   <!-- Recent activities feed -->
-  <div class="fb-card p-6">
-    <h3 class="text-lg font-semibold text-gray-900 mb-4">Atividades Recentes</h3>
+  {#if $userProfile?.nivel !== 'jovem'}
+    <div class="fb-card p-6">
+      <h3 class="text-lg font-semibold text-gray-900 mb-4">Atividades Recentes</h3>
     {#if loading}
       <div class="space-y-4">
         {#each Array(4) as _}
@@ -306,14 +436,16 @@
         <p class="text-gray-500">Nenhuma atividade recente</p>
       </div>
     {/if}
-  </div>
+    </div>
+  {/if}
   
   <!-- Estatísticas de Avaliações -->
-  <AvaliacoesChart jovemId={null} title="Estatísticas Gerais de Avaliações" />
-  
-  <!-- Quick actions -->
-  <div class="fb-card p-6">
-    <h3 class="text-lg font-semibold text-gray-900 mb-4">Ações Rápidas</h3>
+  {#if $userProfile?.nivel !== 'jovem'}
+    <AvaliacoesChart jovemId={null} title="Estatísticas Gerais de Avaliações" />
+    
+    <!-- Quick actions -->
+    <div class="fb-card p-6">
+      <h3 class="text-lg font-semibold text-gray-900 mb-4">Ações Rápidas</h3>
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       <Button href="/jovens/cadastrar" variant="primary" class="w-full justify-center">
         <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -336,5 +468,6 @@
         Ver Relatórios
       </Button>
     </div>
-  </div>
+    </div>
+  {/if}
 </div>
