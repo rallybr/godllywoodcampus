@@ -68,7 +68,7 @@ export async function loadUserRoles() {
   
   try {
     // Usar o userProfile que já está carregado
-    const profile = $userProfile;
+    const profile = get(userProfile);
     
     if (!profile) {
       userRoles.set([]);
@@ -123,7 +123,7 @@ function getNivelHierarquico(nivel) {
  * Verificar se o usuário tem um papel específico
  */
 export function hasRole(roleSlug) {
-  const profile = $userProfile;
+  const profile = get(userProfile);
   return profile?.nivel === roleSlug;
 }
 
@@ -131,7 +131,7 @@ export function hasRole(roleSlug) {
  * Verificar se o usuário tem acesso a uma localização específica
  */
 export function canAccessLocation(estadoId, blocoId, regiaoId, igrejaId) {
-  const profile = $userProfile;
+  const profile = get(userProfile);
   
   if (!profile) return false;
   
@@ -175,7 +175,7 @@ export function canAccessLocation(estadoId, blocoId, regiaoId, igrejaId) {
 export function canAccessJovem(jovemData) {
   if (!jovemData) return false;
   
-  const profile = $userProfile;
+  const profile = get(userProfile);
   
   if (!profile) return false;
   
@@ -206,7 +206,7 @@ export function canAccessViagem(jovemData) {
  * Obter filtros de localização baseados no nível de acesso
  */
 export function getLocationFilters() {
-  const profile = $userProfile;
+  const profile = get(userProfile);
   
   if (!profile) return {};
   
@@ -279,7 +279,7 @@ export function getLevelColor(level) {
  * Verificar se o usuário pode gerenciar outro usuário
  */
 export function canManageUser(targetUserLevel) {
-  const profile = $userProfile;
+  const profile = get(userProfile);
   
   if (!profile) return false;
   
@@ -291,7 +291,7 @@ export function canManageUser(targetUserLevel) {
  * Verificar se o usuário pode ver uma página específica
  */
 export function canAccessPage(pagePath) {
-  const profile = $userProfile;
+  const profile = get(userProfile);
   
   if (!profile) return false;
   

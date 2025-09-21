@@ -5,10 +5,14 @@
 	import Card from '$lib/components/ui/Card.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import ProgressoTimeline from '$lib/components/progresso/ProgressoTimeline.svelte';
+	import EditarPerfilModal from '$lib/components/modals/EditarPerfilModal.svelte';
 
 	let loading = true;
 	let error = '';
 	let jovem = null;
+
+	// Modal de edição de perfil
+	let showEditModal = false;
 
 	// KPIs
 	let totalAval = 0;
@@ -108,6 +112,26 @@
 	}
 
 	onMount(loadData);
+
+	// Funções do modal de edição
+	function openEditModal() {
+		showEditModal = true;
+	}
+
+	function closeEditModal() {
+		showEditModal = false;
+	}
+
+	function handleEditSuccess(event) {
+		// Atualizar o userProfile com os novos dados
+		if (event.detail) {
+			userProfile.update(profile => ({
+				...profile,
+				nome: event.detail.nome,
+				foto: event.detail.foto
+			}));
+		}
+	}
 </script>
 
 <!-- Background com gradiente sutil -->
@@ -121,7 +145,7 @@
 			<p class="text-sm sm:text-base text-gray-600 px-4">Acompanhe sua jornada no IntelliMen Campus</p>
 		</div>
 
-		{#if loading}
+	{#if loading}
 			<div class="space-y-4 sm:space-y-6">
 				<!-- Loading skeleton para o card de perfil -->
 				<div class="bg-white rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 lg:p-8 animate-pulse">
@@ -142,8 +166,8 @@
 						</div>
 					{/each}
 				</div>
-			</div>
-		{:else if error}
+		</div>
+	{:else if error}
 			<div class="bg-red-50 border border-red-200 rounded-xl sm:rounded-2xl p-4 sm:p-6 lg:p-8 text-center">
 				<div class="w-12 h-12 sm:w-16 sm:h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
 					<svg class="w-6 h-6 sm:w-8 sm:h-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -153,26 +177,32 @@
 				<h3 class="text-base sm:text-lg font-semibold text-red-800 mb-2">Erro ao carregar perfil</h3>
 				<p class="text-sm sm:text-base text-red-600 px-4">{error}</p>
 			</div>
-		{:else}
+	{:else}
 			<!-- Card principal do perfil -->
 			<div class="bg-white rounded-xl sm:rounded-2xl shadow-xl overflow-hidden mb-6 sm:mb-8">
 				<!-- Header com gradiente -->
 				<div class="bg-gradient-to-r from-blue-600 to-purple-600 px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
 					<div class="flex flex-col sm:flex-row items-center sm:justify-between space-y-4 sm:space-y-0">
 						<div class="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-6">
-							<!-- Avatar com borda e sombra -->
-							<div class="relative">
-								{#if $userProfile?.foto}
+							<!-- Avatar com borda e sombra (clicável) -->
+							<div class="relative cursor-pointer group" on:click={openEditModal} on:keydown={(e) => e.key === 'Enter' && openEditModal()} role="button" tabindex="0">
+				{#if $userProfile?.foto}
 									<img 
-										class="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover border-4 border-white shadow-lg" 
+										class="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover border-4 border-white shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-105" 
 										src={$userProfile.foto} 
 										alt={$userProfile.nome} 
 									/>
-								{:else}
-									<div class="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-br from-white to-gray-100 text-blue-600 flex items-center justify-center text-2xl sm:text-3xl font-bold border-4 border-white shadow-lg">
-										{$userProfile?.nome?.charAt(0) || 'U'}
-									</div>
-								{/if}
+				{:else}
+									<div class="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-br from-white to-gray-100 text-blue-600 flex items-center justify-center text-2xl sm:text-3xl font-bold border-4 border-white shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-105">
+						{$userProfile?.nome?.charAt(0) || 'U'}
+					</div>
+				{/if}
+								<!-- Overlay de edição -->
+								<div class="absolute inset-0 rounded-full bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-300 flex items-center justify-center">
+									<svg class="w-6 h-6 sm:w-8 sm:h-8 text-white opacity-0 group-hover:opacity-100 transition-all duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+									</svg>
+								</div>
 								<!-- Badge de status -->
 								<div class="absolute -bottom-1 -right-1 sm:-bottom-2 sm:-right-2 w-6 h-6 sm:w-8 sm:h-8 bg-green-500 rounded-full border-2 sm:border-4 border-white flex items-center justify-center">
 									<svg class="w-3 h-3 sm:w-4 sm:h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
@@ -307,17 +337,17 @@
 								<svg class="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
 								</svg>
-							</div>
-							<div>
+				</div>
+				<div>
 								<h3 class="text-lg sm:text-xl font-bold text-white">Timeline de Progresso</h3>
 								<p class="text-indigo-100 text-sm sm:text-base">Acompanhe sua evolução espiritual</p>
 							</div>
-						</div>
-					</div>
+				</div>
+				</div>
 					<div class="p-4 sm:p-6 lg:p-8">
 						<ProgressoTimeline jovemId={jovem.id} />
-					</div>
 				</div>
+			</div>
 			{/if}
 
 			<!-- Timeline de Avaliações -->
@@ -328,15 +358,15 @@
 							<svg class="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
 							</svg>
-						</div>
+				</div>
 						<div>
 							<h3 class="text-lg sm:text-xl font-bold text-white">Histórico de Avaliações</h3>
 							<p class="text-gray-300 text-sm sm:text-base">Todas as suas avaliações</p>
-						</div>
-					</div>
 				</div>
+				</div>
+			</div>
 				<div class="p-4 sm:p-6 lg:p-8">
-					{#if !avaliacoes?.length}
+			{#if !avaliacoes?.length}
 						<div class="text-center py-8 sm:py-12">
 							<div class="w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
 								<svg class="w-6 h-6 sm:w-8 sm:h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -346,9 +376,9 @@
 							<h3 class="text-base sm:text-lg font-semibold text-gray-900 mb-2">Nenhuma avaliação registrada</h3>
 							<p class="text-sm sm:text-base text-gray-600 px-4">Suas avaliações aparecerão aqui quando forem realizadas.</p>
 						</div>
-					{:else}
+			{:else}
 						<div class="space-y-3 sm:space-y-4">
-							{#each avaliacoes as a}
+					{#each avaliacoes as a}
 								<div class="bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg sm:rounded-xl p-4 sm:p-6 hover:shadow-md transition-all duration-300">
 									<div class="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-3 sm:space-y-0">
 										<div class="flex items-center space-x-3 sm:space-x-4">
@@ -373,11 +403,11 @@
 												<span class="px-2 py-1 bg-purple-100 text-purple-800 rounded-full">Disposição: {a.disposicao ?? '-'}</span>
 											</div>
 										</div>
-									</div>
-								</div>
-							{/each}
+							</div>
 						</div>
-						{#if hasMore}
+					{/each}
+				</div>
+				{#if hasMore}
 							<div class="mt-4 sm:mt-6 text-center">
 								<Button 
 									on:click={loadMore} 
@@ -386,12 +416,20 @@
 								>
 									{loadingMore ? 'Carregando...' : 'Carregar mais'}
 								</Button>
-							</div>
-						{/if}
-					{/if}
+					</div>
+				{/if}
+			{/if}
 				</div>
 			</div>
-		{/if}
-	</div>
+	{/if}
 </div>
+</div>
+
+<!-- Modal de Edição de Perfil -->
+<EditarPerfilModal 
+	bind:isOpen={showEditModal}
+	userProfile={$userProfile}
+	on:close={closeEditModal}
+	on:success={handleEditSuccess}
+/>
 

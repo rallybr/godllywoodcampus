@@ -9,6 +9,7 @@
   export let error = '';
   export let label = '';
   export let help = '';
+  export let id = '';
   
   const dispatch = createEventDispatcher();
   
@@ -26,7 +27,7 @@
 
 <div class="space-y-1">
   {#if label}
-    <label class="block text-sm font-medium text-gray-700">
+    <label for={id || undefined} class="block text-sm font-medium text-gray-700">
       {label}
       {#if required}
         <span class="text-red-500">*</span>
@@ -40,6 +41,7 @@
     {value}
     {disabled}
     {required}
+    {id}
     class={classes}
     on:input={handleInput}
   />

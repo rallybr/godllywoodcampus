@@ -53,7 +53,7 @@
   <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
     <div>
       <h1 class="text-2xl font-bold text-gray-900">Jovens</h1>
-      <p class="text-gray-600">Gerencie os jovens cadastrados no acampamento</p>
+      <p class="text-gray-600">IntelliMen Campus</p>
     </div>
     <div class="mt-4 sm:mt-0 flex items-center space-x-3">
       <!-- View mode toggle -->

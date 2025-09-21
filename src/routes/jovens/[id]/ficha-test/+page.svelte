@@ -2,6 +2,8 @@
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
+  import { format, parseISO } from 'date-fns';
+  import { ptBR } from 'date-fns/locale';
 
   // @ts-ignore
   let jovem = null;
@@ -51,6 +53,16 @@
 
   function voltar() {
     goto('/jovens');
+  }
+
+  // Função para formatar data
+  function formatarData(data) {
+    if (!data) return 'Não informado';
+    try {
+      return format(parseISO(data), 'dd/MM/yyyy', { locale: ptBR });
+    } catch {
+      return data;
+    }
   }
 
   // @ts-ignore
@@ -106,7 +118,7 @@
           <h1 class="text-2xl font-semibold">{jovem.nome_completo}</h1>
           <p class="text-sm opacity-90">
             {jovem.estado?.nome || 'Estado não informado'} • 
-            Cadastrado em {new Date(jovem.data_cadastro).toLocaleDateString('pt-BR')}
+            Cadastrado em {formatarData(jovem.data_cadastro)}
           </p>
         </div>
 
@@ -143,7 +155,7 @@
               <div class="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3">
                 <div class="text-xs font-semibold text-gray-500 uppercase">DATA DE NASCIMENTO</div>
                 <div class="text-gray-800 text-base mt-1">
-                  {jovem.data_nasc ? new Date(jovem.data_nasc).toLocaleDateString('pt-BR') : 'Não informado'}
+                  {formatarData(jovem.data_nasc)}
                 </div>
               </div>
               <div class="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3">
@@ -221,7 +233,7 @@
               <div class="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3">
                 <div class="text-xs font-semibold text-gray-500 uppercase">DATA DO BATISMO NAS ÁGUAS</div>
                 <div class="text-gray-800 text-base mt-1">
-                  {jovem.data_batismo_aguas ? new Date(jovem.data_batismo_aguas).toLocaleDateString('pt-BR') : 'Não informado'}
+                  {formatarData(jovem.data_batismo_aguas)}
                 </div>
               </div>
               <div class="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3">
@@ -231,7 +243,7 @@
               <div class="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3">
                 <div class="text-xs font-semibold text-gray-500 uppercase">DATA DO BATISMO COM O ES</div>
                 <div class="text-gray-800 text-base mt-1">
-                  {jovem.data_batismo_es ? new Date(jovem.data_batismo_es).toLocaleDateString('pt-BR') : 'Não informado'}
+                  {formatarData(jovem.data_batismo_es)}
                 </div>
               </div>
               <div class="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3">
@@ -275,7 +287,7 @@
               <div class="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3">
                 <div class="text-xs font-semibold text-gray-500 uppercase">DATA DO AFASTAMENTO</div>
                 <div class="text-gray-800 text-base mt-1">
-                  {jovem.data_afastamento ? new Date(jovem.data_afastamento).toLocaleDateString('pt-BR') : 'Não informado'}
+                  {formatarData(jovem.data_afastamento)}
                 </div>
               </div>
               <div class="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3">
@@ -285,7 +297,7 @@
               <div class="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3">
                 <div class="text-xs font-semibold text-gray-500 uppercase">DATA DO RETORNO</div>
                 <div class="text-gray-800 text-base mt-1">
-                  {jovem.data_retorno ? new Date(jovem.data_retorno).toLocaleDateString('pt-BR') : 'Não informado'}
+                  {formatarData(jovem.data_retorno)}
                 </div>
               </div>
               <div class="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3">
@@ -410,7 +422,7 @@
               <div class="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3">
                 <div class="text-xs font-semibold text-gray-500 uppercase">DATA DE CADASTRO</div>
                 <div class="text-gray-800 text-base mt-1">
-                  {jovem.data_cadastro ? new Date(jovem.data_cadastro).toLocaleDateString('pt-BR') : 'Não informado'}
+                  {formatarData(jovem.data_cadastro)}
                 </div>
               </div>
             </div>

@@ -8,6 +8,8 @@
   import AvaliacoesList from './AvaliacoesList.svelte';
   import { userProfile, hasRole } from '$lib/stores/auth';
   import AvaliacaoModal from '$lib/components/modals/AvaliacaoModal.svelte';
+  import { format, parseISO } from 'date-fns';
+  import { ptBR } from 'date-fns/locale';
   
   // @ts-ignore
   export let jovemId;
@@ -24,7 +26,7 @@
   
   const tabs = [
     { id: 'dados-pessoais', label: 'Dados Pessoais', icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z' },
-    { id: 'espirituais', label: 'Espirituais', icon: 'M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z' },
+    { id: 'espirituais', label: 'Espirituais', icon: 'M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z' },
     { id: 'profissionais', label: 'Profissionais', icon: 'M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2-2v2m8 0V6a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V8a2 2 0 012-2V6' },
     // Aba de avaliações será exibida apenas se não for papel jovem
     { id: 'avaliacoes', label: 'Avaliações', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
@@ -108,7 +110,11 @@
   // @ts-ignore
   function formatDate(dateString) {
     if (!dateString) return 'Não informado';
-    return new Date(dateString).toLocaleDateString('pt-BR');
+    try {
+      return format(parseISO(dateString), 'dd/MM/yyyy', { locale: ptBR });
+    } catch {
+      return dateString;
+    }
   }
   
   // @ts-ignore
@@ -160,69 +166,69 @@
     </Button>
   </div>
 {:else if jovem}
-  <div class="max-w-6xl mx-auto">
+  <div class="max-w-6xl mx-auto px-4 sm:px-6">
     <!-- Header -->
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-6">
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-4 sm:mb-6">
       <!-- Header azul com nome e edição -->
-      <div class="bg-blue-600 px-6 py-5 text-center">
-        <h1 class="text-3xl font-bold text-white mb-2">{jovem.nome_completo}</h1>
-        <p class="text-white text-base font-medium">{jovem.edicao || 'Não informado'}</p>
+      <div class="bg-blue-600 px-4 sm:px-6 py-4 sm:py-5 text-center">
+        <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-white mb-1 sm:mb-2">{jovem.nome_completo}</h1>
+        <p class="text-white text-sm sm:text-base font-medium">{jovem.edicao || 'Não informado'}</p>
       </div>
       
       <!-- Conteúdo do header -->
-      <div class="p-8">
-        <div class="flex items-start space-x-8">
+      <div class="p-4 sm:p-6 lg:p-8">
+        <div class="flex flex-col lg:flex-row items-center lg:items-start space-y-4 lg:space-y-0 lg:space-x-6 xl:space-x-8">
           <!-- Foto -->
           <div class="flex-shrink-0">
             {#if jovem.foto}
-              <img class="w-36 h-44 rounded-xl object-cover border-4 border-blue-500 shadow-lg" src={jovem.foto} alt={jovem.nome_completo} />
+              <img class="w-24 h-28 sm:w-28 sm:h-32 lg:w-32 lg:h-36 xl:w-36 xl:h-44 rounded-xl object-cover border-2 sm:border-4 border-blue-500 shadow-lg" src={jovem.foto} alt={jovem.nome_completo} />
             {:else}
-              <div class="w-36 h-44 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center border-4 border-blue-500 shadow-lg">
-                <span class="text-white font-bold text-4xl">{jovem.nome_completo?.charAt(0) || 'J'}</span>
+              <div class="w-24 h-28 sm:w-28 sm:h-32 lg:w-32 lg:h-36 xl:w-36 xl:h-44 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center border-2 sm:border-4 border-blue-500 shadow-lg">
+                <span class="text-white font-bold text-2xl sm:text-3xl lg:text-4xl">{jovem.nome_completo?.charAt(0) || 'J'}</span>
               </div>
             {/if}
           </div>
           
           <!-- Informações básicas -->
-          <div class="flex-1">
-            <div class="flex items-start justify-between">
-              <div class="space-y-4">
+          <div class="flex-1 w-full">
+            <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between space-y-4 lg:space-y-0">
+              <div class="space-y-2 sm:space-y-3">
                 <!-- Lista organizada de dados -->
-                <div class="space-y-2">
-                  <div class="flex items-center space-x-3">
-                    <span class="text-gray-500 text-sm font-medium w-16">Estado:</span>
-                    <span class="text-gray-700 text-base font-semibold">{jovem.estado?.nome || 'Não informado'}</span>
+                <div class="space-y-2 sm:space-y-3">
+                  <div class="flex items-center space-x-2 sm:space-x-3">
+                    <span class="text-gray-500 text-xs sm:text-sm font-medium w-12 sm:w-16">Estado:</span>
+                    <span class="text-gray-700 text-sm sm:text-base font-semibold">{jovem.estado?.nome || 'Não informado'}</span>
                   </div>
-                  <div class="flex items-center space-x-3">
-                    <span class="text-gray-500 text-sm font-medium w-16">Bloco:</span>
-                    <span class="text-gray-700 text-base font-semibold">{jovem.bloco?.nome || 'Não informado'}</span>
+                  <div class="flex items-center space-x-2 sm:space-x-3">
+                    <span class="text-gray-500 text-xs sm:text-sm font-medium w-12 sm:w-16">Bloco:</span>
+                    <span class="text-gray-700 text-sm sm:text-base font-semibold">{jovem.bloco?.nome || 'Não informado'}</span>
                   </div>
-                  <div class="flex items-center space-x-3">
-                    <span class="text-gray-500 text-sm font-medium w-16">Região:</span>
-                    <span class="text-gray-700 text-base font-semibold">{jovem.regiao?.nome || 'Não informado'}</span>
+                  <div class="flex items-center space-x-2 sm:space-x-3">
+                    <span class="text-gray-500 text-xs sm:text-sm font-medium w-12 sm:w-16">Região:</span>
+                    <span class="text-gray-700 text-sm sm:text-base font-semibold">{jovem.regiao?.nome || 'Não informado'}</span>
                   </div>
-                  <div class="flex items-center space-x-3">
-                    <span class="text-gray-500 text-sm font-medium w-16">Igreja:</span>
-                    <span class="text-gray-700 text-base font-semibold">{jovem.igreja?.nome || 'Não informado'}</span>
+                  <div class="flex items-center space-x-2 sm:space-x-3">
+                    <span class="text-gray-500 text-xs sm:text-sm font-medium w-12 sm:w-16">Igreja:</span>
+                    <span class="text-gray-700 text-sm sm:text-base font-semibold">{jovem.igreja?.nome || 'Não informado'}</span>
                   </div>
-                  <div class="flex items-center space-x-3">
-                    <span class="text-gray-500 text-sm font-medium w-16">Idade:</span>
-                    <span class="text-gray-700 text-base font-semibold">{jovem.idade || 'Não informado'} anos</span>
+                  <div class="flex items-center space-x-2 sm:space-x-3">
+                    <span class="text-gray-500 text-xs sm:text-sm font-medium w-12 sm:w-16">Idade:</span>
+                    <span class="text-gray-700 text-sm sm:text-base font-semibold">{jovem.idade || 'Não informado'} anos</span>
                   </div>
-                  <div class="flex items-center space-x-3">
-                    <span class="text-gray-500 text-sm font-medium w-16">Sexo:</span>
-                    <span class="text-gray-700 text-base font-semibold">{jovem.sexo || 'Não informado'}</span>
+                  <div class="flex items-center space-x-2 sm:space-x-3">
+                    <span class="text-gray-500 text-xs sm:text-sm font-medium w-12 sm:w-16">Sexo:</span>
+                    <span class="text-gray-700 text-sm sm:text-base font-semibold">{jovem.sexo || 'Não informado'}</span>
                   </div>
                 </div>
               </div>
               
               <!-- Status e ações -->
-              <div class="flex flex-col items-end space-y-4">
+              <div class="flex flex-col items-center lg:items-end space-y-3 sm:space-y-4">
                 {#if !hasRole('jovem')($userProfile)}
-                  <span class="inline-flex items-center px-4 py-2 rounded-full text-base font-semibold {getStatusBadge(jovem.aprovado)}">
+                  <span class="inline-flex items-center px-3 sm:px-4 py-1 sm:py-2 rounded-full text-sm sm:text-base font-semibold {getStatusBadge(jovem.aprovado)}">
                     {getStatusText(jovem.aprovado)}
                   </span>
-                  <div class="flex flex-col space-y-2 w-full max-w-xs">
+                  <div class="flex flex-col sm:flex-row lg:flex-col space-y-2 sm:space-y-0 sm:space-x-2 lg:space-x-0 lg:space-y-2 w-full max-w-xs">
                     {#if jovem.aprovado !== 'aprovado'}
                       <Button
                         size="sm"
@@ -230,6 +236,7 @@
                         on:click={() => handleAprovar('aprovado')}
                         loading={isApproving}
                         disabled={isApproving}
+                        class="text-xs sm:text-sm"
                       >
                         Aprovar
                       </Button>
@@ -241,6 +248,7 @@
                         on:click={() => handleAprovar('pre_aprovado')}
                         loading={isApproving}
                         disabled={isApproving}
+                        class="text-xs sm:text-sm"
                       >
                         Pré-aprovar
                       </Button>
@@ -249,23 +257,24 @@
                       size="sm"
                       variant="outline"
                       on:click={() => goto(`/jovens/${jovem.id}/editar`)}
+                      class="text-xs sm:text-sm"
                     >
                       Editar
                     </Button>
                     <button
                       on:click={verFicha}
-                      class="flex items-center space-x-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                      class="flex items-center justify-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                     >
-                      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                       </svg>
                       <span>Ver Ficha</span>
                     </button>
                     <button
                       on:click={() => goto(`/progresso?jovem=${jovem.id}`)}
-                      class="flex items-center space-x-2 px-3 py-2 text-sm font-medium text-white bg-teal-600 border border-teal-600 rounded-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500"
+                      class="flex items-center justify-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm font-medium text-white bg-teal-600 border border-teal-600 rounded-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500"
                     >
-                      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h4l3 10 4-18 3 8h4" />
                       </svg>
                       <span>Progresso</span>
@@ -280,19 +289,20 @@
     </div>
     
     <!-- Tabs -->
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-4 sm:mb-6">
       <div class="border-b border-gray-200">
-        <nav class="-mb-px flex space-x-8 px-6">
+        <nav class="-mb-px flex flex-wrap space-x-2 sm:space-x-4 lg:space-x-8 px-2 sm:px-4 lg:px-6">
           {#each tabs as tab}
             {#if !(tab.id === 'avaliacoes' && hasRole('jovem')($userProfile))}
             <button
-              class="flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm {activeTab === tab.id ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}"
+              class="flex items-center space-x-1 sm:space-x-2 py-2 sm:py-3 lg:py-4 px-1 border-b-2 font-medium text-xs sm:text-sm {activeTab === tab.id ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}"
               on:click={() => activeTab = tab.id}
             >
-              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={tab.icon} />
               </svg>
-              <span>{tab.label}</span>
+              <span class="hidden sm:inline">{tab.label}</span>
+              <span class="sm:hidden">{tab.label.split(' ')[0]}</span>
             </button>
             {/if}
           {/each}
@@ -301,41 +311,41 @@
     </div>
     
     <!-- Tab Content -->
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
       {#if activeTab === 'dados-pessoais'}
         <!-- Dados Pessoais -->
-        <div class="space-y-6">
+        <div class="space-y-4 sm:space-y-6">
           <!-- Informações Pessoais -->
           <div class="bg-white rounded-lg shadow-sm border border-blue-200 overflow-hidden">
-            <div class="bg-blue-600 px-6 py-3 relative">
-              <div class="absolute left-0 top-0 bottom-0 w-2 bg-blue-800 rounded-r"></div>
-              <h3 class="text-lg font-semibold text-white ml-3">Informações Pessoais</h3>
+            <div class="bg-blue-600 px-4 sm:px-6 py-2 sm:py-3 relative">
+              <div class="absolute left-0 top-0 bottom-0 w-1 sm:w-2 bg-blue-800 rounded-r"></div>
+              <h3 class="text-base sm:text-lg font-semibold text-white ml-2 sm:ml-3">Informações Pessoais</h3>
             </div>
-            <div class="p-6">
-              <dl class="space-y-4">
-                <div class="flex justify-between items-center py-2 border-b border-gray-100">
-                  <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">WhatsApp</dt>
-                  <dd class="text-sm font-semibold text-gray-900 bg-blue-50 px-3 py-1 rounded">{formatPhone(jovem.whatsapp)}</dd>
+            <div class="p-4 sm:p-6">
+              <dl class="space-y-3 sm:space-y-4">
+                <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 border-b border-gray-100 space-y-1 sm:space-y-0">
+                  <dt class="text-xs sm:text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">WhatsApp</dt>
+                  <dd class="text-xs sm:text-sm font-semibold text-gray-900 bg-blue-50 px-2 sm:px-3 py-1 rounded">{formatPhone(jovem.whatsapp)}</dd>
                 </div>
-                <div class="flex justify-between items-center py-2 border-b border-gray-100">
-                  <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Idade</dt>
-                  <dd class="text-sm font-semibold text-gray-900 bg-blue-50 px-3 py-1 rounded">{jovem.idade} anos</dd>
+                <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 border-b border-gray-100 space-y-1 sm:space-y-0">
+                  <dt class="text-xs sm:text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Idade</dt>
+                  <dd class="text-xs sm:text-sm font-semibold text-gray-900 bg-blue-50 px-2 sm:px-3 py-1 rounded">{jovem.idade} anos</dd>
                 </div>
-                <div class="flex justify-between items-center py-2 border-b border-gray-100">
-                  <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Data de Nascimento</dt>
-                  <dd class="text-sm font-semibold text-gray-900 bg-blue-50 px-3 py-1 rounded">{formatDate(jovem.data_nasc)}</dd>
+                <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 border-b border-gray-100 space-y-1 sm:space-y-0">
+                  <dt class="text-xs sm:text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Data de Nascimento</dt>
+                  <dd class="text-xs sm:text-sm font-semibold text-gray-900 bg-blue-50 px-2 sm:px-3 py-1 rounded">{formatDate(jovem.data_nasc)}</dd>
                 </div>
-                <div class="flex justify-between items-center py-2 border-b border-gray-100">
-                  <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Estado Civil</dt>
-                  <dd class="text-sm font-semibold text-gray-900">{jovem.estado_civil || 'Não informado'}</dd>
+                <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 border-b border-gray-100 space-y-1 sm:space-y-0">
+                  <dt class="text-xs sm:text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Estado Civil</dt>
+                  <dd class="text-xs sm:text-sm font-semibold text-gray-900">{jovem.estado_civil || 'Não informado'}</dd>
                 </div>
-                <div class="flex justify-between items-center py-2 border-b border-gray-100">
-                  <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Namora</dt>
-                  <dd class="text-sm font-semibold text-gray-900">{jovem.namora ? 'Sim' : 'Não'}</dd>
+                <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 border-b border-gray-100 space-y-1 sm:space-y-0">
+                  <dt class="text-xs sm:text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Namora</dt>
+                  <dd class="text-xs sm:text-sm font-semibold text-gray-900">{jovem.namora ? 'Sim' : 'Não'}</dd>
                 </div>
-                <div class="flex justify-between items-center py-2">
-                  <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Tem Filho</dt>
-                  <dd class="text-sm font-semibold text-gray-900">{jovem.tem_filho ? 'Sim' : 'Não'}</dd>
+                <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 space-y-1 sm:space-y-0">
+                  <dt class="text-xs sm:text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Tem Filho</dt>
+                  <dd class="text-xs sm:text-sm font-semibold text-gray-900">{jovem.tem_filho ? 'Sim' : 'Não'}</dd>
                 </div>
               </dl>
             </div>
@@ -343,31 +353,31 @@
 
           <!-- Localização -->
           <div class="bg-white rounded-lg shadow-sm border border-blue-200 overflow-hidden">
-            <div class="bg-blue-600 px-6 py-3 relative">
-              <div class="absolute left-0 top-0 bottom-0 w-2 bg-blue-800 rounded-r"></div>
-              <h3 class="text-lg font-semibold text-white ml-3">Localização</h3>
+            <div class="bg-blue-600 px-4 sm:px-6 py-2 sm:py-3 relative">
+              <div class="absolute left-0 top-0 bottom-0 w-1 sm:w-2 bg-blue-800 rounded-r"></div>
+              <h3 class="text-base sm:text-lg font-semibold text-white ml-2 sm:ml-3">Localização</h3>
             </div>
-            <div class="p-6">
-              <dl class="space-y-4">
-                <div class="flex justify-between items-center py-2 border-b border-gray-100">
-                  <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Estado</dt>
-                  <dd class="text-sm font-semibold text-gray-900">{jovem.estado?.nome || 'Não informado'}</dd>
+            <div class="p-4 sm:p-6">
+              <dl class="space-y-3 sm:space-y-4">
+                <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 border-b border-gray-100 space-y-1 sm:space-y-0">
+                  <dt class="text-xs sm:text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Estado</dt>
+                  <dd class="text-xs sm:text-sm font-semibold text-gray-900">{jovem.estado?.nome || 'Não informado'}</dd>
                 </div>
-                <div class="flex justify-between items-center py-2 border-b border-gray-100">
-                  <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Bloco</dt>
-                  <dd class="text-sm font-semibold text-gray-900">{jovem.bloco?.nome || 'Não informado'}</dd>
+                <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 border-b border-gray-100 space-y-1 sm:space-y-0">
+                  <dt class="text-xs sm:text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Bloco</dt>
+                  <dd class="text-xs sm:text-sm font-semibold text-gray-900">{jovem.bloco?.nome || 'Não informado'}</dd>
                 </div>
-                <div class="flex justify-between items-center py-2 border-b border-gray-100">
-                  <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Região</dt>
-                  <dd class="text-sm font-semibold text-gray-900">{jovem.regiao?.nome || 'Não informado'}</dd>
+                <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 border-b border-gray-100 space-y-1 sm:space-y-0">
+                  <dt class="text-xs sm:text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Região</dt>
+                  <dd class="text-xs sm:text-sm font-semibold text-gray-900">{jovem.regiao?.nome || 'Não informado'}</dd>
                 </div>
-                <div class="flex justify-between items-center py-2 border-b border-gray-100">
-                  <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Igreja</dt>
-                  <dd class="text-sm font-semibold text-gray-900">{jovem.igreja?.nome || 'Não informado'}</dd>
+                <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 border-b border-gray-100 space-y-1 sm:space-y-0">
+                  <dt class="text-xs sm:text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Igreja</dt>
+                  <dd class="text-xs sm:text-sm font-semibold text-gray-900">{jovem.igreja?.nome || 'Não informado'}</dd>
                 </div>
-                <div class="flex justify-between items-center py-2">
-                  <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Edição</dt>
-                  <dd class="text-sm font-semibold text-gray-900">{jovem.edicao || 'Não informado'}</dd>
+                <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 space-y-1 sm:space-y-0">
+                  <dt class="text-xs sm:text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Edição</dt>
+                  <dd class="text-xs sm:text-sm font-semibold text-gray-900">{jovem.edicao || 'Não informado'}</dd>
                 </div>
               </dl>
             </div>
@@ -375,31 +385,31 @@
 
           <!-- Observações e Redes Sociais -->
           <div class="bg-white rounded-lg shadow-sm border border-blue-200 overflow-hidden">
-            <div class="bg-blue-600 px-6 py-3 relative">
-              <div class="absolute left-0 top-0 bottom-0 w-2 bg-blue-800 rounded-r"></div>
-              <h3 class="text-lg font-semibold text-white ml-3">Observações e Redes Sociais</h3>
+            <div class="bg-blue-600 px-4 sm:px-6 py-2 sm:py-3 relative">
+              <div class="absolute left-0 top-0 bottom-0 w-1 sm:w-2 bg-blue-800 rounded-r"></div>
+              <h3 class="text-base sm:text-lg font-semibold text-white ml-2 sm:ml-3">Observações e Redes Sociais</h3>
             </div>
             <div class="p-6">
               <dl class="space-y-4">
-                <div class="flex justify-between items-start py-2 border-b border-gray-100">
-                  <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Observação</dt>
-                  <dd class="text-sm font-semibold text-gray-900 text-right max-w-md">{jovem.observacao || 'Não informado'}</dd>
+                <div class="py-2 border-b border-gray-100">
+                  <dt class="text-xs sm:text-sm font-medium text-blue-600 uppercase tracking-wide font-bold text-center mb-2">Observação</dt>
+                  <dd class="text-xs sm:text-sm font-semibold text-gray-900 text-left w-full">{jovem.observacao || 'Não informado'}</dd>
                 </div>
-                <div class="flex justify-between items-start py-2 border-b border-gray-100">
-                  <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Testemunho</dt>
-                  <dd class="text-sm font-semibold text-gray-900 text-right max-w-md">{jovem.testemunho || 'Não informado'}</dd>
+                <div class="py-2 border-b border-gray-100">
+                  <dt class="text-xs sm:text-sm font-medium text-blue-600 uppercase tracking-wide font-bold text-center mb-2">Testemunho</dt>
+                  <dd class="text-xs sm:text-sm font-semibold text-gray-900 text-left w-full">{jovem.testemunho || 'Não informado'}</dd>
                 </div>
                 <div class="flex justify-between items-center py-2 border-b border-gray-100">
                   <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Instagram</dt>
-                  <dd class="text-sm font-semibold text-gray-900">{jovem.instagram || 'Não informado'}</dd>
+                  <dd class="text-xs sm:text-sm font-semibold text-gray-900">{jovem.instagram || 'Não informado'}</dd>
                 </div>
                 <div class="flex justify-between items-center py-2 border-b border-gray-100">
                   <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Facebook</dt>
-                  <dd class="text-sm font-semibold text-gray-900">{jovem.facebook || 'Não informado'}</dd>
+                  <dd class="text-xs sm:text-sm font-semibold text-gray-900">{jovem.facebook || 'Não informado'}</dd>
                 </div>
                 <div class="flex justify-between items-center py-2">
                   <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">TikTok</dt>
-                  <dd class="text-sm font-semibold text-gray-900">{jovem.tiktok || 'Não informado'}</dd>
+                  <dd class="text-xs sm:text-sm font-semibold text-gray-900">{jovem.tiktok || 'Não informado'}</dd>
                 </div>
               </dl>
             </div>
@@ -407,14 +417,14 @@
           
           <!-- Seção IntelliMen -->
           <div class="bg-white rounded-lg shadow-sm border border-blue-200 overflow-hidden">
-            <div class="bg-blue-600 px-6 py-3 relative">
-              <div class="absolute left-0 top-0 bottom-0 w-2 bg-blue-800 rounded-r"></div>
-              <h3 class="text-lg font-semibold text-white ml-3">Sobre o IntelliMen</h3>
+            <div class="bg-blue-600 px-4 sm:px-6 py-2 sm:py-3 relative">
+              <div class="absolute left-0 top-0 bottom-0 w-1 sm:w-2 bg-blue-800 rounded-r"></div>
+              <h3 class="text-base sm:text-lg font-semibold text-white ml-2 sm:ml-3">Sobre o IntelliMen</h3>
             </div>
-            <div class="p-6">
-              <dl class="space-y-4">
-                <div class="flex justify-between items-center py-2 border-b border-gray-100">
-                  <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Formado no IntelliMen</dt>
+            <div class="p-4 sm:p-6">
+              <dl class="space-y-3 sm:space-y-4">
+                <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 border-b border-gray-100 space-y-1 sm:space-y-0">
+                  <dt class="text-xs sm:text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Formado no IntelliMen</dt>
                   <dd class="text-sm font-semibold text-gray-900 bg-blue-50 px-3 py-1 rounded">
                     {jovem.formado_intellimen ? 'Sim' : 'Não'}
                   </dd>
@@ -441,14 +451,14 @@
         <div class="space-y-6">
           <!-- Informações Espirituais -->
           <div class="bg-white rounded-lg shadow-sm border border-blue-200 overflow-hidden">
-            <div class="bg-blue-600 px-6 py-3 relative">
-              <div class="absolute left-0 top-0 bottom-0 w-2 bg-blue-800 rounded-r"></div>
-              <h3 class="text-lg font-semibold text-white ml-3">Informações Espirituais</h3>
+            <div class="bg-blue-600 px-4 sm:px-6 py-2 sm:py-3 relative">
+              <div class="absolute left-0 top-0 bottom-0 w-1 sm:w-2 bg-blue-800 rounded-r"></div>
+              <h3 class="text-base sm:text-lg font-semibold text-white ml-2 sm:ml-3">Informações Espirituais</h3>
             </div>
-            <div class="p-6">
-              <dl class="space-y-4">
-                <div class="flex justify-between items-center py-2 border-b border-gray-100">
-                  <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Tempo de Igreja</dt>
+            <div class="p-4 sm:p-6">
+              <dl class="space-y-3 sm:space-y-4">
+                <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 border-b border-gray-100 space-y-1 sm:space-y-0">
+                  <dt class="text-xs sm:text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Tempo de Igreja</dt>
                   <dd class="text-sm font-semibold text-gray-900 bg-blue-50 px-3 py-1 rounded">{jovem.tempo_igreja || 'Não informado'}</dd>
                 </div>
                 <div class="flex justify-between items-center py-2 border-b border-gray-100">
@@ -462,7 +472,7 @@
                 </div>
                 <div class="flex justify-between items-center py-2 border-b border-gray-100">
                   <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Data do Batismo nas Águas</dt>
-                  <dd class="text-sm font-semibold text-gray-900">{jovem.data_batismo_aguas ? formatDate(jovem.data_batismo_aguas) : 'Não informado'}</dd>
+                  <dd class="text-xs sm:text-sm font-semibold text-gray-900">{jovem.data_batismo_aguas ? formatDate(jovem.data_batismo_aguas) : 'Não informado'}</dd>
                 </div>
                 <div class="flex justify-between items-center py-2 border-b border-gray-100">
                   <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Batizado com ES</dt>
@@ -475,7 +485,7 @@
                 </div>
                 <div class="flex justify-between items-center py-2 border-b border-gray-100">
                   <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Data do Batismo com ES</dt>
-                  <dd class="text-sm font-semibold text-gray-900">{jovem.data_batismo_es ? formatDate(jovem.data_batismo_es) : 'Não informado'}</dd>
+                  <dd class="text-xs sm:text-sm font-semibold text-gray-900">{jovem.data_batismo_es ? formatDate(jovem.data_batismo_es) : 'Não informado'}</dd>
                 </div>
                 <div class="flex justify-between items-center py-2 border-b border-gray-100">
                   <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Condição</dt>
@@ -483,11 +493,11 @@
                 </div>
                 <div class="flex justify-between items-center py-2 border-b border-gray-100">
                   <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Tempo de Condição</dt>
-                  <dd class="text-sm font-semibold text-gray-900">{jovem.tempo_condicao || 'Não informado'}</dd>
+                  <dd class="text-xs sm:text-sm font-semibold text-gray-900">{jovem.tempo_condicao || 'Não informado'}</dd>
                 </div>
                 <div class="flex justify-between items-center py-2">
                   <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Responsabilidade na Igreja</dt>
-                  <dd class="text-sm font-semibold text-gray-900">{jovem.responsabilidade_igreja || 'Não informado'}</dd>
+                  <dd class="text-xs sm:text-sm font-semibold text-gray-900">{jovem.responsabilidade_igreja || 'Não informado'}</dd>
                 </div>
               </dl>
             </div>
@@ -495,43 +505,43 @@
 
           <!-- Experiência na Igreja -->
           <div class="bg-white rounded-lg shadow-sm border border-blue-200 overflow-hidden">
-            <div class="bg-blue-600 px-6 py-3 relative">
-              <div class="absolute left-0 top-0 bottom-0 w-2 bg-blue-800 rounded-r"></div>
-              <h3 class="text-lg font-semibold text-white ml-3">Experiência na Igreja</h3>
+            <div class="bg-blue-600 px-4 sm:px-6 py-2 sm:py-3 relative">
+              <div class="absolute left-0 top-0 bottom-0 w-1 sm:w-2 bg-blue-800 rounded-r"></div>
+              <h3 class="text-base sm:text-lg font-semibold text-white ml-2 sm:ml-3">Experiência na Igreja</h3>
             </div>
-            <div class="p-6">
-              <dl class="space-y-4">
-                <div class="flex justify-between items-center py-2 border-b border-gray-100">
-                  <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Já Fez a Obra no Altar</dt>
-                  <dd class="text-sm font-semibold text-gray-900">{jovem.ja_obra_altar ? 'Sim' : 'Não'}</dd>
+            <div class="p-4 sm:p-6">
+              <dl class="space-y-3 sm:space-y-4">
+                <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 border-b border-gray-100 space-y-1 sm:space-y-0">
+                  <dt class="text-xs sm:text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Já Fez a Obra no Altar</dt>
+                  <dd class="text-xs sm:text-sm font-semibold text-gray-900">{jovem.ja_obra_altar ? 'Sim' : 'Não'}</dd>
                 </div>
                 <div class="flex justify-between items-center py-2 border-b border-gray-100">
                   <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Já Foi Obreiro</dt>
-                  <dd class="text-sm font-semibold text-gray-900">{jovem.ja_obreiro ? 'Sim' : 'Não'}</dd>
+                  <dd class="text-xs sm:text-sm font-semibold text-gray-900">{jovem.ja_obreiro ? 'Sim' : 'Não'}</dd>
                 </div>
                 <div class="flex justify-between items-center py-2 border-b border-gray-100">
                   <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Já Foi Colaborador</dt>
-                  <dd class="text-sm font-semibold text-gray-900">{jovem.ja_colaborador ? 'Sim' : 'Não'}</dd>
+                  <dd class="text-xs sm:text-sm font-semibold text-gray-900">{jovem.ja_colaborador ? 'Sim' : 'Não'}</dd>
                 </div>
                 <div class="flex justify-between items-center py-2 border-b border-gray-100">
                   <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Já Se Afastou Alguma Vez</dt>
-                  <dd class="text-sm font-semibold text-gray-900">{jovem.afastado ? 'Sim' : 'Não'}</dd>
+                  <dd class="text-xs sm:text-sm font-semibold text-gray-900">{jovem.afastado ? 'Sim' : 'Não'}</dd>
                 </div>
                 <div class="flex justify-between items-center py-2 border-b border-gray-100">
                   <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Os Pais São da Igreja</dt>
-                  <dd class="text-sm font-semibold text-gray-900">{jovem.pais_na_igreja ? 'Sim' : 'Não'}</dd>
+                  <dd class="text-xs sm:text-sm font-semibold text-gray-900">{jovem.pais_na_igreja ? 'Sim' : 'Não'}</dd>
                 </div>
                 <div class="flex justify-between items-center py-2 border-b border-gray-100">
                   <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Observação sobre os Pais</dt>
-                  <dd class="text-sm font-semibold text-gray-900">{jovem.observacao_pais || 'Não informado'}</dd>
+                  <dd class="text-xs sm:text-sm font-semibold text-gray-900">{jovem.observacao_pais || 'Não informado'}</dd>
                 </div>
                 <div class="flex justify-between items-center py-2 border-b border-gray-100">
                   <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Tem Familiares na Igreja</dt>
-                  <dd class="text-sm font-semibold text-gray-900">{jovem.familiares_igreja ? 'Sim' : 'Não'}</dd>
+                  <dd class="text-xs sm:text-sm font-semibold text-gray-900">{jovem.familiares_igreja ? 'Sim' : 'Não'}</dd>
                 </div>
                 <div class="flex justify-between items-center py-2">
                   <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Deseja o Altar</dt>
-                  <dd class="text-sm font-semibold text-gray-900">{jovem.deseja_altar ? 'Sim' : 'Não'}</dd>
+                  <dd class="text-xs sm:text-sm font-semibold text-gray-900">{jovem.deseja_altar ? 'Sim' : 'Não'}</dd>
                 </div>
               </dl>
             </div>
@@ -544,42 +554,42 @@
         <div class="space-y-6">
           <!-- Informações Profissionais -->
           <div class="bg-white rounded-lg shadow-sm border border-blue-200 overflow-hidden">
-            <div class="bg-blue-600 px-6 py-3 relative">
-              <div class="absolute left-0 top-0 bottom-0 w-2 bg-blue-800 rounded-r"></div>
-              <h3 class="text-lg font-semibold text-white ml-3">Informações Profissionais</h3>
+            <div class="bg-blue-600 px-4 sm:px-6 py-2 sm:py-3 relative">
+              <div class="absolute left-0 top-0 bottom-0 w-1 sm:w-2 bg-blue-800 rounded-r"></div>
+              <h3 class="text-base sm:text-lg font-semibold text-white ml-2 sm:ml-3">Informações Profissionais</h3>
             </div>
-            <div class="p-6">
-              <dl class="space-y-4">
-                <div class="flex justify-between items-center py-2 border-b border-gray-100">
-                  <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Trabalha</dt>
+            <div class="p-4 sm:p-6">
+              <dl class="space-y-3 sm:space-y-4">
+                <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 border-b border-gray-100 space-y-1 sm:space-y-0">
+                  <dt class="text-xs sm:text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Trabalha</dt>
                   <dd class="text-sm font-semibold text-gray-900 bg-blue-50 px-3 py-1 rounded">{jovem.trabalha ? 'Sim' : 'Não'}</dd>
                 </div>
                 {#if jovem.trabalha}
                   <div class="flex justify-between items-center py-2 border-b border-gray-100">
                     <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Nome da Empresa</dt>
-                    <dd class="text-sm font-semibold text-gray-900">{jovem.local_trabalho || 'Não informado'}</dd>
+                    <dd class="text-xs sm:text-sm font-semibold text-gray-900">{jovem.local_trabalho || 'Não informado'}</dd>
                   </div>
                 {/if}
                 <div class="flex justify-between items-center py-2 border-b border-gray-100">
                   <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Trabalha Com</dt>
-                  <dd class="text-sm font-semibold text-gray-900">{jovem.formacao || 'Não informado'}</dd>
+                  <dd class="text-xs sm:text-sm font-semibold text-gray-900">{jovem.formacao || 'Não informado'}</dd>
                 </div>
                 <div class="flex justify-between items-center py-2 border-b border-gray-100">
                   <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Profissão</dt>
-                  <dd class="text-sm font-semibold text-gray-900">{jovem.formacao || 'Não informado'}</dd>
+                  <dd class="text-xs sm:text-sm font-semibold text-gray-900">{jovem.formacao || 'Não informado'}</dd>
                 </div>
                 <div class="flex justify-between items-center py-2 border-b border-gray-100">
                   <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Escolaridade</dt>
-                  <dd class="text-sm font-semibold text-gray-900">{jovem.escolaridade || 'Não informado'}</dd>
+                  <dd class="text-xs sm:text-sm font-semibold text-gray-900">{jovem.escolaridade || 'Não informado'}</dd>
                 </div>
                 <div class="flex justify-between items-center py-2 border-b border-gray-100">
                   <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Tem Dívidas</dt>
-                  <dd class="text-sm font-semibold text-gray-900">{jovem.tem_dividas ? 'Sim' : 'Não'}</dd>
+                  <dd class="text-xs sm:text-sm font-semibold text-gray-900">{jovem.tem_dividas ? 'Sim' : 'Não'}</dd>
                 </div>
                 {#if jovem.tem_dividas && jovem.valor_divida}
                   <div class="flex justify-between items-center py-2">
                     <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Valor da Dívida</dt>
-                    <dd class="text-sm font-semibold text-gray-900">R$ {jovem.valor_divida.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</dd>
+                    <dd class="text-xs sm:text-sm font-semibold text-gray-900">R$ {jovem.valor_divida.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</dd>
                   </div>
                 {/if}
               </dl>

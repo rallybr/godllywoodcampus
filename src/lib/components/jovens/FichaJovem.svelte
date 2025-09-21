@@ -1,7 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import { loadAvaliacoesByJovem } from '$lib/stores/avaliacoes';
-  import { format } from 'date-fns';
+  import { format, parseISO } from 'date-fns';
   import { ptBR } from 'date-fns/locale';
 
   // Tipos removidos dos exports para compatibilidade no build SSR
@@ -17,7 +17,7 @@
   function formatarData(data) {
     if (!data) return 'Não informado';
     try {
-      return format(new Date(data), 'dd/MM/yyyy', { locale: ptBR });
+      return format(parseISO(data), 'dd/MM/yyyy', { locale: ptBR });
     } catch {
       return data;
     }
@@ -27,7 +27,7 @@
   function formatarDataCadastro(data) {
     if (!data) return 'Não informado';
     try {
-      return format(new Date(data), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
+      return format(parseISO(data), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
     } catch {
       return data;
     }

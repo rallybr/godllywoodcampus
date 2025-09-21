@@ -16,6 +16,7 @@
   };
   
   let recentActivities = [];
+  let estadosStats = [];
   let loading = true;
   
   onMount(async () => {
@@ -41,6 +42,9 @@
       
       // Carregar últimos cadastros
       await loadUltimosCadastros();
+      
+      // Carregar estatísticas dos estados
+      await loadEstadosStats();
       
       // Atualizar stats locais com dados do store
       stats = {
@@ -168,8 +172,52 @@
   
   // Função para formatar data
   function formatDate(dateString) {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('pt-BR');
+    if (!dateString) return 'Não informado';
+    try {
+      return new Date(dateString + 'T00:00:00').toLocaleDateString('pt-BR');
+    } catch {
+      return dateString;
+    }
+  }
+  
+  // Carregar estatísticas dos estados
+  async function loadEstadosStats() {
+    try {
+      // Buscar todos os estados
+      const { data: estadosData, error: estadosError } = await supabase
+        .from('estados')
+        .select('id, nome, sigla, bandeira')
+        .order('nome', { ascending: true });
+      
+      if (estadosError) throw estadosError;
+      
+      // Buscar contagem de jovens por estado
+      const { data: jovensData, error: jovensError } = await supabase
+        .from('jovens')
+        .select('estado_id')
+        .not('estado_id', 'is', null);
+      
+      if (jovensError) throw jovensError;
+      
+      // Contar jovens por estado
+      const contagemPorEstado = {};
+      jovensData.forEach(jovem => {
+        contagemPorEstado[jovem.estado_id] = (contagemPorEstado[jovem.estado_id] || 0) + 1;
+      });
+      
+      // Processar dados para incluir contagem (incluindo estados com 0 jovens)
+      estadosStats = estadosData.map(estado => ({
+        id: estado.id,
+        nome: estado.nome,
+        sigla: estado.sigla,
+        bandeira: estado.bandeira,
+        totalJovens: contagemPorEstado[estado.id] || 0
+      })).sort((a, b) => b.totalJovens - a.totalJovens); // Ordenar do maior para o menor
+      
+    } catch (err) {
+      console.error('Erro ao carregar estatísticas dos estados:', err);
+      estadosStats = [];
+    }
   }
   
   // Reatividade para atualizar stats quando estatisticas mudarem
@@ -212,7 +260,7 @@
     </div>
     <div class="bg-gray-50 rounded-lg p-4">
       <p class="text-gray-700">
-        Acompanhe o desenvolvimento dos jovens e gerencie as avaliações do acampamento IntelliMen Campus.
+        Evolução dos jovens que estiveram no IntelliMen Campus.
       </p>
     </div>
   </div>
@@ -220,7 +268,7 @@
   <!-- Stats overview -->
   {#if $userProfile?.nivel !== 'jovem'}
     <div class="fb-card p-6">
-      <h3 class="text-lg font-semibold text-gray-900 mb-4">Resumo Geral</h3>
+      <h3 class="text-lg font-semibold text-gray-900 mb-4">RESUMO GERAL</h3>
     {#if loading}
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
         {#each Array(4) as _}
@@ -317,7 +365,7 @@
   <!-- Condições dos Jovens -->
   {#if $userProfile?.nivel !== 'jovem'}
     <div class="fb-card p-6">
-      <h3 class="text-lg font-semibold text-gray-900 mb-4">Condições dos Jovens</h3>
+      <h3 class="text-lg font-semibold text-gray-900 mb-4">CONDIÇÃO DOS JOVENS</h3>
     {#if loading}
       <div class="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 gap-4">
         {#each Array(6) as _}
@@ -384,6 +432,70 @@
           <p class="text-xl sm:text-2xl font-bold text-gray-900 group-hover:text-pink-600 transition-colors">{$condicoesStats.batizadoES}</p>
           <p class="text-xs sm:text-sm text-gray-500 group-hover:text-gray-700 transition-colors">Jovem</p>
         </a>
+      </div>
+    {/if}
+    </div>
+  {/if}
+  
+  <!-- Estados dos Jovens -->
+  {#if $userProfile?.nivel !== 'jovem'}
+    <div class="fb-card p-6">
+      <h3 class="text-lg font-semibold text-gray-900 mb-4">JOVENS POR ESTADO</h3>
+    {#if loading}
+      <div class="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 gap-4">
+        {#each Array(6) as _}
+          <div class="text-center">
+            <div class="w-12 h-12 bg-gray-200 rounded-full mx-auto mb-2 animate-pulse"></div>
+            <div class="h-8 bg-gray-200 rounded w-16 mx-auto mb-2 animate-pulse"></div>
+            <div class="h-4 bg-gray-200 rounded w-12 mx-auto animate-pulse"></div>
+          </div>
+        {/each}
+      </div>
+    {:else if estadosStats.length > 0}
+      <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-6 gap-2 sm:gap-3">
+        {#each estadosStats as estado}
+          <a href="/estados/{estado.sigla}" class="group cursor-pointer hover:scale-105 transition-all duration-300">
+            <div class="bg-white rounded-t-2xl shadow-md hover:shadow-lg border border-gray-100 p-2 sm:p-3 group-hover:border-blue-200 transition-all duration-300">
+              <!-- Bandeira Circular -->
+              <div class="w-10 h-10 sm:w-12 sm:h-12 bg-white border border-gray-200 rounded-full flex items-center justify-center mx-auto mb-2 group-hover:border-blue-300 transition-all duration-300 overflow-hidden shadow-sm">
+                {#if estado.bandeira}
+                  <img 
+                    src={estado.bandeira} 
+                    alt={estado.nome}
+                    class="w-full h-full object-cover rounded-full"
+                  />
+                {:else}
+                  <div class="w-full h-full bg-gradient-to-br from-blue-100 to-blue-200 rounded-full flex items-center justify-center">
+                    <span class="text-blue-600 font-bold text-xs">{estado.sigla}</span>
+                  </div>
+                {/if}
+              </div>
+              
+              <!-- Sigla e Número -->
+              <div class="flex items-center justify-between">
+                <div class="inline-flex items-center px-2 py-1 transition-all duration-300">
+                  <span class="text-xs font-semibold text-gray-700 group-hover:text-blue-700 transition-colors">
+                    {estado.sigla}
+                  </span>
+                </div>
+                
+                <div class="text-right">
+                  <p class="text-lg sm:text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent group-hover:from-blue-700 group-hover:to-purple-700 transition-all duration-300" style="font-weight: bold;">
+                    {estado.totalJovens}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </a>
+        {/each}
+      </div>
+    {:else}
+      <div class="text-center py-8">
+        <svg class="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+        <p class="text-gray-500">Nenhum estado com jovens cadastrados</p>
       </div>
     {/if}
     </div>
