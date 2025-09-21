@@ -96,7 +96,7 @@
 
 <svelte:head>
   <title>IntelliMen Campus</title>
-  <meta name="description" content="Sistema de avaliação de jovens para acampamentos IntelliMen Campus" />
+  <meta name="description" content="Sistema de Gerenciamento de Jovens doIntelliMen Campus" />
 </svelte:head>
 
 <div class="min-h-screen" style="background-color: var(--fb-gray-light);">
