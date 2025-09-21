@@ -139,36 +139,36 @@
   ];
 </script>
 
-<div class="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 rounded-2xl shadow-2xl border border-white/10 p-8 sm:p-10 relative overflow-hidden min-h-[1000px] flex flex-col">
+<div class="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 rounded-2xl shadow-2xl border border-white/10 p-4 sm:p-6 md:p-8 lg:p-10 relative overflow-hidden min-h-[800px] sm:min-h-[900px] md:min-h-[1000px] flex flex-col">
   <!-- Elementos decorativos de fundo -->
   <div class="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-16 translate-x-16"></div>
   <div class="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-12 -translate-x-12"></div>
   
   <!-- Conteúdo do cabeçalho -->
   <div class="relative z-10">
-    <div class="text-center mb-10">
-      <div class="flex items-center justify-center space-x-4 mb-4">
+    <div class="text-center mb-6 sm:mb-8 md:mb-10">
+      <div class="flex items-center justify-center space-x-2 sm:space-x-3 md:space-x-4 mb-3 sm:mb-4">
         <!-- Ícone de progresso -->
-        <div class="w-12 h-12 sm:w-16 sm:h-16 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
-          <svg class="w-6 h-6 sm:w-8 sm:h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div class="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 lg:w-16 lg:h-16 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
+          <svg class="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 lg:w-8 lg:h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
           </svg>
         </div>
         
         <!-- Título e descrição -->
         <div class="text-center">
-          <h2 class="text-2xl sm:text-3xl font-bold text-white mb-2">Timeline de Progresso</h2>
+          <h2 class="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-white mb-2">Timeline de Progresso</h2>
         </div>
       </div>
     </div>
   </div>
 
   <!-- Timeline central -->
-  <div class="w-full max-w-full overflow-x-auto relative z-10 flex-1 flex items-center justify-center">
-    <div class="flex justify-center min-w-[320px]">
+  <div class="w-full max-w-full overflow-x-auto relative z-10 flex-1 flex items-center justify-center px-2 sm:px-4">
+    <div class="flex justify-center min-w-[280px] sm:min-w-[320px]">
       <div class="relative">
       <!-- Barra de progresso vertical - alinhada à esquerda para que os círculos fiquem sobrepostos -->
-      <div class="absolute w-6 sm:w-8 rounded-full bg-white/20 z-0 overflow-hidden backdrop-blur-sm" style="left: -90px; top: -24px; bottom: -24px;">
+      <div class="absolute w-6 sm:w-8 rounded-full bg-white/20 z-0 overflow-hidden backdrop-blur-sm" style="left: -38px; top: -24px; bottom: -24px;">
         <!-- Barra de progresso preenchida (gradiente) - de baixo para cima usando bottom:0 -->
         <div 
           class="absolute left-0 bottom-0 w-full bg-gradient-to-t from-emerald-400 to-cyan-400 transition-all duration-700"
@@ -177,7 +177,7 @@
       </div>
 
       <!-- Círculos das etapas -->
-      <div class="relative z-30 space-y-12 sm:space-y-16" style="margin-left: -98px;">
+      <div class="relative z-30 space-y-12 sm:space-y-16" style="margin-left: -45px;">
         {#each etapas as etapa, index}
           <div class="flex flex-col sm:flex-row items-start sm:items-center">
             <!-- Círculo da etapa - sólido e opaco, alinhado à esquerda -->
@@ -204,8 +204,8 @@
   </div>
 
   <!-- Legenda -->
-  <div class="mt-12 pt-6 border-t border-white/20 relative z-10">
-    <div class="flex items-center justify-center space-x-6 text-sm flex-wrap">
+  <div class="mt-8 sm:mt-10 md:mt-12 pt-4 sm:pt-5 md:pt-6 border-t border-white/20 relative z-10">
+    <div class="flex items-center justify-center space-x-3 sm:space-x-4 md:space-x-6 text-xs sm:text-sm flex-wrap">
       <div class="flex items-center">
         <div class="w-4 h-4 bg-gradient-to-br from-emerald-400 to-cyan-400 rounded-full mr-2 shadow-sm"></div>
         <span class="text-blue-100 font-medium">Etapas Concluídas</span>
