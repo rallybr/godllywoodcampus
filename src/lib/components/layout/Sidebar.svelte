@@ -77,7 +77,7 @@
     <!-- Logo -->
     <div class="flex items-center justify-center h-16 px-4 border-b" style="border-color: var(--fb-border);">
       <div class="flex items-center space-x-2">
-        <img src="/src/logos/logo.png" alt="IntelliMen" class="w-8 h-8 rounded-lg object-contain bg-white/70 p-1 ring-1 ring-white/40" />
+        <img src="/logo.png" alt="IntelliMen" class="w-8 h-8 rounded-lg object-contain bg-white/70 p-1 ring-1 ring-white/40" />
         <span class="font-bold text-gray-900">IntelliMen</span>
       </div>
     </div>

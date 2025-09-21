@@ -61,7 +61,7 @@
   <div class="w-full max-w-sm sm:max-w-md lg:max-w-lg space-y-6 sm:space-y-8 relative z-10">
     <!-- Logo and title -->
     <div class="text-center">
-      <img src="/src/logos/logo.png" alt="IntelliMen Campus" class="mx-auto h-16 w-16 sm:h-20 sm:w-20 rounded-2xl shadow-lg ring-1 ring-white/40 object-contain bg-white/70 p-2" />
+      <img src="/logo.png" alt="IntelliMen Campus" class="mx-auto h-16 w-16 sm:h-20 sm:w-20 rounded-2xl shadow-lg ring-1 ring-white/40 object-contain bg-white/70 p-2" />
       <h2 class="mt-4 sm:mt-6 text-2xl sm:text-3xl lg:text-4xl font-bold ig-gradient">
         IntelliMen Campus
       </h2>
@@ -122,10 +122,11 @@
         
         <form on:submit|preventDefault={handleSubmit} class="space-y-6">
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
+            <label for="email" class="block text-sm font-medium text-gray-700 mb-2">
               E-mail
             </label>
             <input
+              id="email"
               type="email"
               placeholder="seu@email.com"
               value={email}

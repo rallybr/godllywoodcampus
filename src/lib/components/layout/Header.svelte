@@ -52,7 +52,7 @@
       </button>
       
       <div class="flex items-center space-x-3">
-        <img src="/src/logos/logo.png" alt="IM" class="w-10 h-10 rounded-xl object-contain bg-white/70 p-1 ring-1 ring-white/40" />
+        <img src="/logo.png" alt="IM" class="w-10 h-10 rounded-xl object-contain bg-white/70 p-1 ring-1 ring-white/40" />
         <h1 class="text-xl font-bold ig-gradient hidden sm:block">IntelliMen Campus</h1>
         <h1 class="text-lg font-bold ig-gradient sm:hidden">IM Campus</h1>
       </div>
