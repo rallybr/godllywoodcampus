@@ -146,7 +146,7 @@
         <Sidebar bind:showSidebar on:linkClick={handleSidebarLink} />
         
         <!-- Main content area -->
-        <div class="flex-1 flex flex-col overflow-hidden">
+        <div class="flex-1 flex flex-col">
           <!-- Top Header -->
           <Header on:toggleSidebar={toggleSidebar} />
           

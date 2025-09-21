@@ -37,7 +37,7 @@
   }
 </script>
 
-<header class="fb-card rounded-none border-0 border-b" style="background-color: var(--fb-white); box-shadow: var(--shadow-sm);">
+<header class="fb-card rounded-none border-0 border-b relative z-40" style="background-color: var(--fb-white); box-shadow: var(--shadow-sm);">
   <div class="flex items-center justify-between px-4 py-3">
     <!-- Left side -->
     <div class="flex items-center space-x-4">
@@ -125,7 +125,7 @@
         
         <!-- User dropdown menu -->
         {#if showUserMenu}
-          <div class="absolute right-0 mt-10 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+          <div class="absolute right-0 top-full mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-[60]">
             <div class="p-4 border-b border-gray-200">
               <div class="flex items-center space-x-3">
                 {#if $userProfile?.foto}
