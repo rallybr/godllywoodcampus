@@ -6,6 +6,7 @@
   import AvaliacoesChart from '$lib/components/charts/AvaliacoesChart.svelte';
   import { estatisticas, loadEstatisticas, condicoesStats, loadCondicoesStats } from '$lib/stores/estatisticas';
   import { supabase } from '$lib/utils/supabase';
+  import { loadInitialData, edicoes } from '$lib/stores/geographic';
   
   let stats = {
     totalJovens: 0,
@@ -18,11 +19,13 @@
   let recentActivities = [];
   let estadosStats = [];
   let loading = true;
+  let edicaoSelecionada = '';
   
   onMount(async () => {
     if (!$user) {
       goto('/login');
     } else {
+      await loadInitialData(); // Carregar edições
       await loadDashboardData();
     }
   });
@@ -181,7 +184,7 @@
   }
   
   // Carregar estatísticas dos estados
-  async function loadEstadosStats() {
+  async function loadEstadosStats(edicaoId = '') {
     try {
       // Buscar todos os estados
       const { data: estadosData, error: estadosError } = await supabase
@@ -191,11 +194,18 @@
       
       if (estadosError) throw estadosError;
       
-      // Buscar contagem de jovens por estado
-      const { data: jovensData, error: jovensError } = await supabase
+      // Buscar contagem de jovens por estado (com filtro de edição se selecionada)
+      let query = supabase
         .from('jovens')
         .select('estado_id')
         .not('estado_id', 'is', null);
+      
+      // Aplicar filtro de edição se uma edição específica foi selecionada
+      if (edicaoId) {
+        query = query.eq('edicao_id', edicaoId);
+      }
+      
+      const { data: jovensData, error: jovensError } = await query;
       
       if (jovensError) throw jovensError;
       
@@ -218,6 +228,11 @@
       console.error('Erro ao carregar estatísticas dos estados:', err);
       estadosStats = [];
     }
+  }
+  
+  // Função para lidar com mudança de edição
+  async function handleEdicaoChange() {
+    await loadEstadosStats(edicaoSelecionada);
   }
   
   // Reatividade para atualizar stats quando estatisticas mudarem
@@ -440,7 +455,27 @@
   <!-- Estados dos Jovens -->
   {#if $userProfile?.nivel !== 'jovem'}
     <div class="fb-card p-6">
-      <h3 class="text-lg font-semibold text-gray-900 mb-4">JOVENS POR ESTADO</h3>
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4">
+        <h3 class="text-lg font-semibold text-gray-900 mb-3 sm:mb-0">JOVENS POR ESTADO</h3>
+        
+        <!-- Filtro por Edição -->
+        <div class="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-2">
+          <label for="edicao-filter" class="text-xs sm:text-sm font-medium text-gray-700 whitespace-nowrap">
+            EDIÇÃO:
+          </label>
+          <select
+            id="edicao-filter"
+            bind:value={edicaoSelecionada}
+            on:change={handleEdicaoChange}
+            class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white min-w-0"
+          >
+            <option value="">Todas as edições</option>
+            {#each $edicoes as edicao}
+              <option value={edicao.id}>{edicao.nome}</option>
+            {/each}
+          </select>
+        </div>
+      </div>
     {#if loading}
       <div class="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 gap-4">
         {#each Array(6) as _}
@@ -504,7 +539,7 @@
   <!-- Recent activities feed -->
   {#if $userProfile?.nivel !== 'jovem'}
     <div class="fb-card p-6">
-      <h3 class="text-lg font-semibold text-gray-900 mb-4">Atividades Recentes</h3>
+      <h3 class="text-lg font-semibold text-gray-900 mb-4">ATIVIDADES RECENTES</h3>
     {#if loading}
       <div class="space-y-4">
         {#each Array(4) as _}
@@ -553,11 +588,11 @@
   
   <!-- Estatísticas de Avaliações -->
   {#if $userProfile?.nivel !== 'jovem'}
-    <AvaliacoesChart jovemId={null} title="Estatísticas Gerais de Avaliações" />
+    <AvaliacoesChart jovemId={null} title="ESTATÍSTICAS GERAIS DE AVALIAÇÕES" />
     
     <!-- Quick actions -->
     <div class="fb-card p-6">
-      <h3 class="text-lg font-semibold text-gray-900 mb-4">Ações Rápidas</h3>
+      <h3 class="text-lg font-semibold text-gray-900 mb-4">AÇÕES RÁPIDAS</h3>
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       <Button href="/jovens/cadastrar" variant="primary" class="w-full justify-center">
         <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">

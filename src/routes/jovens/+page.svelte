@@ -4,6 +4,7 @@
   import { user } from '$lib/stores/auth';
   import { loadJovens, filteredJovens, filters, loading, error, pagination } from '$lib/stores/jovens-simple';
   import JovemCard from '$lib/components/jovens/JovemCard.svelte';
+  import Autocomplete from '$lib/components/ui/Autocomplete.svelte';
   
   let searchTerm = '';
   let currentPage = 1;
@@ -19,6 +20,12 @@
   
   function handleSearch() {
     filters.update(f => ({ ...f, nome_like: searchTerm || '' }));
+  }
+  
+  function handleSelectSuggestion(suggestion) {
+    // Quando uma sugestão é selecionada, fazer a busca automaticamente
+    searchTerm = suggestion.nome_completo;
+    filters.update(f => ({ ...f, nome_like: suggestion.nome_completo }));
   }
   
   function handleClearFilters() {
@@ -89,21 +96,13 @@
   <div class="bg-white rounded-lg shadow p-6">
     <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 items-stretch sm:items-end">
       <div class="flex-1 min-w-0">
-        <div class="relative">
-          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </div>
-          <input
-            type="text"
-            placeholder="Pesquisar por nome, WhatsApp..."
-            value={searchTerm}
-            on:input={(e) => searchTerm = e.target?.value || ''}
-            on:keydown={(e) => e.key === 'Enter' && handleSearch()}
-            class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-          />
-        </div>
+        <Autocomplete
+          placeholder="Pesquisar por nome, WhatsApp..."
+          bind:value={searchTerm}
+          on:input={(e) => searchTerm = e.detail.value}
+          on:select={(e) => handleSelectSuggestion(e.detail.suggestion)}
+          on:search={(e) => handleSearch()}
+        />
       </div>
       
       <div class="flex flex-col sm:flex-row gap-2 sm:gap-3">

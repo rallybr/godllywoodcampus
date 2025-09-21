@@ -7,6 +7,8 @@
   import Header from '$lib/components/layout/Header.svelte';
   import Sidebar from '$lib/components/layout/Sidebar.svelte';
   import EstatisticasUsuario from '$lib/components/estatisticas/EstatisticasUsuario.svelte';
+  import StatusJovensCards from '$lib/components/estatisticas/StatusJovensCards.svelte';
+  import MediasAvaliacoesCard from '$lib/components/estatisticas/MediasAvaliacoesCard.svelte';
   import '../app.css';
   
   let showSidebar = false; // Começar fechado em todas as telas
@@ -192,6 +194,9 @@
                   
                   <!-- Estatísticas do Usuário -->
                   <EstatisticasUsuario />
+                  
+                  <!-- Cards de Status dos Jovens -->
+                  <StatusJovensCards />
                 </div>
               </div>
               {/if}
@@ -270,6 +275,9 @@
                       </button>
                     </div>
                   </div>
+                  
+                  <!-- Médias de Avaliações -->
+                  <MediasAvaliacoesCard />
                 </div>
               </div>
               {/if}

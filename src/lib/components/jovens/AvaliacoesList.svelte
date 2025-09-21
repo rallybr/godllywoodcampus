@@ -1,8 +1,10 @@
 <script>
   import { onMount } from 'svelte';
-  import { loadAvaliacoesByJovem, calculateAvaliacaoStats } from '$lib/stores/avaliacoes';
+  import { loadAvaliacoesByJovem, calculateAvaliacaoStats, updateAvaliacao } from '$lib/stores/avaliacoes';
+  import { user, userProfile } from '$lib/stores/auth';
   import Button from '$lib/components/ui/Button.svelte';
   import Card from '$lib/components/ui/Card.svelte';
+  import AvaliacaoModal from '$lib/components/modals/AvaliacaoModal.svelte';
   
   export let jovemId;
   export let jovem = null;
@@ -11,6 +13,8 @@
   let loading = true;
   let error = '';
   let stats = null;
+  let showEditModal = false;
+  let avaliacaoParaEditar = null;
   
   onMount(async () => {
     await loadAvaliacoes();
@@ -19,6 +23,40 @@
   // Expor função para recarregar avaliações
   export async function reloadAvaliacoes() {
     await loadAvaliacoes();
+  }
+  
+  // Função para verificar se o usuário pode editar a avaliação
+  function canEditAvaliacao(avaliacao) {
+    console.log('🔍 Verificando permissão de edição:');
+    console.log('  - Usuário logado (auth):', $user);
+    console.log('  - ID do usuário logado (auth):', $user?.id);
+    console.log('  - Perfil do usuário:', $userProfile);
+    console.log('  - ID do perfil do usuário:', $userProfile?.id);
+    console.log('  - ID do avaliador:', avaliacao.user_id);
+    console.log('  - Pode editar (com auth):', $user && avaliacao.user_id === $user.id);
+    console.log('  - Pode editar (com profile):', $userProfile && avaliacao.user_id === $userProfile.id);
+    
+    // Tentar com ambos os IDs
+    return ($user && avaliacao.user_id === $user.id) || 
+           ($userProfile && avaliacao.user_id === $userProfile.id);
+  }
+  
+  // Função para abrir modal de edição
+  function openEditModal(avaliacao) {
+    avaliacaoParaEditar = avaliacao;
+    showEditModal = true;
+  }
+  
+  // Função para fechar modal de edição
+  function closeEditModal() {
+    showEditModal = false;
+    avaliacaoParaEditar = null;
+  }
+  
+  // Função para lidar com sucesso da edição
+  async function handleEditSuccess() {
+    await loadAvaliacoes(); // Recarregar lista
+    closeEditModal();
   }
   
   async function loadAvaliacoes() {
@@ -215,7 +253,7 @@
           </div>
           <h3 class="text-lg font-semibold text-gray-900 mb-2">Nenhuma avaliação encontrada</h3>
           <p class="text-gray-600 mb-4">Este jovem ainda não possui avaliações registradas.</p>
-          <Button variant="primary" on:click={() => showModal = true}>
+          <Button variant="primary" on:click={() => showEditModal = true}>
             <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
             </svg>
@@ -263,16 +301,34 @@
                       </div>
                     </div>
                     
-                    <!-- Nota -->
-                    <div class="bg-white rounded-xl px-4 py-3 border border-gray-200 shadow-sm">
-                      <div class="text-center">
-                        <div class="text-2xl font-bold text-gray-900">
-                          {avaliacao.nota}/10
-                        </div>
-                        <div class="text-xs text-gray-500 uppercase tracking-wide">
-                          Nota Geral
+                    <!-- Nota e Botão Editar -->
+                    <div class="flex items-center space-x-3">
+                      <!-- Nota -->
+                      <div class="bg-white rounded-xl px-4 py-3 border border-gray-200 shadow-sm">
+                        <div class="text-center">
+                          <div class="text-2xl font-bold text-gray-900">
+                            {avaliacao.nota}/10
+                          </div>
+                          <div class="text-xs text-gray-500 uppercase tracking-wide">
+                            Nota Geral
+                          </div>
                         </div>
                       </div>
+                      
+                      <!-- Botão Editar (apenas para quem criou a avaliação) -->
+                      {#if canEditAvaliacao(avaliacao)}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          on:click={() => openEditModal(avaliacao)}
+                          class="flex items-center space-x-2"
+                        >
+                          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                          <span>Editar</span>
+                        </Button>
+                      {/if}
                     </div>
                   </div>
                 </div>
@@ -368,4 +424,16 @@
     {/if}
   </div>
 </div>
+
+<!-- Modal de Edição de Avaliação -->
+{#if showEditModal && avaliacaoParaEditar}
+  <AvaliacaoModal
+    bind:isOpen={showEditModal}
+    jovemId={jovemId}
+    jovemNome={jovem?.nome_completo || ''}
+    avaliacaoParaEditar={avaliacaoParaEditar}
+    on:close={closeEditModal}
+    on:success={handleEditSuccess}
+  />
+{/if}
 

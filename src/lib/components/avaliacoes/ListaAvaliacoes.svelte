@@ -247,16 +247,16 @@
                 <div class="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-5 mb-6 border border-gray-200">
                   <div class="flex items-center justify-between">
                     <div class="flex items-center space-x-4">
-                      {#if avaliacao.avaliador?.foto}
+                      {#if avaliacao.jovem?.foto}
                         <img 
                           class="w-12 h-12 rounded-full object-cover border-2 border-white shadow-md" 
-                          src={avaliacao.avaliador.foto} 
-                          alt={avaliacao.avaliador.nome}
+                          src={avaliacao.jovem.foto} 
+                          alt={avaliacao.jovem.nome_completo}
                         />
                       {:else}
                         <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center border-2 border-white shadow-md">
                           <span class="text-white font-semibold text-lg">
-                            {avaliacao.avaliador?.nome?.charAt(0) || 'A'}
+                            {avaliacao.jovem?.nome_completo?.charAt(0) || 'J'}
                           </span>
                         </div>
                       {/if}

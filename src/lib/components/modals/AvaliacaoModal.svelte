@@ -1,6 +1,6 @@
 <script>
   import { createEventDispatcher, onMount } from 'svelte';
-  import { createAvaliacao } from '$lib/stores/avaliacoes';
+  import { createAvaliacao, updateAvaliacao } from '$lib/stores/avaliacoes';
   import { supabase } from '$lib/utils/supabase';
   import Button from '$lib/components/ui/Button.svelte';
   import Input from '$lib/components/ui/Input.svelte';
@@ -11,10 +11,14 @@
   export let isOpen = false;
   export let jovemId = '';
   export let jovemNome = '';
+  export let avaliacaoParaEditar = null;
   
   let isLoading = false;
   let error = '';
   let userId = '';
+  
+  // Verificar se é modo de edição
+  $: isEditMode = avaliacaoParaEditar !== null;
   
   // Dados do formulário
   let formData = {
@@ -108,6 +112,27 @@
     }
   }
   
+  // Função para preencher formulário quando estiver em modo de edição
+  function fillFormData() {
+    if (isEditMode && avaliacaoParaEditar) {
+      console.log('🔄 Preenchendo formulário com dados da avaliação:', avaliacaoParaEditar);
+      formData = {
+        espirito: avaliacaoParaEditar.espirito || '',
+        caractere: avaliacaoParaEditar.caractere || '',
+        disposicao: avaliacaoParaEditar.disposicao || '',
+        avaliacao_texto: avaliacaoParaEditar.avaliacao_texto || '',
+        nota: avaliacaoParaEditar.nota?.toString() || '',
+        data: avaliacaoParaEditar.criado_em ? new Date(avaliacaoParaEditar.criado_em).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
+      };
+      console.log('✅ Formulário preenchido:', formData);
+    }
+  }
+  
+  // Preencher formulário quando o modal abrir em modo de edição
+  $: if (isOpen && isEditMode && avaliacaoParaEditar) {
+    fillFormData();
+  }
+  
   function validateForm() {
     validationErrors = {};
     
@@ -149,20 +174,28 @@
         data: formData.data
       };
       
-      console.log('Criando avaliação:', avaliacaoData);
+      let result;
       
-      const result = await createAvaliacao(avaliacaoData);
+      if (isEditMode) {
+        console.log('Atualizando avaliação:', avaliacaoData);
+        result = await updateAvaliacao(avaliacaoParaEditar.id, avaliacaoData);
+      } else {
+        console.log('Criando avaliação:', avaliacaoData);
+        result = await createAvaliacao(avaliacaoData);
+      }
       
       if (result) {
-        // Reset form
-        formData = {
-          espirito: '',
-          caractere: '',
-          disposicao: '',
-          avaliacao_texto: '',
-          nota: '',
-          data: new Date().toISOString().split('T')[0]
-        };
+        // Reset form apenas se não for edição
+        if (!isEditMode) {
+          formData = {
+            espirito: '',
+            caractere: '',
+            disposicao: '',
+            avaliacao_texto: '',
+            nota: '',
+            data: new Date().toISOString().split('T')[0]
+          };
+        }
         
         dispatch('success', { avaliacao: result });
         dispatch('close');
@@ -214,7 +247,7 @@
       <div class="bg-blue-600 px-6 py-4 rounded-t-lg">
         <div class="flex items-center justify-between">
           <h2 class="text-xl font-bold text-white">
-            Nova Avaliação - {jovemNome}
+            {isEditMode ? 'Editar Avaliação' : 'Nova Avaliação'} - {jovemNome}
           </h2>
           <button
             on:click={handleClose}
@@ -233,35 +266,62 @@
         <form on:submit|preventDefault={handleSubmit} class="space-y-6">
           <!-- Espírito -->
           <div>
-            <Select
-              label="Espírito *"
-              options={opcoesEspirito}
+            <label for="espirito" class="block text-sm font-medium text-gray-700 mb-1">
+              Espírito *
+            </label>
+            <select
+              id="espirito"
               bind:value={formData.espirito}
-              error={validationErrors.espirito}
-              placeholder="Selecione o espírito"
-            />
+              class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="">Selecione o espírito</option>
+              {#each opcoesEspirito as opcao}
+                <option value={opcao.value}>{opcao.label}</option>
+              {/each}
+            </select>
+            {#if validationErrors.espirito}
+              <p class="mt-1 text-sm text-red-600">{validationErrors.espirito}</p>
+            {/if}
           </div>
           
           <!-- Caráter -->
           <div>
-            <Select
-              label="Caráter *"
-              options={opcoesCaractere}
+            <label for="caractere" class="block text-sm font-medium text-gray-700 mb-1">
+              Caráter *
+            </label>
+            <select
+              id="caractere"
               bind:value={formData.caractere}
-              error={validationErrors.caractere}
-              placeholder="Selecione o caráter"
-            />
+              class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="">Selecione o caráter</option>
+              {#each opcoesCaractere as opcao}
+                <option value={opcao.value}>{opcao.label}</option>
+              {/each}
+            </select>
+            {#if validationErrors.caractere}
+              <p class="mt-1 text-sm text-red-600">{validationErrors.caractere}</p>
+            {/if}
           </div>
           
           <!-- Disposição -->
           <div>
-            <Select
-              label="Disposição *"
-              options={opcoesDisposicao}
+            <label for="disposicao" class="block text-sm font-medium text-gray-700 mb-1">
+              Disposição *
+            </label>
+            <select
+              id="disposicao"
               bind:value={formData.disposicao}
-              error={validationErrors.disposicao}
-              placeholder="Selecione a disposição"
-            />
+              class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="">Selecione a disposição</option>
+              {#each opcoesDisposicao as opcao}
+                <option value={opcao.value}>{opcao.label}</option>
+              {/each}
+            </select>
+            {#if validationErrors.disposicao}
+              <p class="mt-1 text-sm text-red-600">{validationErrors.disposicao}</p>
+            {/if}
           </div>
           
           <!-- Data -->
@@ -329,7 +389,7 @@
               loading={isLoading}
               disabled={isLoading}
             >
-              {isLoading ? 'Criando...' : 'Criar Avaliação'}
+              {isLoading ? (isEditMode ? 'Atualizando...' : 'Criando...') : (isEditMode ? 'Atualizar Avaliação' : 'Criar Avaliação')}
             </Button>
           </div>
         </form>

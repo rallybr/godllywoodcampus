@@ -10,6 +10,9 @@ export const estatisticas = writable({
   preAprovados: 0,
   totalAvaliacoes: 0,
   mediaGeral: 0,
+  mediaEspirito: 0,
+  mediaCaractere: 0,
+  mediaDisposicao: 0,
   crescimento: 0
 });
 
@@ -42,7 +45,7 @@ export async function loadEstatisticas() {
     // Buscar estatísticas das avaliações
     const { data: avaliacoesData, error: avaliacoesError } = await supabase
       .from('avaliacoes')
-      .select('nota, criado_em, jovem_id');
+      .select('nota, criado_em, jovem_id, espirito, caractere, disposicao');
     
     if (avaliacoesError) throw avaliacoesError;
     
@@ -73,6 +76,40 @@ export async function loadEstatisticas() {
       ? avaliacoesData.reduce((acc, av) => acc + (av.nota || 0), 0) / totalAvaliacoes 
       : 0;
     
+    // Calcular médias específicas
+    const avaliacoesComEspirito = avaliacoesData.filter(av => av.espirito);
+    const mediaEspirito = avaliacoesComEspirito.length > 0 
+      ? avaliacoesComEspirito.reduce((acc, av) => {
+          const valorEspirito = av.espirito === 'excelente' ? 5 : 
+                               av.espirito === 'muito_bom' ? 4 :
+                               av.espirito === 'bom' ? 3 :
+                               av.espirito === 'regular' ? 2 : 1;
+          return acc + valorEspirito;
+        }, 0) / avaliacoesComEspirito.length
+      : 0;
+    
+    const avaliacoesComCaractere = avaliacoesData.filter(av => av.caractere);
+    const mediaCaractere = avaliacoesComCaractere.length > 0 
+      ? avaliacoesComCaractere.reduce((acc, av) => {
+          const valorCaractere = av.caractere === 'excelente' ? 5 : 
+                                av.caractere === 'muito_bom' ? 4 :
+                                av.caractere === 'bom' ? 3 :
+                                av.caractere === 'regular' ? 2 : 1;
+          return acc + valorCaractere;
+        }, 0) / avaliacoesComCaractere.length
+      : 0;
+    
+    const avaliacoesComDisposicao = avaliacoesData.filter(av => av.disposicao);
+    const mediaDisposicao = avaliacoesComDisposicao.length > 0 
+      ? avaliacoesComDisposicao.reduce((acc, av) => {
+          const valorDisposicao = av.disposicao === 'muito_disposto' ? 5 : 
+                                 av.disposicao === 'disposto' ? 4 :
+                                 av.disposicao === 'neutro' ? 3 :
+                                 av.disposicao === 'pouco_disposto' ? 2 : 1;
+          return acc + valorDisposicao;
+        }, 0) / avaliacoesComDisposicao.length
+      : 0;
+    
     // Calcular crescimento (comparar com mês anterior)
     const hoje = new Date();
     const mesAtual = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
@@ -99,6 +136,9 @@ export async function loadEstatisticas() {
       avaliados,
       totalAvaliacoes,
       mediaGeral: Math.round(mediaGeral * 10) / 10,
+      mediaEspirito: Math.round(mediaEspirito * 10) / 10,
+      mediaCaractere: Math.round(mediaCaractere * 10) / 10,
+      mediaDisposicao: Math.round(mediaDisposicao * 10) / 10,
       crescimento
     });
     
