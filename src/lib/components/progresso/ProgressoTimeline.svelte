@@ -167,8 +167,8 @@
   <div class="w-full max-w-full overflow-x-auto relative z-10 flex-1 flex items-center justify-center">
     <div class="flex justify-center min-w-[320px]">
       <div class="relative">
-      <!-- Barra de progresso vertical - 30px de largura, estendendo além dos círculos -->
-      <div class="absolute left-1/2 transform -translate-x-1/2 w-6 sm:w-8 rounded-full bg-white/20 z-0 overflow-hidden backdrop-blur-sm" style="top: -24px; bottom: -24px; margin-left: -127px;">
+      <!-- Barra de progresso vertical - alinhada à esquerda para que os círculos fiquem sobrepostos -->
+      <div class="absolute w-6 sm:w-8 rounded-full bg-white/20 z-0 overflow-hidden backdrop-blur-sm" style="left: -90px; top: -24px; bottom: -24px;">
         <!-- Barra de progresso preenchida (gradiente) - de baixo para cima usando bottom:0 -->
         <div 
           class="absolute left-0 bottom-0 w-full bg-gradient-to-t from-emerald-400 to-cyan-400 transition-all duration-700"
@@ -177,10 +177,10 @@
       </div>
 
       <!-- Círculos das etapas -->
-      <div class="relative z-30 space-y-12 sm:space-y-16" style="margin-left: -36px;">
+      <div class="relative z-30 space-y-12 sm:space-y-16" style="margin-left: -98px;">
         {#each etapas as etapa, index}
-          <div class="flex items-center">
-            <!-- Círculo da etapa - sólido e opaco -->
+          <div class="flex flex-col sm:flex-row items-start sm:items-center">
+            <!-- Círculo da etapa - sólido e opaco, alinhado à esquerda -->
             <div 
               class="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 flex items-center justify-center text-xs sm:text-sm font-bold transition-all duration-500 relative z-40
                 {etapa.cor === 'teal' ? 'bg-gradient-to-br from-emerald-400 to-cyan-400 border-emerald-300 text-white shadow-lg' : 
@@ -191,8 +191,8 @@
             </div>
             
             <!-- Nome da etapa -->
-            <div class="ml-3 sm:ml-4">
-              <div class="text-base sm:text-lg font-bold text-white uppercase tracking-wide">
+            <div class="sm:ml-3 sm:ml-4 ml-16 flex items-center" style="margin-top: -30px;">
+              <div class="text-sm sm:text-base lg:text-lg font-bold text-white uppercase tracking-wide text-left">
                 {etapa.nome}
               </div>
             </div>
