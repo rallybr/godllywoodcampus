@@ -1,19 +1,24 @@
 <script>
   import { onMount } from 'svelte';
-  import { loadUsuarios, loadUserRoles, updateUsuario, roles, loadRoles } from '$lib/stores/usuarios';
+  import { loadUsuarios, loadUserRoles, updateUsuario, roles, loadRoles, usuarios } from '$lib/stores/usuarios';
   import { goto } from '$app/navigation';
   import Button from '$lib/components/ui/Button.svelte';
   import Card from '$lib/components/ui/Card.svelte';
   import Input from '$lib/components/ui/Input.svelte';
   import Select from '$lib/components/ui/Select.svelte';
+  import EditarUsuarioModal from '$lib/components/modals/EditarUsuarioModal.svelte';
+  import Autocomplete from '$lib/components/ui/Autocomplete.svelte';
   
-  let usuarios = [];
   let userRoles = [];
   let loading = true;
   let error = '';
   let searchTerm = '';
   let filterRole = '';
   let filterStatus = '';
+  
+  // Modal de edição
+  let showEditModal = false;
+  let usuarioParaEditar = null;
   
   onMount(async () => {
     await loadData();
@@ -38,7 +43,7 @@
   
   // Função para filtrar usuários
   function getFilteredUsuarios() {
-    return usuarios.filter(usuario => {
+    return $usuarios.filter(usuario => {
       // Filtro por termo de busca
       if (searchTerm && !usuario.nome.toLowerCase().includes(searchTerm.toLowerCase()) && 
           !usuario.email.toLowerCase().includes(searchTerm.toLowerCase())) {
@@ -103,6 +108,33 @@
       return dateString;
     }
   }
+  
+  // Função para abrir modal de edição
+  function openEditModal(usuario) {
+    usuarioParaEditar = usuario;
+    showEditModal = true;
+  }
+  
+  // Função para fechar modal
+  function closeEditModal() {
+    showEditModal = false;
+    usuarioParaEditar = null;
+  }
+  
+  // Função para lidar com sucesso da edição
+  async function handleEditSuccess(event) {
+    const { usuario: usuarioId, updates } = event.detail;
+    
+    // Recarregar dados
+    await loadData();
+    
+    closeEditModal();
+  }
+  
+  // Função para lidar com seleção de sugestão no autocomplete
+  function handleSelectSuggestion(suggestion) {
+    searchTerm = suggestion.nome;
+  }
 </script>
 
 <div class="space-y-6">
@@ -125,12 +157,32 @@
   <!-- Filtros -->
   <Card class="p-6">
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <Input
-        label="Buscar"
-        type="text"
-        bind:value={searchTerm}
-        placeholder="Nome ou email"
-      />
+      <div>
+        <label for="search-usuarios" class="block text-sm font-medium text-gray-700 mb-1">
+          Buscar
+        </label>
+        <Autocomplete
+          id="search-usuarios"
+          placeholder="Nome ou email"
+          bind:value={searchTerm}
+          on:select={(e) => handleSelectSuggestion(e.detail.suggestion)}
+          searchFunction={async (term) => {
+            if (!term || term.length < 2) return [];
+            return $usuarios
+              .filter(usuario => 
+                usuario.nome.toLowerCase().includes(term.toLowerCase()) ||
+                usuario.email.toLowerCase().includes(term.toLowerCase())
+              )
+              .slice(0, 5)
+              .map(usuario => ({
+                id: usuario.id,
+                nome: usuario.nome,
+                email: usuario.email,
+                display: `${usuario.nome} (${usuario.email})`
+              }));
+          }}
+        />
+      </div>
       
       <Select
         label="Papel"
@@ -247,28 +299,16 @@
               </div>
               
               <!-- Ações -->
-              <div class="flex items-center space-x-2">
+              <div class="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
                 <Button
                   size="sm"
                   variant="outline"
-                  on:click={() => goto(`/usuarios/${usuario.id}`)}
-                >
-                  <svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                  </svg>
-                  Ver
-                </Button>
-                
-                <Button
-                  size="sm"
-                  variant="outline"
-                  on:click={() => goto(`/usuarios/${usuario.id}/editar`)}
+                  on:click={() => openEditModal(usuario)}
                 >
                   <svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                   </svg>
-                  Editar
+                  Editar Papel
                 </Button>
                 
                 <Button
@@ -285,4 +325,12 @@
       </div>
     {/if}
   </div>
+  
+  <!-- Modal de Edição -->
+  <EditarUsuarioModal
+    bind:isOpen={showEditModal}
+    usuario={usuarioParaEditar}
+    on:success={handleEditSuccess}
+    on:close={closeEditModal}
+  />
 </div>

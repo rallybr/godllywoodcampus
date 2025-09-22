@@ -30,22 +30,36 @@ export const loading = writable(false);
 export const error = writable(null);
 
 // Função para carregar estatísticas gerais
-export async function loadEstatisticas() {
+export async function loadEstatisticas(userId = null, userLevel = null) {
   loading.set(true);
   error.set(null);
   
   try {
     // Buscar estatísticas dos jovens
-    const { data: jovensData, error: jovensError } = await supabase
+    let jovensQuery = supabase
       .from('jovens')
-      .select('aprovado, data_cadastro, id');
+      .select('aprovado, data_cadastro, id, usuario_id');
+    
+    // Se for colaborador, filtrar apenas jovens que ele cadastrou
+    if (userLevel === 'colaborador' && userId) {
+      jovensQuery = jovensQuery.eq('usuario_id', userId);
+    }
+    
+    const { data: jovensData, error: jovensError } = await jovensQuery;
     
     if (jovensError) throw jovensError;
     
     // Buscar estatísticas das avaliações
-    const { data: avaliacoesData, error: avaliacoesError } = await supabase
+    let avaliacoesQuery = supabase
       .from('avaliacoes')
-      .select('nota, criado_em, jovem_id, espirito, caractere, disposicao');
+      .select('nota, criado_em, jovem_id, espirito, caractere, disposicao, user_id');
+    
+    // Se for colaborador, filtrar apenas avaliações que ele fez
+    if (userLevel === 'colaborador' && userId) {
+      avaliacoesQuery = avaliacoesQuery.eq('user_id', userId);
+    }
+    
+    const { data: avaliacoesData, error: avaliacoesError } = await avaliacoesQuery;
     
     if (avaliacoesError) throw avaliacoesError;
     

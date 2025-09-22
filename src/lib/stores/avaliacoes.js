@@ -7,29 +7,35 @@ export const loading = writable(false);
 export const error = writable(null);
 
 // Função para carregar todas as avaliações do sistema
-export async function loadAvaliacoes() {
+export async function loadAvaliacoes(userId = null, userLevel = null) {
   loading.set(true);
   error.set(null);
   
   try {
-    const { data, error: fetchError } = await supabase
+    let query = supabase
       .from('avaliacoes')
       .select(`
         *,
-        jovem:jovens(nome_completo, foto),
+        jovem:jovens(nome_completo, foto, usuario_id),
         avaliador:usuarios!avaliacoes_user_id_fkey(nome, foto, email)
-      `)
-      .order('criado_em', { ascending: false });
+      `);
+    
+    // Se for colaborador, filtrar apenas suas avaliações
+    if (userLevel === 'colaborador' && userId) {
+      query = query.eq('user_id', userId);
+    }
+    
+    const { data, error: fetchError } = await query.order('criado_em', { ascending: false });
     
     if (fetchError) throw fetchError;
     
-    console.log('Todas as avaliações carregadas:', data);
+    console.log('Avaliações carregadas:', data);
     
     avaliacoes.set(data || []);
     return data;
   } catch (err) {
     error.set(err.message);
-    console.error('Error loading todas as avaliações:', err);
+    console.error('Error loading avaliações:', err);
     return [];
   } finally {
     loading.set(false);

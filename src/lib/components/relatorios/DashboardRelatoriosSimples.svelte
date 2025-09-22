@@ -2,6 +2,7 @@
   // @ts-nocheck
   import { onMount } from 'svelte';
   import { gerarEstatisticasGerais } from '$lib/stores/relatorios';
+  import { userProfile } from '$lib/stores/auth';
   import Card from '$lib/components/ui/Card.svelte';
   import Button from '$lib/components/ui/Button.svelte';
   
@@ -18,7 +19,9 @@
     error = '';
     
     try {
-      estatisticas = await gerarEstatisticasGerais();
+      const userId = $userProfile?.id;
+      const userLevel = $userProfile?.nivel;
+      estatisticas = await gerarEstatisticasGerais({}, userId, userLevel);
     } catch (err) {
       error = err.message;
       console.error('Erro ao carregar estatísticas:', err);

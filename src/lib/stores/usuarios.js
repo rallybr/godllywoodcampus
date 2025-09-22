@@ -1,5 +1,6 @@
 import { writable } from 'svelte/store';
 import { supabase } from '$lib/utils/supabase';
+import { withCache, CACHE_KEYS } from '$lib/utils/cache';
 
 // Stores para usuários e roles
 export const usuarios = writable([]);
@@ -21,7 +22,13 @@ export async function loadUsuarios() {
         estado:estados(nome, sigla),
         bloco:blocos(nome),
         regiao:regioes(nome),
-        igreja:igrejas(nome)
+        igreja:igrejas(nome),
+        user_roles!user_roles_user_id_fkey(
+          id,
+          role_id,
+          ativo,
+          role:roles(id, nome, slug)
+        )
       `)
       .order('nome');
     
@@ -44,14 +51,21 @@ export async function loadRoles() {
   error.set(null);
   
   try {
-    const { data, error: fetchError } = await supabase
-      .from('roles')
-      .select('*')
-      .order('nivel_hierarquico');
+    const data = await withCache(
+      CACHE_KEYS.ROLES,
+      async () => {
+        const { data, error: fetchError } = await supabase
+          .from('roles')
+          .select('*')
+          .order('nivel_hierarquico');
+        
+        if (fetchError) throw fetchError;
+        return data || [];
+      },
+      60 // Cache por 1 hora (roles raramente mudam)
+    );
     
-    if (fetchError) throw fetchError;
-    
-    roles.set(data || []);
+    roles.set(data);
     return data;
   } catch (err) {
     error.set(err.message);
@@ -302,6 +316,66 @@ export function getUsuariosByLocation(estadoId, blocoId, regiaoId, igrejaId) {
 // Função para obter roles por nível
 export function getRolesByLevel(nivel) {
   return roles.filter(role => role.nivel_hierarquico >= nivel);
+}
+
+// Função para atualizar user role
+export async function updateUserRole(userId, roleId, locationData) {
+  loading.set(true);
+  error.set(null);
+  
+  try {
+    // Desativar todos os roles ativos do usuário
+    const { error: deactivateError } = await supabase
+      .from('user_roles')
+      .update({ ativo: false })
+      .eq('user_id', userId)
+      .eq('ativo', true);
+    
+    if (deactivateError) throw deactivateError;
+    
+    // Verificar se já existe um user_role para este papel
+    const { data: existingRole } = await supabase
+      .from('user_roles')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('role_id', roleId)
+      .single();
+    
+    if (existingRole) {
+      // Ativar o role existente
+      const { error: activateError } = await supabase
+        .from('user_roles')
+        .update({ ativo: true })
+        .eq('id', existingRole.id);
+      
+      if (activateError) throw activateError;
+    } else {
+      // Criar novo user_role
+      const { error: createError } = await supabase
+        .from('user_roles')
+        .insert({
+          user_id: userId,
+          role_id: roleId,
+          estado_id: locationData?.estado_id,
+          bloco_id: locationData?.bloco_id,
+          regiao_id: locationData?.regiao_id,
+          igreja_id: locationData?.igreja_id,
+          ativo: true
+        });
+      
+      if (createError) throw createError;
+    }
+    
+    // Reload data
+    await loadUserRoles();
+    
+  } catch (err) {
+    error.set(err.message);
+    console.error('Error updating user role:', err);
+    throw err;
+  } finally {
+    loading.set(false);
+  }
 }
 
 // Função para carregar dados iniciais

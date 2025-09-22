@@ -1,5 +1,6 @@
 import { writable } from 'svelte/store';
 import { supabase } from '$lib/utils/supabase';
+import { withCache, CACHE_KEYS } from '$lib/utils/cache';
 
 // Stores para dados geográficos
 export const estados = writable([]);
@@ -19,13 +20,21 @@ export const loadingEdicoes = writable(false);
 export async function loadEstados() {
   loadingEstados.set(true);
   try {
-    const { data, error } = await supabase
-      .from('estados')
-      .select('*')
-      .order('nome');
+    const data = await withCache(
+      CACHE_KEYS.ESTADOS,
+      async () => {
+        const { data, error } = await supabase
+          .from('estados')
+          .select('*')
+          .order('nome');
+        
+        if (error) throw error;
+        return data || [];
+      },
+      60 // Cache por 1 hora (estados raramente mudam)
+    );
     
-    if (error) throw error;
-    estados.set(data || []);
+    estados.set(data);
   } catch (error) {
     console.error('Erro ao carregar estados:', error);
   } finally {
@@ -40,20 +49,24 @@ export async function loadBlocos(estadoId) {
     return;
   }
   
-  console.log('loadBlocos chamada com estadoId:', estadoId);
   loadingBlocos.set(true);
   try {
-    const { data, error } = await supabase
-      .from('blocos')
-      .select('*')
-      .eq('estado_id', estadoId)
-      .order('nome');
+    const data = await withCache(
+      CACHE_KEYS.BLOCOS(estadoId),
+      async () => {
+        const { data, error } = await supabase
+          .from('blocos')
+          .select('*')
+          .eq('estado_id', estadoId)
+          .order('nome');
+        
+        if (error) throw error;
+        return data || [];
+      },
+      30 // Cache por 30 minutos
+    );
     
-    console.log('Resultado da consulta blocos:', { data, error });
-    
-    if (error) throw error;
-    blocos.set(data || []);
-    console.log('Blocos definidos no store:', data);
+    blocos.set(data);
   } catch (error) {
     console.error('Erro ao carregar blocos:', error);
   } finally {
@@ -70,14 +83,22 @@ export async function loadRegioes(blocoId) {
   
   loadingRegioes.set(true);
   try {
-    const { data, error } = await supabase
-      .from('regioes')
-      .select('*')
-      .eq('bloco_id', blocoId)
-      .order('nome');
+    const data = await withCache(
+      CACHE_KEYS.REGIOES(blocoId),
+      async () => {
+        const { data, error } = await supabase
+          .from('regioes')
+          .select('*')
+          .eq('bloco_id', blocoId)
+          .order('nome');
+        
+        if (error) throw error;
+        return data || [];
+      },
+      30 // Cache por 30 minutos
+    );
     
-    if (error) throw error;
-    regioes.set(data || []);
+    regioes.set(data);
   } catch (error) {
     console.error('Erro ao carregar regiões:', error);
   } finally {
@@ -94,14 +115,22 @@ export async function loadIgrejas(regiaoId) {
   
   loadingIgrejas.set(true);
   try {
-    const { data, error } = await supabase
-      .from('igrejas')
-      .select('*')
-      .eq('regiao_id', regiaoId)
-      .order('nome');
+    const data = await withCache(
+      CACHE_KEYS.IGREJAS(regiaoId),
+      async () => {
+        const { data, error } = await supabase
+          .from('igrejas')
+          .select('*')
+          .eq('regiao_id', regiaoId)
+          .order('nome');
+        
+        if (error) throw error;
+        return data || [];
+      },
+      30 // Cache por 30 minutos
+    );
     
-    if (error) throw error;
-    igrejas.set(data || []);
+    igrejas.set(data);
   } catch (error) {
     console.error('Erro ao carregar igrejas:', error);
   } finally {
@@ -113,13 +142,21 @@ export async function loadIgrejas(regiaoId) {
 export async function loadEdicoes() {
   loadingEdicoes.set(true);
   try {
-    const { data, error } = await supabase
-      .from('edicoes')
-      .select('*')
-      .order('numero');
+    const data = await withCache(
+      CACHE_KEYS.EDICOES,
+      async () => {
+        const { data, error } = await supabase
+          .from('edicoes')
+          .select('*')
+          .order('numero');
+        
+        if (error) throw error;
+        return data || [];
+      },
+      60 // Cache por 1 hora (edições raramente mudam)
+    );
     
-    if (error) throw error;
-    edicoes.set(data || []);
+    edicoes.set(data);
   } catch (error) {
     console.error('Erro ao carregar edições:', error);
   } finally {

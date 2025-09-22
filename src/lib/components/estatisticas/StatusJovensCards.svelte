@@ -1,11 +1,14 @@
 <script>
   import { onMount } from 'svelte';
   import { estatisticas, loadEstatisticas } from '$lib/stores/estatisticas';
+  import { userProfile } from '$lib/stores/auth';
   
   let loading = false;
   
   onMount(async () => {
-    await loadEstatisticas();
+    const userId = $userProfile?.id;
+    const userLevel = $userProfile?.nivel;
+    await loadEstatisticas(userId, userLevel);
   });
   
   // Calcular percentuais

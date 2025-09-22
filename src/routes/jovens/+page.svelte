@@ -1,7 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
-  import { user } from '$lib/stores/auth';
+  import { user, userProfile } from '$lib/stores/auth';
   import { loadJovens, filteredJovens, filters, loading, error, pagination } from '$lib/stores/jovens-simple';
   import JovemCard from '$lib/components/jovens/JovemCard.svelte';
   import Autocomplete from '$lib/components/ui/Autocomplete.svelte';
@@ -14,7 +14,9 @@
     if (!$user) {
       goto('/login');
     } else {
-      loadJovens();
+      const userId = $userProfile?.id;
+      const userLevel = $userProfile?.nivel;
+      loadJovens(1, 20, userId, userLevel);
     }
   });
   
@@ -47,7 +49,9 @@
   
   function handlePageChange(page) {
     currentPage = page;
-    loadJovens(page);
+    const userId = $userProfile?.id;
+    const userLevel = $userProfile?.nivel;
+    loadJovens(page, 20, userId, userLevel);
   }
 </script>
 

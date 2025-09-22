@@ -1,6 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import { loadAvaliacoes, calculateAvaliacaoStats } from '$lib/stores/avaliacoes';
+  import { userProfile } from '$lib/stores/auth';
   import Button from '$lib/components/ui/Button.svelte';
   import Card from '$lib/components/ui/Card.svelte';
   
@@ -20,7 +21,9 @@
     error = '';
     
     try {
-      const data = await loadAvaliacoes();
+      const userId = $userProfile?.id;
+      const userLevel = $userProfile?.nivel;
+      const data = await loadAvaliacoes(userId, userLevel);
       avaliacoes = data || [];
       stats = calculateAvaliacaoStats(avaliacoes);
     } catch (err) {

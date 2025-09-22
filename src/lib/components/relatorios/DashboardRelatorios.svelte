@@ -1,6 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import { gerarEstatisticasGerais, gerarRelatorioPorLocalizacao, gerarRelatorioAvaliacoes } from '$lib/stores/relatorios';
+  import { userProfile } from '$lib/stores/auth';
   import Card from '$lib/components/ui/Card.svelte';
   import Button from '$lib/components/ui/Button.svelte';
   import GraficoAvaliacoes from '$lib/components/charts/GraficoAvaliacoes.svelte';
@@ -24,8 +25,11 @@
     error = '';
     
     try {
+      const userId = $userProfile?.id;
+      const userLevel = $userProfile?.nivel;
+      
       // Carregar estatísticas gerais primeiro
-      estatisticas = await gerarEstatisticasGerais();
+      estatisticas = await gerarEstatisticasGerais({}, userId, userLevel);
       
       // Carregar dados de localização (mais simples)
       try {

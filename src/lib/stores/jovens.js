@@ -65,92 +65,53 @@ export const filteredJovens = derived(
   }
 );
 
-export async function loadJovens(page = 1, limit = 20) {
+export async function loadJovens(page = 1, limit = 20, userId = null, userLevel = null) {
   loading.set(true);
   error.set(null);
   
   try {
-    console.log('=== CARREGANDO JOVENS ===');
-    console.log('Página:', page, 'Limite:', limit);
-    
-    // Consulta mais simples para testar
-    const { data, error: fetchError, count } = await supabase
+    // Consulta otimizada com relacionamentos
+    let query = supabase
       .from('jovens')
-      .select('*', { count: 'exact' })
+      .select(`
+        *,
+        estado:estados(id, nome, sigla),
+        bloco:blocos(id, nome),
+        regiao:regioes(id, nome),
+        igreja:igrejas(id, nome),
+        edicao:edicoes(id, nome, numero)
+      `, { count: 'exact' });
+    
+    // Se for colaborador, filtrar apenas jovens que ele cadastrou
+    if (userLevel === 'colaborador' && userId) {
+      query = query.eq('usuario_id', userId);
+    }
+    
+    const { data, error: fetchError, count } = await query
       .order('data_cadastro', { ascending: false })
       .range((page - 1) * limit, page * limit - 1);
     
-    console.log('Erro da consulta:', fetchError);
-    console.log('Dados recebidos:', data);
-    console.log('Count:', count);
-    
     if (fetchError) {
-      console.error('Erro detalhado:', fetchError);
+      console.error('Erro ao carregar jovens:', fetchError);
       throw fetchError;
     }
     
-    // Buscar dados relacionados separadamente
+    // Buscar apenas avaliações (dados relacionados já vêm na consulta principal)
     const jovensIds = (data || []).map(j => j.id);
-    
-    // Buscar estados
-    const { data: estadosData } = await supabase
-      .from('estados')
-      .select('id, nome, sigla')
-      .in('id', [...new Set((data || []).map(j => j.estado_id))]);
-    
-    // Buscar blocos
-    const { data: blocosData } = await supabase
-      .from('blocos')
-      .select('id, nome')
-      .in('id', [...new Set((data || []).map(j => j.bloco_id))]);
-    
-    // Buscar regiões
-    const { data: regioesData } = await supabase
-      .from('regioes')
-      .select('id, nome')
-      .in('id', [...new Set((data || []).map(j => j.regiao_id))]);
-    
-    // Buscar igrejas
-    const { data: igrejasData } = await supabase
-      .from('igrejas')
-      .select('id, nome')
-      .in('id', [...new Set((data || []).map(j => j.igreja_id))]);
-    
-    // Buscar edições
-    const { data: edicoesData } = await supabase
-      .from('edicoes')
-      .select('id, nome, numero')
-      .in('id', [...new Set((data || []).map(j => j.edicao_id))]);
-    
-    // Buscar avaliações
     const { data: avaliacoesData } = await supabase
       .from('avaliacoes')
       .select('jovem_id')
       .in('jovem_id', jovensIds);
     
-    console.log('Dados relacionados carregados');
-    
-    // Processar dados
+    // Processar dados (relacionamentos já vêm na consulta)
     const processedData = (data || []).map(jovem => {
-      const estado = estadosData?.find(e => e.id === jovem.estado_id);
-      const bloco = blocosData?.find(b => b.id === jovem.bloco_id);
-      const regiao = regioesData?.find(r => r.id === jovem.regiao_id);
-      const igreja = igrejasData?.find(i => i.id === jovem.igreja_id);
-      const edicao = edicoesData?.find(e => e.id === jovem.edicao_id);
       const temAvaliacoes = avaliacoesData?.some(av => av.jovem_id === jovem.id) || false;
       
       return {
         ...jovem,
-        estado,
-        bloco,
-        regiao,
-        igreja,
-        edicao_obj: edicao,
         tem_avaliacoes: temAvaliacoes
       };
     });
-    
-    console.log('Dados processados:', processedData);
     
     jovens.set(processedData);
     pagination.set({

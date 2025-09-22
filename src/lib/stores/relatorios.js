@@ -227,23 +227,56 @@ export async function gerarRelatorioAvaliacoes(filtros = {}, options = {}) {
 }
 
 // Função para gerar estatísticas gerais
-export async function gerarEstatisticasGerais(filtros = {}) {
+export async function gerarEstatisticasGerais(filtros = {}, userId = null, userLevel = null) {
   loading.set(true);
   error.set(null);
   
   try {
     // Contar jovens por status
-    const { data: jovensStatus, error: jovensError } = await supabase
+    let jovensQuery = supabase
       .from('jovens')
-      .select('aprovado')
-      .match(filtros);
+      .select('aprovado');
+    
+    // Se for colaborador, filtrar apenas jovens que ele cadastrou
+    if (userLevel === 'colaborador' && userId) {
+      jovensQuery = jovensQuery.eq('usuario_id', userId);
+    }
+    
+    // Aplicar outros filtros
+    if (filtros.estado_id) {
+      jovensQuery = jovensQuery.eq('estado_id', filtros.estado_id);
+    }
+    if (filtros.bloco_id) {
+      jovensQuery = jovensQuery.eq('bloco_id', filtros.bloco_id);
+    }
+    if (filtros.regiao_id) {
+      jovensQuery = jovensQuery.eq('regiao_id', filtros.regiao_id);
+    }
+    if (filtros.igreja_id) {
+      jovensQuery = jovensQuery.eq('igreja_id', filtros.igreja_id);
+    }
+    if (filtros.edicao_id) {
+      jovensQuery = jovensQuery.eq('edicao_id', filtros.edicao_id);
+    }
+    if (filtros.aprovado !== undefined) {
+      jovensQuery = jovensQuery.eq('aprovado', filtros.aprovado);
+    }
+    
+    const { data: jovensStatus, error: jovensError } = await jovensQuery;
     
     if (jovensError) throw jovensError;
     
     // Contar avaliações
-    const { data: avaliacoes, error: avaliacoesError } = await supabase
+    let avaliacoesQuery = supabase
       .from('avaliacoes')
       .select('nota, espirito, caractere, disposicao');
+    
+    // Se for colaborador, filtrar apenas avaliações que ele fez
+    if (userLevel === 'colaborador' && userId) {
+      avaliacoesQuery = avaliacoesQuery.eq('user_id', userId);
+    }
+    
+    const { data: avaliacoes, error: avaliacoesError } = await avaliacoesQuery;
     
     if (avaliacoesError) throw avaliacoesError;
     

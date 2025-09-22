@@ -34,8 +34,11 @@
   async function loadDashboardData() {
     loading = true;
     try {
+      const userId = $userProfile?.id;
+      const userLevel = $userProfile?.nivel;
+      
       // Carregar estatísticas gerais
-      await loadEstatisticas();
+      await loadEstatisticas(userId, userLevel);
       
       // Carregar estatísticas das condições
       await loadCondicoesStats();

@@ -27,16 +27,7 @@
   
   // Função para verificar se o usuário pode editar a avaliação
   function canEditAvaliacao(avaliacao) {
-    console.log('🔍 Verificando permissão de edição:');
-    console.log('  - Usuário logado (auth):', $user);
-    console.log('  - ID do usuário logado (auth):', $user?.id);
-    console.log('  - Perfil do usuário:', $userProfile);
-    console.log('  - ID do perfil do usuário:', $userProfile?.id);
-    console.log('  - ID do avaliador:', avaliacao.user_id);
-    console.log('  - Pode editar (com auth):', $user && avaliacao.user_id === $user.id);
-    console.log('  - Pode editar (com profile):', $userProfile && avaliacao.user_id === $userProfile.id);
-    
-    // Tentar com ambos os IDs
+    // Verificar se o usuário logado é o criador da avaliação
     return ($user && avaliacao.user_id === $user.id) || 
            ($userProfile && avaliacao.user_id === $userProfile.id);
   }

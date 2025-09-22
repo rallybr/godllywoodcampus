@@ -1,16 +1,51 @@
 <script>
+  import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
-  import Button from '$lib/components/ui/Button.svelte';
+  import { page } from '$app/stores';
   import { supabase } from '$lib/utils/supabase';
+  import Button from '$lib/components/ui/Button.svelte';
   
-  let email = '';
+  let password = '';
+  let confirmPassword = '';
   let isLoading = false;
   let error = '';
   let success = false;
+  let isValidToken = false;
+  
+  onMount(async () => {
+    try {
+      // Verificar se há um token de recuperação na URL
+      const { data, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        error = 'Link inválido ou expirado. Solicite um novo link de recuperação.';
+        return;
+      }
+      
+      if (data.session) {
+        isValidToken = true;
+      } else {
+        error = 'Link inválido ou expirado. Solicite um novo link de recuperação.';
+      }
+    } catch (err) {
+      error = 'Erro ao verificar o link. Tente novamente.';
+      console.error('Reset password error:', err);
+    }
+  });
   
   async function handleSubmit() {
-    if (!email) {
-      error = 'Por favor, digite seu email';
+    if (!password || !confirmPassword) {
+      error = 'Por favor, preencha todos os campos';
+      return;
+    }
+    
+    if (password !== confirmPassword) {
+      error = 'As senhas não coincidem';
+      return;
+    }
+    
+    if (password.length < 6) {
+      error = 'A senha deve ter pelo menos 6 caracteres';
       return;
     }
     
@@ -18,17 +53,22 @@
     error = '';
     
     try {
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: 'https://intellimencampus.vercel.app/reset-password'
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: password
       });
       
-      if (resetError) {
-        error = resetError.message;
+      if (updateError) {
+        error = updateError.message;
       } else {
         success = true;
+        // Redirecionar para login após 3 segundos
+        setTimeout(() => {
+          goto('/login');
+        }, 3000);
       }
     } catch (err) {
-      error = 'Erro ao enviar email de recuperação. Tente novamente.';
+      error = 'Erro ao atualizar senha. Tente novamente.';
+      console.error('Update password error:', err);
     } finally {
       isLoading = false;
     }
@@ -42,7 +82,7 @@
 </script>
 
 <svelte:head>
-  <title>Recuperar Senha - IntelliMen Campus</title>
+  <title>Redefinir Senha - IntelliMen Campus</title>
 </svelte:head>
 
 <div class="min-h-screen flex items-center justify-center py-4 sm:py-8 lg:py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden" style="background-color: var(--fb-gray-light);">
@@ -79,32 +119,54 @@
           </svg>
         </div>
         
-        <h3 class="text-xl font-semibold text-gray-900 mb-2">Email enviado!</h3>
+        <h3 class="text-xl font-semibold text-gray-900 mb-2">Senha redefinida!</h3>
         <p class="text-gray-600 mb-6">
-          Enviamos um link para redefinir sua senha para <strong>{email}</strong>
+          Sua senha foi atualizada com sucesso.
         </p>
         <p class="text-sm text-gray-500 mb-6">
-          Verifique sua caixa de entrada e clique no link para redefinir sua senha.
+          Você será redirecionado para a página de login em alguns segundos.
+        </p>
+        
+        <Button
+          variant="primary"
+          class="w-full"
+          on:click={() => goto('/login')}
+        >
+          Ir para Login
+        </Button>
+      </div>
+    {:else if !isValidToken}
+      <!-- Invalid token message -->
+      <div class="fb-card p-8 text-center">
+        <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <svg class="w-8 h-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        
+        <h3 class="text-xl font-semibold text-gray-900 mb-2">Link inválido</h3>
+        <p class="text-gray-600 mb-6">
+          Este link de recuperação é inválido ou expirou.
+        </p>
+        <p class="text-sm text-gray-500 mb-6">
+          Solicite um novo link de recuperação de senha.
         </p>
         
         <div class="space-y-3">
           <Button
             variant="primary"
             class="w-full"
-            on:click={() => goto('/login')}
+            on:click={() => goto('/forgot-password')}
           >
-            Voltar ao Login
+            Solicitar Novo Link
           </Button>
           
           <Button
             variant="outline"
             class="w-full"
-            on:click={() => {
-              success = false;
-              email = '';
-            }}
+            on:click={() => goto('/login')}
           >
-            Tentar Outro Email
+            Voltar ao Login
           </Button>
         </div>
       </div>
@@ -113,25 +175,44 @@
       <div class="fb-card p-8">
         <div class="text-center mb-6">
           <h3 class="text-xl sm:text-2xl font-bold text-gray-900">
-            Recuperar Senha
+            Redefinir Senha
           </h3>
           <p class="text-gray-600 mt-2 text-sm sm:text-base">
-            Digite seu email para receber um link de recuperação
+            Digite sua nova senha
           </p>
         </div>
         
         <form on:submit|preventDefault={handleSubmit} class="space-y-6">
           <div>
-            <label for="email" class="block text-sm font-medium text-gray-700 mb-2">
-              E-mail
+            <label for="password" class="block text-sm font-medium text-gray-700 mb-2">
+              Nova Senha
             </label>
             <input
-              id="email"
-              type="email"
-              placeholder="seu@email.com"
-              value={email}
+              id="password"
+              type="password"
+              placeholder="Digite sua nova senha"
+              value={password}
               required
-              on:input={(e) => email = e.target.value}
+              minlength="6"
+              on:input={(e) => password = e.target.value}
+              on:keydown={handleKeydown}
+              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+            />
+            <p class="text-xs text-gray-500 mt-1">Mínimo de 6 caracteres</p>
+          </div>
+          
+          <div>
+            <label for="confirmPassword" class="block text-sm font-medium text-gray-700 mb-2">
+              Confirmar Nova Senha
+            </label>
+            <input
+              id="confirmPassword"
+              type="password"
+              placeholder="Confirme sua nova senha"
+              value={confirmPassword}
+              required
+              minlength="6"
+              on:input={(e) => confirmPassword = e.target.value}
               on:keydown={handleKeydown}
               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
             />
@@ -157,7 +238,7 @@
               loading={isLoading}
               disabled={isLoading}
             >
-              {isLoading ? 'Enviando...' : 'Enviar Link de Recuperação'}
+              {isLoading ? 'Atualizando...' : 'Redefinir Senha'}
             </Button>
             
             <Button
@@ -174,16 +255,6 @@
             </Button>
           </div>
         </form>
-        
-        <!-- Additional links -->
-        <div class="flex flex-col sm:flex-row justify-between items-center text-xs sm:text-sm space-y-2 sm:space-y-0 mt-6 pt-6 border-t border-gray-200">
-          <a href="/register" class="text-blue-600 hover:text-blue-800 transition-colors duration-300 text-center sm:text-left">
-            Não tem uma conta? Criar Conta
-          </a>
-          <a href="/help" class="text-gray-500 hover:text-gray-700 transition-colors duration-300 text-center sm:text-right">
-            Precisa de ajuda?
-          </a>
-        </div>
       </div>
     {/if}
     

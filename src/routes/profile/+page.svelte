@@ -6,13 +6,15 @@
 	import Button from '$lib/components/ui/Button.svelte';
 	import ProgressoTimeline from '$lib/components/progresso/ProgressoTimeline.svelte';
 	import EditarPerfilModal from '$lib/components/modals/EditarPerfilModal.svelte';
+	import TrocarSenhaModal from '$lib/components/modals/TrocarSenhaModal.svelte';
 
 	let loading = true;
 	let error = '';
 	let jovem = null;
 
-	// Modal de edição de perfil
+	// Modais
 	let showEditModal = false;
+	let showTrocarSenhaModal = false;
 
 	// KPIs
 	let totalAval = 0;
@@ -132,6 +134,15 @@
 			}));
 		}
 	}
+
+	// Funções do modal de trocar senha
+	function openTrocarSenhaModal() {
+		showTrocarSenhaModal = true;
+	}
+
+	function closeTrocarSenhaModal() {
+		showTrocarSenhaModal = false;
+	}
 </script>
 
 <!-- Background com gradiente sutil -->
@@ -223,20 +234,36 @@
 							</div>
 						</div>
 						
-						<!-- Botão Editar Perfil -->
-						{#if jovem?.id}
+						<!-- Botões de Ação -->
+						<div class="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
+							<!-- Botão Trocar Senha -->
 							<Button 
-								href="/jovens/{jovem.id}/editar" 
+								on:click={openTrocarSenhaModal}
 								variant="outline" 
-								class="bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20 transition-all duration-300 flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-lg sm:rounded-xl text-sm sm:text-base w-full sm:w-auto"
+								class="bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20 transition-all duration-300 flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-lg sm:rounded-xl text-sm sm:text-base"
 							>
 								<svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
 								</svg>
-								<span class="hidden xs:inline">Editar Perfil</span>
-								<span class="xs:hidden">Editar</span>
+								<span class="hidden xs:inline">Trocar Senha</span>
+								<span class="xs:hidden">Senha</span>
 							</Button>
-						{/if}
+							
+							<!-- Botão Editar Perfil -->
+							{#if jovem?.id}
+								<Button 
+									href="/jovens/{jovem.id}/editar" 
+									variant="outline" 
+									class="bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20 transition-all duration-300 flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-lg sm:rounded-xl text-sm sm:text-base"
+								>
+									<svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+									</svg>
+									<span class="hidden xs:inline">Editar Perfil</span>
+									<span class="xs:hidden">Editar</span>
+								</Button>
+							{/if}
+						</div>
 					</div>
 				</div>
 
@@ -431,5 +458,11 @@
 	userProfile={$userProfile}
 	on:close={closeEditModal}
 	on:success={handleEditSuccess}
+/>
+
+<!-- Modal de Trocar Senha -->
+<TrocarSenhaModal 
+	bind:isOpen={showTrocarSenhaModal}
+	on:close={closeTrocarSenhaModal}
 />
 

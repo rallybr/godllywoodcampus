@@ -98,7 +98,7 @@ export async function loadViagensCardsForJovem() {
     console.log('Dados recebidos (jovem):', data);
 
     if (fetchError) {
-      console.error('Erro detalhado:', fetchError);
+      console.error('Erro ao carregar dados de viagem:', fetchError);
       throw fetchError;
     }
 
@@ -164,8 +164,6 @@ export async function loadViagensCards(page = 1, limit = 20) {
   error.set(null);
   
   try {
-    console.log('=== CARREGANDO DADOS DE VIAGEM ===');
-    console.log('Página:', page, 'Limite:', limit);
     
     // Verificar se o Supabase está configurado
     if (!supabase) {
@@ -192,12 +190,9 @@ export async function loadViagensCards(page = 1, limit = 20) {
       .order('data_cadastro', { ascending: false })
       .range((page - 1) * limit, page * limit - 1);
     
-    console.log('Erro da consulta (jovens):', fetchError);
-    console.log('Dados recebidos (jovens):', data);
-    console.log('Count:', count);
 
     if (fetchError) {
-      console.error('Erro detalhado:', fetchError);
+      console.error('Erro ao carregar dados de viagem:', fetchError);
       throw fetchError;
     }
 
