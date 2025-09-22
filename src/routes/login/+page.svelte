@@ -10,6 +10,7 @@
   let password = '';
   let error = '';
   let isLoading = false;
+  let showPassword = false;
   
   onMount(() => {
     if ($user) {
@@ -90,10 +91,11 @@
       
       <form on:submit|preventDefault={handleSubmit} class="space-y-6">
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">
+          <label for="email" class="block text-sm font-medium text-gray-700 mb-2">
             E-mail
           </label>
           <input
+            id="email"
             type="email"
             placeholder="seu@email.com"
             value={email}
@@ -105,18 +107,41 @@
         </div>
         
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">
+          <label for="password" class="block text-sm font-medium text-gray-700 mb-2">
             Senha
           </label>
-          <input
-            type="password"
-            placeholder="Sua senha"
-            value={password}
-            required
-            on:input={(e) => password = e.target.value}
-            on:keydown={handleKeydown}
-            class="w-full px-4 py-3 rounded-xl bg-white/80 border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none shadow-sm"
-          />
+          <div class="relative">
+            <input
+              id="password"
+              type={showPassword ? 'text' : 'password'}
+              placeholder="Sua senha"
+              value={password}
+              required
+              on:input={(e) => password = e.target.value}
+              on:keydown={handleKeydown}
+              class="w-full px-4 py-3 pr-12 rounded-xl bg-white/80 border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none shadow-sm"
+            />
+            <button
+              type="button"
+              class="absolute inset-y-0 right-3 flex items-center text-gray-500 hover:text-gray-700 focus:outline-none"
+              on:click={() => showPassword = !showPassword}
+              aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+            >
+              {#if showPassword}
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-5 0-9.27-3.11-11-8 0-1.14.2-2.24.57-3.26" />
+                  <path d="M1 1l22 22" />
+                  <path d="M10.58 10.58a3 3 0 0 0 4.24 4.24" />
+                  <path d="M9.88 4.12A10.94 10.94 0 0 1 12 4c5 0 9.27 3.11 11 8-.29.83-.67 1.62-1.12 2.35" />
+                </svg>
+              {:else}
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              {/if}
+            </button>
+          </div>
         </div>
         
         {#if error}

@@ -15,6 +15,31 @@
   </div>
 
   <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <!-- Card para Gestão Completa -->
+    <Card>
+      <div class="p-6">
+        <div class="flex items-center mb-4">
+          <div class="flex-shrink-0">
+            <svg class="h-8 w-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h3l2 2 2-2h3a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2z" />
+            </svg>
+          </div>
+          <div class="ml-4">
+            <h2 class="text-xl font-semibold text-gray-900">Gestão de Localizações</h2>
+            <p class="text-gray-600">CRUD completo: Estados, Blocos, Regiões e Igrejas</p>
+          </div>
+        </div>
+
+        <Button
+          variant="primary"
+          on:click={() => goto('/administracao/gestao')}
+          class="w-full"
+        >
+          Abrir Gestão Completa
+        </Button>
+      </div>
+    </Card>
+
     <!-- Card para Regiões -->
     <Card>
       <div class="p-6">

@@ -1,6 +1,8 @@
 <script>
   import { onMount } from 'svelte';
-  import { loadUsuarios, loadUserRoles, updateUsuario, roles, loadRoles, usuarios } from '$lib/stores/usuarios';
+  import { loadUsuarios, loadUserRoles, updateUsuario, roles, loadRoles, usuarios, deleteUsuario } from '$lib/stores/usuarios';
+  import { userProfile } from '$lib/stores/auth';
+  import { createLogHistorico } from '$lib/stores/logs-historico';
   import { goto } from '$app/navigation';
   import Button from '$lib/components/ui/Button.svelte';
   import Card from '$lib/components/ui/Card.svelte';
@@ -93,6 +95,26 @@
   async function toggleUsuarioStatus(usuario) {
     try {
       await updateUsuario(usuario.id, { ativo: !usuario.ativo });
+      await loadData();
+    } catch (err) {
+      error = err.message;
+    }
+  }
+
+  async function handleDeleteUsuario(usuario) {
+    if ($userProfile?.nivel !== 'administrador') return;
+    const confirmed = confirm(`Excluir o usuário "${usuario.nome}"? Esta ação não pode ser desfeita.`);
+    if (!confirmed) return;
+
+    try {
+      const dadosAnteriores = { id: usuario.id, nome: usuario.nome, email: usuario.email };
+      await deleteUsuario(usuario.id);
+      // log (sem jovem_id)
+      try {
+        await createLogHistorico(null, 'exclusao_usuario', `Usuário excluído: ${usuario.email}`, dadosAnteriores, null);
+      } catch (e) {
+        console.warn('Falha ao registrar log de exclusão de usuário:', e);
+      }
       await loadData();
     } catch (err) {
       error = err.message;
@@ -318,6 +340,19 @@
                 >
                   {usuario.ativo ? 'Desativar' : 'Ativar'}
                 </Button>
+
+                {#if $userProfile?.nivel === 'administrador'}
+                  <Button
+                    size="sm"
+                    variant="danger"
+                    on:click={() => handleDeleteUsuario(usuario)}
+                  >
+                    <svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7h6m-7 0a2 2 0 002-2h2a2 2 0 002 2m-8 0h10" />
+                    </svg>
+                    Excluir
+                  </Button>
+                {/if}
               </div>
             </div>
           </Card>

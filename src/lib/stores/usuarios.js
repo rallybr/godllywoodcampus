@@ -244,6 +244,29 @@ export async function updateUsuario(id, updates) {
   }
 }
 
+// Função para excluir usuário
+export async function deleteUsuario(id) {
+  loading.set(true);
+  error.set(null);
+  try {
+    const { error: delError } = await supabase
+      .from('usuarios')
+      .delete()
+      .eq('id', id);
+    if (delError) throw delError;
+
+    // Remover do store local
+    usuarios.update(list => list.filter(u => u.id !== id));
+    return true;
+  } catch (err) {
+    error.set(err.message);
+    console.error('Error deleting usuario:', err);
+    throw err;
+  } finally {
+    loading.set(false);
+  }
+}
+
 // Função para transferir liderança
 export async function transferirLideranca(usuarioAtualId, novoUsuarioId, localizacao) {
   loading.set(true);

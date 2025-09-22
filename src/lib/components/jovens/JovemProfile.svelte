@@ -8,6 +8,7 @@
   import AvaliacoesList from './AvaliacoesList.svelte';
   import { userProfile, hasRole } from '$lib/stores/auth';
   import AvaliacaoModal from '$lib/components/modals/AvaliacaoModal.svelte';
+  import AssociarUsuarioModal from '$lib/components/modals/AssociarUsuarioModal.svelte';
   import { format, parseISO } from 'date-fns';
   import { ptBR } from 'date-fns/locale';
   
@@ -21,6 +22,7 @@
   let activeTab = 'dados-pessoais';
   let isApproving = false;
   let showAvaliacaoModal = false;
+  let showAssociarModal = false;
   // @ts-ignore
   let avaliacoesListComponent = null;
   
@@ -136,6 +138,14 @@
   
   function closeAvaliacaoModal() {
     showAvaliacaoModal = false;
+  }
+
+  function openAssociarModal() {
+    showAssociarModal = true;
+  }
+
+  function closeAssociarModal() {
+    showAssociarModal = false;
   }
   
   // @ts-ignore
@@ -279,6 +289,17 @@
                       </svg>
                       <span>Progresso</span>
                     </button>
+                  {#if $userProfile?.nivel === 'administrador'}
+                  <button
+                    on:click={openAssociarModal}
+                    class="flex items-center justify-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm font-medium text-white bg-indigo-600 border border-indigo-600 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  >
+                    <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v4m0 0v4m0-4h4m-4 0H8" />
+                    </svg>
+                    <span>Associar</span>
+                  </button>
+                  {/if}
                   </div>
                 {/if}
               </div>
@@ -640,4 +661,17 @@
   jovemNome={jovem?.nome_completo || ''}
   on:close={closeAvaliacaoModal}
   on:success={handleAvaliacaoSuccess}
+/>
+
+<!-- Modal de Associação -->
+<AssociarUsuarioModal
+  bind:isOpen={showAssociarModal}
+  jovemId={jovemId}
+  on:close={closeAssociarModal}
+  on:success={async (e) => {
+    if (jovem) {
+      jovem.usuario_id = e.detail?.usuarioId;
+    }
+    await loadJovemData();
+  }}
 />
