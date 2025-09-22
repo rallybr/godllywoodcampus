@@ -15,11 +15,19 @@ export default defineConfig({
 		rollupOptions: {
 			output: {
 				// Chunking otimizado
-				manualChunks: {
-					// Vendor chunks separados
-					vendor: ['@supabase/supabase-js'],
-					charts: ['chart.js', 'svelte-chartjs'],
-					utils: ['date-fns', 'jsdom', 'jspdf', 'jspdf-autotable', 'xlsx']
+				manualChunks: (id) => {
+					// Agrupar bibliotecas de gráficos
+					if (id.includes('chart.js') || id.includes('svelte-chartjs')) {
+						return 'charts';
+					}
+					// Agrupar utilitários
+					if (id.includes('date-fns') || id.includes('jsdom') || id.includes('jspdf') || id.includes('xlsx')) {
+						return 'utils';
+					}
+					// Agrupar outras dependências node_modules
+					if (id.includes('node_modules')) {
+						return 'vendor';
+					}
 				},
 				// Nomes de arquivos otimizados
 				chunkFileNames: 'assets/[name]-[hash].js',
