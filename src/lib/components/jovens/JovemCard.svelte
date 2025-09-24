@@ -21,7 +21,7 @@
   }
   
   function handleViewFicha() {
-    goto(`/jovens/${jovem.id}/ficha-test`);
+    goto(`/jovens/${jovem.id}/ficha`);
   }
   
   function getAprovadoColor(aprovado, temAvaliacoes) {

@@ -88,9 +88,9 @@
   
   <!-- Dropdown -->
   {#if showDropdown}
-    <div class="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-96 overflow-hidden">
+    <div class="absolute right-0 sm:right-0 left-2 sm:left-auto mt-2 w-80 sm:w-80 md:w-96 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-96 overflow-hidden" style="max-width: calc(100vw - 2rem);">
       <!-- Header -->
-      <div class="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+      <div class="px-3 sm:px-4 py-3 border-b border-gray-200 flex items-center justify-between">
         <h3 class="text-lg font-semibold text-gray-900">Notificações</h3>
         {#if $notificacoesNaoLidas.length > 0}
           <button
@@ -106,7 +106,7 @@
       <!-- Lista de notificações -->
       <div class="max-h-80 overflow-y-auto">
         {#if $notificacoes.length === 0}
-          <div class="px-4 py-8 text-center text-gray-500">
+          <div class="px-3 sm:px-4 py-8 text-center text-gray-500">
             <svg class="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V4a2 2 0 10-4 0v1.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h11z" />
             </svg>
@@ -116,7 +116,7 @@
           {#each $notificacoes as notificacao}
             <button
               on:click={() => handleNotificationClick(notificacao)}
-              class="w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-100 last:border-b-0 transition-colors {notificacao.lida ? 'bg-white' : 'bg-blue-50'}"
+              class="w-full px-3 sm:px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-100 last:border-b-0 transition-colors {notificacao.lida ? 'bg-white' : 'bg-blue-50'}"
             >
               <div class="flex items-start space-x-3">
                 <!-- Ícone -->
@@ -153,7 +153,7 @@
       
       <!-- Footer -->
       {#if $notificacoes.length > 0}
-        <div class="px-4 py-3 border-t border-gray-200">
+        <div class="px-3 sm:px-4 py-3 border-t border-gray-200">
           <button
             on:click={() => {
               closeDropdown();

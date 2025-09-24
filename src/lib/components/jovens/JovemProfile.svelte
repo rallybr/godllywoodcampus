@@ -82,7 +82,7 @@
   }
 
   function verFicha() {
-    goto(`/jovens/${jovem.id}/ficha-test`);
+    goto(`/jovens/${jovem.id}/ficha`);
   }
   
   // @ts-ignore
@@ -272,7 +272,7 @@
                       Editar
                     </Button>
                     <button
-                      on:click={verFicha}
+                      on:click={() => goto(`/jovens/${jovem.id}/ficha`)}
                       class="flex items-center justify-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                     >
                       <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

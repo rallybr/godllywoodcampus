@@ -91,7 +91,7 @@
   }
   
   // Verificar se é a página da ficha do jovem
-  $: isFichaPage = $page?.url?.pathname?.includes('/ficha-test');
+  $: isFichaPage = $page?.url?.pathname?.includes('/ficha');
 </script>
 
 <svelte:head>
