@@ -3,6 +3,7 @@ import { supabase } from '$lib/utils/supabase';
 import { createAuditLog } from '$lib/stores/security';
 import { createLogHistorico } from '$lib/stores/logs-historico';
 import { marcarJovemCadastrado } from '$lib/stores/jovem-cadastro';
+import { notificarEventoJovem } from '$lib/stores/notificacoes';
 
 export const jovens = writable([]);
 export const loading = writable(false);
@@ -367,6 +368,57 @@ export async function updateJovem(id, updates) {
       jovens.map(j => j.id === id ? { ...j, ...updates } : j)
     );
     
+    // Notificações por mudanças relevantes
+    try {
+      const mudouAssociacao = Object.prototype.hasOwnProperty.call(updates, 'usuario_id') && updates.usuario_id !== oldData.usuario_id;
+      const mudouCondicao = (Object.prototype.hasOwnProperty.call(updates, 'condicao') && updates.condicao !== oldData.condicao)
+        || (Object.prototype.hasOwnProperty.call(updates, 'condicao_campus') && updates.condicao_campus !== oldData.condicao_campus);
+      if (mudouAssociacao) {
+        try {
+          await supabase.rpc('notificar_associacao_jovem', {
+            p_jovem_id: id,
+            p_usuario_associado_id: updates.usuario_id,
+            p_titulo: 'Jovem associado a usuário',
+            p_mensagem: 'O jovem foi associado ao usuário selecionado.',
+            p_acao_url: `/jovens/${id}`
+          });
+        } catch (rpcErr) {
+          console.warn('RPC notificar_associacao_jovem falhou, fallback para frontend:', rpcErr);
+          await notificarEventoJovem(id, 'sistema', 'Jovem associado a usuário', 'Um jovem foi associado a um usuário.');
+        }
+      }
+      if (mudouCondicao) {
+        try {
+          await supabase.rpc('notificar_evento_jovem', {
+            p_jovem_id: id,
+            p_tipo: 'aprovacao',
+            p_titulo: 'Condição atualizada',
+            p_mensagem: 'A condição do jovem foi atualizada.',
+            p_acao_url: `/jovens/${id}`
+          });
+        } catch (rpcErr2) {
+          console.warn('RPC notificar_evento_jovem (condição) falhou, fallback:', rpcErr2);
+          await notificarEventoJovem(id, 'aprovacao', 'Condição atualizada', 'A condição do jovem foi atualizada.');
+        }
+      }
+      if (!mudouAssociacao && !mudouCondicao) {
+        try {
+          await supabase.rpc('notificar_evento_jovem', {
+            p_jovem_id: id,
+            p_tipo: 'sistema',
+            p_titulo: 'Perfil do jovem atualizado',
+            p_mensagem: 'Dados do jovem foram atualizados.',
+            p_acao_url: `/jovens/${id}`
+          });
+        } catch (rpcErr3) {
+          console.warn('RPC notificar_evento_jovem (edicao genérica) falhou, fallback:', rpcErr3);
+          await notificarEventoJovem(id, 'sistema', 'Perfil do jovem atualizado', 'Dados do jovem foram atualizados.');
+        }
+      }
+    } catch (e) {
+      console.warn('Falha ao notificar edição de jovem:', e);
+    }
+    
     return data;
   } catch (err) {
     error.set(err.message);
@@ -464,6 +516,23 @@ export async function aprovarJovem(id, status) {
     jovens.update(jovens => 
       jovens.map(j => j.id === id ? { ...j, aprovado: status } : j)
     );
+    
+    // Notificar mudança de aprovação via RPC (com fallback)
+    try {
+      const titulo = status === 'aprovado' ? 'Jovem aprovado' : status === 'pre_aprovado' ? 'Jovem pré-aprovado' : 'Status atualizado';
+      const mensagem = 'O status de aprovação do jovem foi atualizado.';
+      await supabase.rpc('notificar_evento_jovem', {
+        p_jovem_id: id,
+        p_tipo: 'aprovacao',
+        p_titulo: titulo,
+        p_mensagem: mensagem,
+        p_acao_url: `/jovens/${id}`
+      });
+    } catch (e) {
+      console.warn('RPC notificar_evento_jovem falhou, fallback para frontend:', e);
+      const titulo = status === 'aprovado' ? 'Jovem aprovado' : status === 'pre_aprovado' ? 'Jovem pré-aprovado' : 'Status atualizado';
+      await notificarEventoJovem(id, 'aprovacao', titulo, 'O status de aprovação do jovem foi atualizado.');
+    }
     
     return data;
   } catch (err) {

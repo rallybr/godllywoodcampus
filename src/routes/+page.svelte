@@ -6,6 +6,8 @@
   import AvaliacoesChart from '$lib/components/charts/AvaliacoesChart.svelte';
   import { estatisticas, loadEstatisticas, condicoesStats, loadCondicoesStats } from '$lib/stores/estatisticas';
   import { supabase } from '$lib/utils/supabase';
+  import Autocomplete from '$lib/components/ui/Autocomplete.svelte';
+  import JovemMiniCard from '$lib/components/jovens/JovemMiniCard.svelte';
   import { loadInitialData, edicoes } from '$lib/stores/geographic';
   
   let stats = {
@@ -20,6 +22,14 @@
   let estadosStats = [];
   let loading = true;
   let edicaoSelecionada = '';
+  // Estado para o card de jovens no feed (cópia do /jovens/cards)
+  let jovensFeed = [];
+  let loadingJovensFeed = true;
+  let errorJovensFeed = '';
+  let searchTermFeed = '';
+  let pageFeed = 1;
+  let pageSizeFeed = 24;
+  let totalFeed = 0;
   
   onMount(async () => {
     if (!$user) {
@@ -27,6 +37,7 @@
     } else {
       await loadInitialData(); // Carregar edições
       await loadDashboardData();
+      await fetchJovensFeed();
     }
   });
   
@@ -68,6 +79,68 @@
     }
   }
   
+  // ===== Card de Jovens no Feed (cópia funcional de /jovens/cards) =====
+  async function fetchJovensFeed() {
+    loadingJovensFeed = true;
+    errorJovensFeed = '';
+    try {
+      const from = (pageFeed - 1) * pageSizeFeed;
+      const to = from + pageSizeFeed - 1;
+
+      let query = supabase
+        .from('jovens')
+        .select(`
+          id,
+          nome_completo,
+          foto,
+          estado:estado_id (
+            id,
+            sigla,
+            bandeira
+          )
+        `, { count: 'exact' })
+        .order('nome_completo', { ascending: true });
+
+      if ($userProfile?.nivel === 'jovem' && $userProfile?.id) {
+        query = query.eq('usuario_id', $userProfile.id);
+      }
+
+      if (searchTermFeed && searchTermFeed.trim().length > 0) {
+        query = query.ilike('nome_completo', `%${searchTermFeed.trim()}%`);
+      }
+
+      const { data, error: err, count } = await query.range(from, to);
+      if (err) throw err;
+      jovensFeed = data || [];
+      totalFeed = count || 0;
+    } catch (e) {
+      errorJovensFeed = e.message || 'Erro ao carregar jovens';
+    } finally {
+      loadingJovensFeed = false;
+    }
+  }
+
+  function handleSearchSubmitFeed(e) {
+    e?.preventDefault?.();
+    pageFeed = 1;
+    fetchJovensFeed();
+  }
+
+  function prevPageFeed() {
+    if (pageFeed > 1) {
+      pageFeed -= 1;
+      fetchJovensFeed();
+    }
+  }
+
+  function nextPageFeed() {
+    const totalPages = Math.max(1, Math.ceil(totalFeed / pageSizeFeed));
+    if (pageFeed < totalPages) {
+      pageFeed += 1;
+      fetchJovensFeed();
+    }
+  }
+
   // Carregar atividades recentes
   async function loadRecentActivities() {
     try {
@@ -539,6 +612,46 @@
     </div>
   {/if}
   
+  <!-- Jovens (Cards) no Feed -->
+  {#if $userProfile?.nivel !== 'jovem'}
+    <div class="fb-card p-6">
+      <h3 class="text-lg font-semibold text-gray-900 mb-4">JOVENS</h3>
+      <div class="bg-white rounded-lg shadow p-4 mb-4">
+        <Autocomplete
+          placeholder="Pesquisar por nome..."
+          bind:value={searchTermFeed}
+          on:input={(e) => { searchTermFeed = e.detail.value; if ((searchTermFeed || '').trim().length >= 2) { pageFeed = 1; fetchJovensFeed(); } }}
+          on:select={(e) => { searchTermFeed = e.detail.suggestion.nome_completo; pageFeed = 1; fetchJovensFeed(); }}
+          on:search={() => handleSearchSubmitFeed()}
+        />
+      </div>
+
+      {#if loadingJovensFeed}
+        <div class="flex items-center justify-center py-12">
+          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+      {:else if errorJovensFeed}
+        <div class="bg-red-50 border border-red-200 rounded-md p-4">
+          <p class="text-sm text-red-600">{errorJovensFeed}</p>
+        </div>
+      {:else if !jovensFeed || jovensFeed.length === 0}
+        <div class="bg-white rounded-lg shadow p-8 text-center text-gray-600">Nenhum jovem encontrado</div>
+      {:else}
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+          {#each jovensFeed as jovem (jovem.id)}
+            <JovemMiniCard {jovem} on:deleted={() => fetchJovensFeed()} />
+          {/each}
+        </div>
+
+        <div class="flex items-center justify-center gap-3 mt-6">
+          <button on:click={prevPageFeed} disabled={pageFeed <= 1} class="px-3 py-2 border rounded disabled:opacity-50">Anterior</button>
+          <span class="text-sm text-gray-600">Página {pageFeed} de {Math.max(1, Math.ceil(totalFeed / pageSizeFeed))}</span>
+          <button on:click={nextPageFeed} disabled={pageFeed >= Math.max(1, Math.ceil(totalFeed / pageSizeFeed))} class="px-3 py-2 border rounded disabled:opacity-50">Próxima</button>
+        </div>
+      {/if}
+    </div>
+  {/if}
+
   <!-- Recent activities feed -->
   {#if $userProfile?.nivel !== 'jovem'}
     <div class="fb-card p-6">

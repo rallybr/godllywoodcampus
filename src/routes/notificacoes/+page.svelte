@@ -18,6 +18,8 @@
   let paginaAtual = 1;
   let carregandoMais = false;
   const itensPorPagina = 20;
+  let filtroTipo = '';
+  let filtroStatus = 'todas'; // todas | nao_lidas | lidas
   
   onMount(() => {
     loadNotificacoes(itensPorPagina, 0);
@@ -35,6 +37,14 @@
       carregandoMais = false;
     }
   }
+  
+  // Lista filtrada em memória
+  $: listaFiltrada = ($notificacoes || []).filter(n => {
+    if (filtroTipo && n.tipo !== filtroTipo) return false;
+    if (filtroStatus === 'nao_lidas' && n.lida) return false;
+    if (filtroStatus === 'lidas' && !n.lida) return false;
+    return true;
+  });
   
   async function handleNotificationClick(notificacao) {
     // Marcar como lida se não estiver lida
@@ -66,15 +76,26 @@
         <p class="text-gray-600 mt-2">Acompanhe todas as suas notificações do sistema</p>
       </div>
       
-      {#if $notificacoes.length > 0}
-        <Button
-          on:click={handleMarcarTodasLidas}
-          variant="outline"
-          size="sm"
-        >
-          Marcar todas como lidas
-        </Button>
-      {/if}
+      <!-- Filtros -->
+      <div class="flex items-center space-x-2">
+        <select bind:value={filtroTipo} class="border rounded-md px-2 py-1 text-sm">
+          <option value="">Todos os tipos</option>
+          <option value="avaliacao">Avaliação</option>
+          <option value="aprovacao">Aprovação</option>
+          <option value="cadastro">Cadastro</option>
+          <option value="sistema">Sistema</option>
+        </select>
+        <select bind:value={filtroStatus} class="border rounded-md px-2 py-1 text-sm">
+          <option value="todas">Todas</option>
+          <option value="nao_lidas">Não lidas</option>
+          <option value="lidas">Lidas</option>
+        </select>
+        {#if $notificacoes.length > 0}
+          <Button on:click={handleMarcarTodasLidas} variant="outline" size="sm">
+            Marcar todas como lidas
+          </Button>
+        {/if}
+      </div>
     </div>
   </div>
   
@@ -107,7 +128,7 @@
     {:else}
       <!-- Lista de notificações -->
       <div class="divide-y divide-gray-200">
-        {#each $notificacoes as notificacao}
+        {#each listaFiltrada as notificacao}
           <button
             on:click={() => handleNotificationClick(notificacao)}
             class="w-full px-6 py-4 text-left hover:bg-gray-50 transition-colors {notificacao.lida ? 'bg-white' : 'bg-blue-50'}"

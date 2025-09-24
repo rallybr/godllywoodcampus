@@ -1,6 +1,6 @@
 import { writable, derived, get } from 'svelte/store';
 import { supabase } from '$lib/utils/supabase';
-import { user } from './auth';
+import { userProfile } from './auth';
 
 // Store para notificações
 export const notificacoes = writable([]);
@@ -43,7 +43,7 @@ export async function solicitarPermissaoNotificacao() {
 
 // Carregar notificações do usuário
 export async function loadNotificacoes(limit = 20, offset = 0) {
-  const currentUser = get(user);
+  const currentUser = get(userProfile);
   if (!currentUser) return;
   
   loading.set(true);
@@ -70,7 +70,7 @@ export async function loadNotificacoes(limit = 20, offset = 0) {
 
 // Carregar notificações não lidas
 export async function loadNotificacoesNaoLidas() {
-  const currentUser = get(user);
+  const currentUser = get(userProfile);
   if (!currentUser) return;
   
   try {
@@ -91,7 +91,7 @@ export async function loadNotificacoesNaoLidas() {
 
 // Marcar notificação como lida
 export async function marcarComoLida(notificacaoId) {
-  const currentUser = get(user);
+  const currentUser = get(userProfile);
   if (!currentUser) return;
   try {
     const { error: updateError } = await supabase
@@ -127,7 +127,7 @@ export async function marcarComoLida(notificacaoId) {
 
 // Marcar todas as notificações como lidas
 export async function marcarTodasComoLidas() {
-  const currentUser = get(user);
+  const currentUser = get(userProfile);
   if (!currentUser) return 0;
   try {
     const { data, error: updateError } = await supabase
@@ -183,6 +183,90 @@ export async function criarNotificacao(destinatarioId, tipo, titulo, mensagem, j
   } catch (err) {
     console.error('Erro ao criar notificação:', err);
     return null;
+  }
+}
+
+// ===== Utilidades de DESTINATÁRIOS por jovem =====
+/**
+ * Retorna lista de IDs de usuários que devem ser notificados sobre um jovem
+ */
+export async function getDestinatariosByJovem(jovemId) {
+  try {
+    // Buscar dados do jovem necessários
+    const { data: jovem, error: jovemErr } = await supabase
+      .from('jovens')
+      .select('id, usuario_id, estado_id, bloco_id, regiao_id, igreja_id, nome_completo')
+      .eq('id', jovemId)
+      .single();
+    if (jovemErr) throw jovemErr;
+
+    const nacionais = ['administrador', 'lider_nacional_fju', 'lider_nacional_iurd', 'colaborador'];
+    const estaduais = ['lider_estadual_fju', 'lider_estadual_iurd'];
+    const blocos = ['lider_bloco_fju', 'lider_bloco_iurd'];
+    const regionais = ['lider_regional_iurd'];
+    const igrejas = ['lider_igreja_iurd'];
+
+    // Montar filtro OR considerando a localização do jovem
+    const orParts = [];
+    orParts.push(`nivel.in.(${nacionais.join(',')})`);
+    if (jovem.estado_id) orParts.push(`and(nivel.in.(${estaduais.join(',')}),estado_id.eq.${jovem.estado_id})`);
+    if (jovem.bloco_id) orParts.push(`and(nivel.in.(${blocos.join(',')}),bloco_id.eq.${jovem.bloco_id})`);
+    if (jovem.regiao_id) orParts.push(`and(nivel.in.(${regionais.join(',')}),regiao_id.eq.${jovem.regiao_id})`);
+    if (jovem.igreja_id) orParts.push(`and(nivel.in.(${igrejas.join(',')}),igreja_id.eq.${jovem.igreja_id})`);
+
+    let destinatariosIds = new Set();
+
+    if (orParts.length > 0) {
+      const { data: usuariosLista, error: usersErr } = await supabase
+        .from('usuarios')
+        .select('id')
+        .or(orParts.join(','));
+      if (usersErr) throw usersErr;
+      (usuariosLista || []).forEach(u => destinatariosIds.add(u.id));
+    }
+
+    // Incluir o usuário associado ao jovem (se existir)
+    if (jovem.usuario_id) destinatariosIds.add(jovem.usuario_id);
+
+    return { ids: Array.from(destinatariosIds), jovem };
+  } catch (err) {
+    console.error('Erro ao resolver destinatários:', err);
+    return { ids: [], jovem: null };
+  }
+}
+
+/**
+ * Dispara uma notificação para todos destinatários relacionados a um jovem
+ */
+export async function notificarEventoJovem(jovemId, tipo, titulo, mensagem, remetenteId = null, acaoUrl = null) {
+  const { ids } = await getDestinatariosByJovem(jovemId);
+  const targets = ids.filter(id => (remetenteId ? id !== remetenteId : true));
+  if (targets.length === 0) return 0;
+  const promises = targets.map(id => criarNotificacao(id, tipo, titulo, mensagem, jovemId, acaoUrl || `/jovens/${jovemId}`, remetenteId));
+  const results = await Promise.all(promises);
+  return results.filter(Boolean).length;
+}
+
+// ===== Realtime =====
+let notificationsChannel = null;
+export function subscribeNotificacoesRealtime() {
+  try {
+    const currentUser = get(userProfile);
+    if (!currentUser) return;
+    if (notificationsChannel) return; // evitar múltiplas inscrições
+
+    notificationsChannel = supabase
+      .channel('notificacoes-realtime')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notificacoes', filter: `destinatario_id=eq.${currentUser.id}` }, (payload) => {
+        const nova = payload.new;
+        notificacoes.update(list => [nova, ...list]);
+        if (!nova.lida) {
+          notificacoesNaoLidas.update(list => [nova, ...list]);
+        }
+      })
+      .subscribe();
+  } catch (e) {
+    console.warn('Falha ao assinar realtime de notificações:', e);
   }
 }
 
@@ -269,15 +353,17 @@ export async function notificarLembreteAvaliacao(jovem, avaliador) {
 export function getIconeNotificacao(tipo) {
   switch (tipo) {
     case 'cadastro':
-      return 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z';
+      // user-plus
+      return 'M12 4.5a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z M16 11v2m0 0v2m0-2h2m-2 0h-2 M4 15.5a5.5 5.5 0 1111 0V17a1 1 0 01-1 1H5a1 1 0 01-1-1v-1.5z';
     case 'avaliacao':
-      return 'M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01';
+      // clipboard-check
+      return 'M9 12l2 2 4-4m-6 8h8a2 2 0 002-2V7a2 2 0 00-2-2h-3l-1-1h-4l-1 1H5a2 2 0 00-2 2v9a2 2 0 002 2h4';
     case 'aprovacao':
+      // check-circle
       return 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z';
     case 'sistema':
-      return 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z';
-    case 'sistema':
-      return 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z';
+      // information-circle
+      return 'M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20 10 10 0 000-20z';
     default:
       return 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z';
   }
@@ -287,15 +373,13 @@ export function getIconeNotificacao(tipo) {
 export function getCorNotificacao(tipo) {
   switch (tipo) {
     case 'cadastro':
-      return 'text-green-600 bg-green-100';
+      return 'text-indigo-600 bg-indigo-100';
     case 'avaliacao':
       return 'text-yellow-600 bg-yellow-100';
     case 'aprovacao':
+      return 'text-green-600 bg-green-100';
+    case 'sistema':
       return 'text-blue-600 bg-blue-100';
-    case 'sistema':
-      return 'text-orange-600 bg-orange-100';
-    case 'sistema':
-      return 'text-gray-600 bg-gray-100';
     default:
       return 'text-gray-600 bg-gray-100';
   }
@@ -319,10 +403,11 @@ export function formatarDataNotificacao(dataString) {
 }
 
 // Inicializar notificações quando usuário fizer login
-user.subscribe(async (currentUser) => {
+userProfile.subscribe(async (currentUser) => {
   if (currentUser) {
     await loadNotificacoes();
     await loadNotificacoesNaoLidas();
+    subscribeNotificacoesRealtime();
   } else {
     notificacoes.set([]);
     notificacoesNaoLidas.set([]);

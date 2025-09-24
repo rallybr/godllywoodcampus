@@ -1,6 +1,7 @@
 import { writable, derived } from 'svelte/store';
 import { supabase } from '$lib/utils/supabase';
 import { createAuditLog } from '$lib/stores/security';
+import { notificarEventoJovem } from '$lib/stores/notificacoes';
 
 export const viagens = writable([]);
 export const loading = writable(false);
@@ -406,6 +407,33 @@ export async function upsertDadosViagem(jovemId, edicaoId, dadosViagem) {
     
     // Recarregar lista
     await loadViagensCards();
+    
+    // Notificações conforme campos alterados (via RPC com fallback)
+    try {
+      const eventos = [];
+      if (dadosViagem.comprovante_pagamento) eventos.push('Comprovante de pagamento adicionado');
+      if (dadosViagem.comprovante_passagem_ida) eventos.push('Passagem de ida anexada');
+      if (dadosViagem.comprovante_passagem_volta) eventos.push('Passagem de volta anexada');
+      if (dadosViagem.pagou_despesas === false) eventos.push('Comprovante de pagamento removido');
+      if (dadosViagem.comprovante_passagem_ida === null) eventos.push('Passagem de ida removida');
+      if (dadosViagem.comprovante_passagem_volta === null) eventos.push('Passagem de volta removida');
+      if (eventos.length > 0) {
+        try {
+          await supabase.rpc('notificar_evento_jovem', {
+            p_jovem_id: jovemId,
+            p_tipo: 'sistema',
+            p_titulo: 'Atualização de viagem',
+            p_mensagem: eventos.join(' · '),
+            p_acao_url: `/jovens/${jovemId}`
+          });
+        } catch (rpcErr) {
+          console.warn('RPC notificar_evento_jovem (viagem) falhou, fallback:', rpcErr);
+          await notificarEventoJovem(jovemId, 'sistema', 'Atualização de viagem', eventos.join(' · '));
+        }
+      }
+    } catch (e) {
+      console.warn('Falha ao compor notificação de viagem:', e);
+    }
     
     return result;
   } catch (err) {

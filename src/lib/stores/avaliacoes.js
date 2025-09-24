@@ -1,5 +1,6 @@
 import { writable } from 'svelte/store';
 import { supabase } from '$lib/utils/supabase';
+import { notificarEventoJovem } from '$lib/stores/notificacoes';
 
 // Stores para avaliações
 export const avaliacoes = writable([]);
@@ -123,6 +124,29 @@ export async function createAvaliacao(avaliacaoData) {
       });
     } catch (logError) {
       console.warn('Erro ao criar log de auditoria:', logError);
+    }
+    
+    // Disparar notificação via RPC genérica (com fallback) com nomes
+    try {
+      const avaliadorNome = data?.avaliador?.nome || 'Um usuário';
+      const { data: jovemData } = await supabase
+        .from('jovens')
+        .select('nome_completo')
+        .eq('id', avaliacaoData.jovem_id)
+        .single();
+      const jovemNome = jovemData?.nome_completo || 'o jovem';
+      const titulo = 'Avaliação registrada';
+      const mensagem = `${avaliadorNome} avaliou ${jovemNome}.`;
+      await supabase.rpc('notificar_evento_jovem', {
+        p_jovem_id: avaliacaoData.jovem_id,
+        p_tipo: 'avaliacao',
+        p_titulo: titulo,
+        p_mensagem: mensagem,
+        p_acao_url: `/jovens/${avaliacaoData.jovem_id}`
+      });
+    } catch (e) {
+      console.warn('RPC notificar_evento_jovem falhou, fallback para frontend:', e);
+      await notificarEventoJovem(avaliacaoData.jovem_id, 'avaliacao', 'Avaliação registrada', 'Uma nova avaliação foi registrada.');
     }
     
     return data;
