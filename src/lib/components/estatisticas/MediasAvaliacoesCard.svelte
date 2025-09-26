@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { estatisticas, loadEstatisticas } from '$lib/stores/estatisticas';
   import { userProfile } from '$lib/stores/auth';
+  import { getUserLevelName } from '$lib/stores/niveis-acesso';
   
   let loading = false;
   
@@ -30,7 +31,8 @@
   }
 </script>
 
-<!-- Cards Médias de Avaliações -->
+<!-- Cards Médias de Avaliações (não mostrar para jovens) -->
+{#if getUserLevelName($userProfile) !== 'Jovem'}
 <div class="space-y-4">
   <!-- Card Header -->
   <div class="fb-card p-4">
@@ -145,3 +147,4 @@
     </div>
   {/if}
 </div>
+{/if}

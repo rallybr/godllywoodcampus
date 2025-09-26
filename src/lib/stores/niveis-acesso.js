@@ -259,6 +259,55 @@ export function getLevelName(level) {
 }
 
 /**
+ * Obter nome do nível baseado no campo 'nivel' do userProfile
+ */
+export function getLevelNameFromNivel(nivel) {
+  const names = {
+    'administrador': 'Administrador',
+    'lider_nacional_iurd': 'Líder Nacional da IURD',
+    'lider_nacional_fju': 'Líder Nacional da FJU',
+    'lider_estadual_iurd': 'Líder Estadual da IURD',
+    'lider_estadual_fju': 'Líder Estadual da FJU',
+    'lider_bloco_iurd': 'Líder de Bloco da IURD',
+    'lider_bloco_fju': 'Líder de Bloco da FJU',
+    'lider_regional_iurd': 'Líder Regional da IURD',
+    'lider_igreja_iurd': 'Líder de Igreja da IURD',
+    'colaborador': 'Instrutor',
+    'jovem': 'Jovem',
+    'usuario': 'Jovem'
+  };
+  return names[nivel] || 'Usuário';
+}
+
+/**
+ * Obter nome do PAPEL do usuário (não o nível genérico)
+ * Prioriza os user_roles que contêm os papéis específicos
+ */
+export function getUserLevelName(userProfile) {
+  if (!userProfile) return 'Usuário';
+  
+  // Primeiro, tenta usar os user_roles (que contêm os papéis específicos)
+  if (userProfile.user_roles && userProfile.user_roles.length > 0) {
+    // Pega o primeiro role ativo
+    const activeRole = userProfile.user_roles.find(role => role.ativo) || userProfile.user_roles[0];
+    
+    if (activeRole?.roles?.slug) {
+      return getLevelNameFromNivel(activeRole.roles.slug);
+    }
+    if (activeRole?.roles?.nome) {
+      return activeRole.roles.nome;
+    }
+  }
+  
+  // Se não tiver user_roles, usa o campo 'nivel' como fallback
+  if (userProfile.nivel) {
+    return getLevelNameFromNivel(userProfile.nivel);
+  }
+  
+  return 'Usuário';
+}
+
+/**
  * Obter cor do nível de acesso
  */
 export function getLevelColor(level) {

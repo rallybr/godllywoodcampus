@@ -2,6 +2,8 @@
   import { onMount } from 'svelte';
   import { Chart, registerables } from 'chart.js';
   import { Chart as SvelteChart } from 'svelte-chartjs';
+  import { userProfile } from '$lib/stores/auth';
+  import { getUserLevelName } from '$lib/stores/niveis-acesso';
   
   export let dados = [];
   export let tipo = 'bar'; // 'bar', 'line', 'doughnut', 'pie'
@@ -222,6 +224,8 @@
   };
 </script>
 
+<!-- Gráfico de Avaliações (não mostrar para jovens) -->
+{#if getUserLevelName($userProfile) !== 'Jovem'}
 <div class="w-full" style="height: {altura}px;">
   {#if chartData.labels.length > 0}
     <SvelteChart
@@ -240,3 +244,4 @@
     </div>
   {/if}
 </div>
+{/if}

@@ -1,6 +1,8 @@
 <script>
   import { onMount } from 'svelte';
   import { loadAvaliacoesByJovem, calculateAvaliacaoStats } from '$lib/stores/avaliacoes';
+  import { userProfile } from '$lib/stores/auth';
+  import { getUserLevelName } from '$lib/stores/niveis-acesso';
   
   export let jovemId;
   export let title = 'Estatísticas de Avaliações';
@@ -39,6 +41,8 @@
   }
 </script>
 
+<!-- Gráfico de Avaliações (não mostrar para jovens) -->
+{#if getUserLevelName($userProfile) !== 'Jovem'}
 <div class="fb-card p-6">
   <h3 class="text-lg font-semibold text-gray-900 mb-4">{title}</h3>
   
@@ -155,3 +159,4 @@
     </div>
   {/if}
 </div>
+{/if}

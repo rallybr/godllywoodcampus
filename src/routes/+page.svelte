@@ -1,6 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import { user, userProfile } from '$lib/stores/auth';
+  import { getUserLevelName } from '$lib/stores/niveis-acesso';
   import { goto } from '$app/navigation';
   import Button from '$lib/components/ui/Button.svelte';
   import AvaliacoesChart from '$lib/components/charts/AvaliacoesChart.svelte';
@@ -147,22 +148,40 @@
       // Buscar últimos cadastros de jovens
       const { data: jovensRecentes, error: jovensError } = await supabase
         .from('jovens')
-        .select('nome, data_cadastro, edicao_obj:edicoes(nome)')
+        .select('nome_completo, data_cadastro, edicao_obj:edicoes(nome)')
         .order('data_cadastro', { ascending: false })
         .limit(3);
       
       if (jovensError) throw jovensError;
       
-      // Buscar últimas avaliações
-      const { data: avaliacoesRecentes, error: avaliacoesError } = await supabase
+      // Buscar últimas avaliações com filtro por escopo do líder
+      let avaliacoesQuery = supabase
         .from('avaliacoes')
         .select(`
           criado_em,
-          jovem:jovens(nome),
+          jovem:jovens(id, nome_completo, estado_id, bloco_id, regiao_id, igreja_id, usuario_id),
           user:usuarios(nome)
         `)
         .order('criado_em', { ascending: false })
         .limit(2);
+
+      const nivel = $userProfile?.nivel;
+      const isNacional = nivel === 'administrador' || nivel === 'lider_nacional_iurd' || nivel === 'lider_nacional_fju';
+      if (!isNacional && nivel) {
+        if ((nivel === 'lider_estadual_iurd' || nivel === 'lider_estadual_fju') && $userProfile?.estado_id) {
+          avaliacoesQuery = avaliacoesQuery.eq('jovem.estado_id', $userProfile.estado_id);
+        } else if ((nivel === 'lider_bloco_iurd' || nivel === 'lider_bloco_fju') && $userProfile?.bloco_id) {
+          avaliacoesQuery = avaliacoesQuery.eq('jovem.bloco_id', $userProfile.bloco_id);
+        } else if (nivel === 'lider_regional_iurd' && $userProfile?.regiao_id) {
+          avaliacoesQuery = avaliacoesQuery.eq('jovem.regiao_id', $userProfile.regiao_id);
+        } else if (nivel === 'lider_igreja_iurd' && $userProfile?.igreja_id) {
+          avaliacoesQuery = avaliacoesQuery.eq('jovem.igreja_id', $userProfile.igreja_id);
+        } else if (nivel === 'colaborador' && $userProfile?.id) {
+          avaliacoesQuery = avaliacoesQuery.or(`user_id.eq.${$userProfile.id},jovem.usuario_id.eq.${$userProfile.id}`);
+        }
+      }
+
+      const { data: avaliacoesRecentes, error: avaliacoesError } = await avaliacoesQuery;
       
       if (avaliacoesError) throw avaliacoesError;
       
@@ -174,10 +193,10 @@
         atividades.push({
           id: `cadastro-${index}`,
           type: 'cadastro',
-          user: jovem.nome,
+          user: jovem.nome_completo,
           action: `foi cadastrado na ${jovem.edicao_obj?.nome || 'edição'}`,
           time: formatTimeAgo(jovem.data_cadastro),
-          avatar: jovem.nome.charAt(0).toUpperCase(),
+          avatar: jovem.nome_completo.charAt(0).toUpperCase(),
           color: 'bg-green-100 text-green-600'
         });
       });
@@ -187,10 +206,10 @@
         atividades.push({
           id: `avaliacao-${index}`,
           type: 'avaliacao',
-          user: avaliacao.jovem?.nome || 'Jovem',
+          user: avaliacao.jovem?.nome_completo || 'Jovem',
           action: `recebeu uma nova avaliação de ${avaliacao.user?.nome || 'Usuário'}`,
           time: formatTimeAgo(avaliacao.criado_em),
-          avatar: (avaliacao.jovem?.nome || 'J').charAt(0).toUpperCase(),
+          avatar: (avaliacao.jovem?.nome_completo || 'J').charAt(0).toUpperCase(),
           color: 'bg-blue-100 text-blue-600'
         });
       });
@@ -212,7 +231,7 @@
       const { data, error } = await supabase
         .from('jovens')
         .select(`
-          nome,
+          nome_completo,
           data_cadastro,
           estado:estados(sigla)
         `)
@@ -222,7 +241,7 @@
       if (error) throw error;
       
       stats.ultimosCadastros = data.map(jovem => ({
-        nome: jovem.nome,
+        nome: jovem.nome_completo,
         estado: jovem.estado?.sigla || 'N/A',
         data: formatDate(jovem.data_cadastro)
       }));
@@ -270,7 +289,55 @@
       
       if (estadosError) throw estadosError;
       
-      // Buscar contagem de jovens por estado (com filtro de edição se selecionada)
+      // Verificar se o usuário tem permissão para ver estatísticas por estado
+      const userLevel = getUserLevelName($userProfile);
+      
+      // Verificar se o usuário tem qualquer papel relacionado a nível
+      const isNivelUser = userLevel.includes('Nacional') || 
+                          userLevel.includes('Estadual') || 
+                          userLevel.includes('Bloco') || 
+                          userLevel.includes('Regional') || 
+                          userLevel.includes('Igreja') || 
+                          userLevel === 'Administrador' || 
+                          userLevel === 'Instrutor';
+      
+      // Apenas usuários com papel "Jovem" (que não são de nível) não podem ver estatísticas por estado
+      if (userLevel === 'Jovem' && !isNivelUser) {
+        estadosStats = [];
+        return;
+      }
+      
+      // Para usuários de nível, usar função RPC que contorna RLS
+      if (isNivelUser) {
+        try {
+          const { data: rpcData, error: rpcError } = await supabase.rpc('get_jovens_por_estado_count', {
+            edicao_id: edicaoId || null
+          });
+          
+          if (!rpcError && rpcData) {
+            // Processar dados do RPC
+            const contagemPorEstado = {};
+            rpcData.forEach(item => {
+              contagemPorEstado[item.estado_id] = item.total;
+            });
+            
+            // Processar dados para incluir contagem (incluindo estados com 0 jovens)
+            estadosStats = estadosData.map(estado => ({
+              id: estado.id,
+              nome: estado.nome,
+              sigla: estado.sigla,
+              bandeira: estado.bandeira,
+              totalJovens: contagemPorEstado[estado.id] || 0
+            })).sort((a, b) => b.totalJovens - a.totalJovens);
+            
+            return;
+          }
+        } catch (rpcErr) {
+          // RPC não disponível, usar consulta normal
+        }
+      }
+      
+      // Consulta normal (pode ser limitada por RLS)
       let query = supabase
         .from('jovens')
         .select('estado_id')
@@ -357,7 +424,7 @@
   </div>
   
   <!-- Stats overview -->
-  {#if $userProfile?.nivel !== 'jovem'}
+  {#if getUserLevelName($userProfile) !== 'Jovem'}
     <div class="fb-card p-6">
       <h3 class="text-lg font-semibold text-gray-900 mb-4">RESUMO GERAL</h3>
     {#if loading}
@@ -372,7 +439,7 @@
       </div>
     {:else}
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-        {#if $userProfile?.nivel !== 'jovem'}
+        {#if getUserLevelName($userProfile) !== 'Jovem'}
           <a href="/jovens/todos" class="text-center group cursor-pointer hover:bg-gray-50 rounded-lg p-3 sm:p-4 transition-colors">
             <div class="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2 group-hover:bg-blue-200 transition-colors">
               <svg class="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -517,7 +584,7 @@
         <a href="/condicoes?condicao=jovem_batizado_es" class="text-center group cursor-pointer hover:bg-gray-50 rounded-lg p-3 sm:p-4 transition-colors">
           <div class="w-10 h-10 sm:w-12 sm:h-12 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-2 group-hover:bg-pink-200 transition-colors">
             <svg class="w-5 h-5 sm:w-6 sm:h-6 text-pink-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
             </svg>
           </div>
           <p class="text-xl sm:text-2xl font-bold text-gray-900 group-hover:text-pink-600 transition-colors">{$condicoesStats.batizadoES}</p>
@@ -529,7 +596,7 @@
   {/if}
   
   <!-- Estados dos Jovens -->
-  {#if $userProfile?.nivel !== 'jovem'}
+  {#if getUserLevelName($userProfile) !== 'Jovem' || (getUserLevelName($userProfile).includes('Nacional') || getUserLevelName($userProfile).includes('Estadual') || getUserLevelName($userProfile).includes('Bloco') || getUserLevelName($userProfile).includes('Regional') || getUserLevelName($userProfile).includes('Igreja') || getUserLevelName($userProfile) === 'Administrador' || getUserLevelName($userProfile) === 'Instrutor')}
     <div class="fb-card p-6">
       <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4">
         <h3 class="text-lg font-semibold text-gray-900 mb-3 sm:mb-0">JOVENS POR ESTADO</h3>
@@ -702,29 +769,30 @@
     </div>
   {/if}
   
-  <!-- Estatísticas de Avaliações -->
-  {#if $userProfile?.nivel !== 'jovem'}
+  <!-- Estatísticas de Avaliações (não mostrar para jovens) -->
+  {#if getUserLevelName($userProfile) !== 'Jovem'}
     <AvaliacoesChart jovemId={null} title="ESTATÍSTICAS GERAIS DE AVALIAÇÕES" />
     
-    <!-- Quick actions -->
+    <!-- Quick actions (não mostrar para jovens) -->
+    {#if getUserLevelName($userProfile) !== 'Jovem'}
     <div class="fb-card p-6">
       <h3 class="text-lg font-semibold text-gray-900 mb-4">AÇÕES RÁPIDAS</h3>
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-      <Button href="/jovens/cadastrar" variant="primary" class="w-full justify-center">
+      <Button href="/jovens/cadastrar" variant="primary">
         <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
         </svg>
         Cadastrar Jovem
       </Button>
       
-      <Button href="/avaliacoes" variant="outline" class="w-full justify-center">
+      <Button href="/avaliacoes" variant="outline">
         <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
         </svg>
         Avaliar Jovens
       </Button>
       
-      <Button href="/relatorios" variant="outline" class="w-full justify-center">
+      <Button href="/relatorios" variant="outline">
         <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
         </svg>
@@ -732,5 +800,6 @@
       </Button>
     </div>
     </div>
+    {/if}
   {/if}
 </div>

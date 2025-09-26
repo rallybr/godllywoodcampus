@@ -2,6 +2,7 @@
   // @ts-nocheck
   import { onMount } from 'svelte';
   import { userProfile } from '$lib/stores/auth';
+  import { getUserLevelName } from '$lib/stores/niveis-acesso';
   import { gerarRelatorioJovens, gerarRelatorioAvaliacoes, gerarEstatisticasGerais, exportarParaCSV, exportarParaExcel, exportarParaPDF } from '$lib/stores/relatorios';
   import Card from '$lib/components/ui/Card.svelte';
   import Button from '$lib/components/ui/Button.svelte';
@@ -197,6 +198,8 @@
   }
 </script>
 
+<!-- Relatórios Personalizados (não mostrar para jovens) -->
+{#if getUserLevelName($userProfile) !== 'Jovem'}
 <div class="space-y-6">
   <!-- Header -->
   <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -596,3 +599,4 @@
     </div>
   </div>
 </div>
+{/if}

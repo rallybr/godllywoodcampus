@@ -18,9 +18,11 @@
   let loading = true;
   
   onMount(async () => {
-    if ($user) {
+    try {
       await initializeSecurity();
       checkAccess();
+    } catch (e) {
+      console.error('Erro ao inicializar segurança:', e);
     }
     loading = false;
   });

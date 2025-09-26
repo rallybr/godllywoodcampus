@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { estatisticas, loadEstatisticas } from '$lib/stores/estatisticas';
   import { userProfile } from '$lib/stores/auth';
+  import { getUserLevelName } from '$lib/stores/niveis-acesso';
   
   let loading = false;
   
@@ -22,7 +23,8 @@
   $: percentualPendentes = totalJovens > 0 ? ((pendentes / totalJovens) * 100).toFixed(1) : 0;
 </script>
 
-<!-- Cards de Status dos Jovens -->
+<!-- Cards de Status dos Jovens (não mostrar para jovens) -->
+{#if getUserLevelName($userProfile) !== 'Jovem'}
 <div class="space-y-4">
   <!-- Card APROVADOS -->
   <div class="fb-card p-4">
@@ -117,3 +119,4 @@
     </div>
   </div>
 </div>
+{/if}

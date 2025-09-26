@@ -3,6 +3,8 @@
   import { onMount } from 'svelte';
   import { Chart, registerables } from 'chart.js';
   import { Chart as SvelteChart } from 'svelte-chartjs';
+  import { userProfile } from '$lib/stores/auth';
+  import { getUserLevelName } from '$lib/stores/niveis-acesso';
   
   export let dados = [];
   export let tipo = 'line'; // 'line', 'bar'
@@ -218,6 +220,8 @@
   };
 </script>
 
+<!-- Gráfico de Evolução (não mostrar para jovens) -->
+{#if getUserLevelName($userProfile) !== 'Jovem'}
 <div class="w-full max-w-full overflow-x-auto">
   <div class="min-w-[360px]" style="height: {altura}px;">
     {#if chartData.labels.length > 0}
@@ -238,3 +242,4 @@
     {/if}
   </div>
 </div>
+{/if}

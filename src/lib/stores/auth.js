@@ -202,6 +202,8 @@ export function hasPermission(permission) {
                 'lider_bloco_iurd', 'lider_bloco_fju', 'lider_regional_iurd', 'lider_igreja_iurd'].includes(role);
       case 'manage_users':
         return ['administrador', 'lider_nacional_iurd', 'lider_nacional_fju', 'colaborador'].includes(role);
+      case 'view_user_profiles':
+        return ['administrador', 'lider_nacional_iurd', 'lider_nacional_fju', 'colaborador'].includes(role);
       case 'view_reports':
         return ['administrador', 'lider_nacional_iurd', 'lider_nacional_fju', 'colaborador', 'lider_estadual_iurd', 'lider_estadual_fju', 
                 'lider_bloco_iurd', 'lider_bloco_fju', 'lider_regional_iurd', 'lider_igreja_iurd'].includes(role);

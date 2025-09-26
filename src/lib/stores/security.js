@@ -393,7 +393,9 @@ export function getRequiredPermissions(action) {
 
 // Função para inicializar segurança
 export async function initializeSecurity() {
-  if ($user) {
-    await loadUserPermissoes($user.id);
+  // Verificar se há usuário logado através do userProfile
+  const currentProfile = userProfile;
+  if (currentProfile && $currentProfile) {
+    await loadUserPermissoes($currentProfile.id);
   }
 }

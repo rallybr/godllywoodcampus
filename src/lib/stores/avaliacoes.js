@@ -8,7 +8,7 @@ export const loading = writable(false);
 export const error = writable(null);
 
 // Função para carregar todas as avaliações do sistema
-export async function loadAvaliacoes(userId = null, userLevel = null) {
+export async function loadAvaliacoes(userId = null, userLevel = null, userProfile = null) {
   loading.set(true);
   error.set(null);
   
@@ -17,12 +17,56 @@ export async function loadAvaliacoes(userId = null, userLevel = null) {
       .from('avaliacoes')
       .select(`
         *,
-        jovem:jovens(nome_completo, foto, usuario_id),
+        jovem:jovens(id, nome_completo, foto, usuario_id, estado_id, bloco_id, regiao_id, igreja_id),
         avaliador:usuarios!avaliacoes_user_id_fkey(nome, foto, email)
       `);
     
-    // Se for colaborador, filtrar apenas suas avaliações
-    if (userLevel === 'colaborador' && userId) {
+    // Regras de escopo por nível/papel
+    if ((userLevel || userProfile) && userProfile) {
+      const nivel = (userProfile?.user_roles?.[0]?.roles?.slug) || userLevel;
+
+      // Administrador e líderes nacionais: visão total
+      const isNacional = nivel === 'lider_nacional_iurd' || nivel === 'lider_nacional_fju' || nivel === 'administrador';
+      if (!isNacional) {
+        // Para evitar problemas de alias/joins no PostgREST, filtramos por IDs de jovens do escopo
+        let jovensIds = [];
+        let jovensQuery = supabase.from('jovens').select('id');
+
+        if (nivel === 'lider_estadual_iurd' || nivel === 'lider_estadual_fju') {
+          if (!userProfile?.estado_id) { avaliacoes.set([]); return []; }
+          jovensQuery = jovensQuery.eq('estado_id', userProfile.estado_id);
+        } else if (nivel === 'lider_bloco_iurd' || nivel === 'lider_bloco_fju') {
+          if (!userProfile?.bloco_id) { avaliacoes.set([]); return []; }
+          jovensQuery = jovensQuery.eq('bloco_id', userProfile.bloco_id);
+        } else if (nivel === 'lider_regional_iurd') {
+          if (!userProfile?.regiao_id) { avaliacoes.set([]); return []; }
+          jovensQuery = jovensQuery.eq('regiao_id', userProfile.regiao_id);
+        } else if (nivel === 'lider_igreja_iurd') {
+          if (!userProfile?.igreja_id) { avaliacoes.set([]); return []; }
+          jovensQuery = jovensQuery.eq('igreja_id', userProfile.igreja_id);
+        } else if (nivel === 'colaborador' && userId) {
+          // colaborador: ver avaliações dele ou de jovens que cadastrou
+          // Primeiro, IDs dos jovens que ele cadastrou
+          const { data: jovensDoColab } = await supabase.from('jovens').select('id').eq('usuario_id', userId);
+          const idsJovensColab = (jovensDoColab || []).map(j => j.id);
+          if (idsJovensColab.length === 0) {
+            // sem jovens cadastrados, filtra apenas as avaliações criadas pelo colaborador
+            query = query.eq('user_id', userId);
+          } else {
+            query = query.or(`user_id.eq.${userId},jovem_id.in.(${idsJovensColab.join(',')})`);
+          }
+        }
+
+        if (nivel !== 'colaborador') {
+          const { data: jovensData, error: jovensErr } = await jovensQuery.limit(10000);
+          if (jovensErr) throw jovensErr;
+          jovensIds = (jovensData || []).map(j => j.id);
+          if (jovensIds.length === 0) { avaliacoes.set([]); return []; }
+          query = query.in('jovem_id', jovensIds);
+        }
+      }
+    } else if (userLevel === 'colaborador' && userId) {
+      // Fallback caso não tenha sido passado o profile
       query = query.eq('user_id', userId);
     }
     

@@ -1,6 +1,7 @@
 <script>
 	import { onMount } from 'svelte';
 	import { userProfile } from '$lib/stores/auth';
+	import { getUserLevelName } from '$lib/stores/niveis-acesso';
 	import { supabase } from '$lib/utils/supabase';
 	import Card from '$lib/components/ui/Card.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
@@ -223,7 +224,7 @@
 							</div>
 							<div class="text-white text-center sm:text-left">
 								<h2 class="text-xl sm:text-2xl font-bold mb-1">{$userProfile?.nome || 'Usuário'}</h2>
-								<p class="text-blue-100 text-base sm:text-lg">{$userProfile?.user_roles?.[0]?.roles?.nome || 'Jovem'}</p>
+								<p class="text-blue-100 text-base sm:text-lg">{getUserLevelName($userProfile)}</p>
 								<div class="flex items-center justify-center sm:justify-start mt-2">
 									<svg class="w-4 h-4 sm:w-5 sm:h-5 text-blue-200 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />

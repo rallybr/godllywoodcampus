@@ -1,6 +1,8 @@
 <script>
   import { onMount } from 'svelte';
   import { gerarRelatorioAvaliacoes, exportarParaCSV, exportarParaExcel, exportarParaPDF } from '$lib/stores/relatorios';
+  import { userProfile } from '$lib/stores/auth';
+  import { getUserLevelName } from '$lib/stores/niveis-acesso';
   import Button from '$lib/components/ui/Button.svelte';
   import Card from '$lib/components/ui/Card.svelte';
   import RelatorioFiltros from './RelatorioFiltros.svelte';
@@ -150,6 +152,8 @@
   }
 </script>
 
+<!-- Relatório de Avaliações (não mostrar para jovens) -->
+{#if getUserLevelName($userProfile) !== 'Jovem'}
 <div class="space-y-6">
   <!-- Filtros -->
   <RelatorioFiltros
@@ -352,3 +356,4 @@
     {/if}
   </Card>
 </div>
+{/if}

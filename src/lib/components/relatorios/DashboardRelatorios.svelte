@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { gerarEstatisticasGerais, gerarRelatorioPorLocalizacao, gerarRelatorioAvaliacoes } from '$lib/stores/relatorios';
   import { userProfile } from '$lib/stores/auth';
+  import { getUserLevelName } from '$lib/stores/niveis-acesso';
   import Card from '$lib/components/ui/Card.svelte';
   import Button from '$lib/components/ui/Button.svelte';
   import GraficoAvaliacoes from '$lib/components/charts/GraficoAvaliacoes.svelte';
@@ -333,8 +334,8 @@
       </Card>
     {/if}
     
-    <!-- Gráficos Analíticos -->
-    {#if avaliacoes.length > 0}
+    <!-- Gráficos Analíticos (não mostrar para jovens) -->
+    {#if getUserLevelName($userProfile) !== 'Jovem' && avaliacoes.length > 0}
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- Gráfico de Avaliações -->
         <Card class="p-6">

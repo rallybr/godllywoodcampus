@@ -18,14 +18,55 @@
   
   let showDropdown = false;
   let loading = false;
+  let dropdownElement;
+  let dropdownStyle = '';
   
   onMount(() => {
     loadNotificacoes(10, 0);
     loadNotificacoesNaoLidas();
+    
+    // Adicionar listener para redimensionamento da janela
+    const handleResize = () => {
+      if (showDropdown) {
+        adjustDropdownPosition();
+      }
+    };
+    
+    window.addEventListener('resize', handleResize);
+    
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
   });
   
   function toggleDropdown() {
     showDropdown = !showDropdown;
+    if (showDropdown) {
+      // Calcular posição antes da renderização
+      calculateDropdownPosition();
+    }
+  }
+  
+  function calculateDropdownPosition() {
+    const viewportWidth = window.innerWidth;
+    const isMobile = viewportWidth < 768;
+    let offsetX = isMobile ? 50 : 100;
+    
+    // Verificar se o dropdown cabe na tela com o offset
+    // Assumindo largura máxima do dropdown de 384px (md:w-96)
+    const dropdownWidth = isMobile ? Math.min(320, viewportWidth - 32) : 384;
+    const maxOffset = viewportWidth - dropdownWidth - 16; // 16px de margem
+    
+    // Limitar o offset para não sair da tela
+    offsetX = Math.min(offsetX, maxOffset);
+    
+    // Aplicar o offset
+    dropdownStyle = `transform: translateX(${offsetX}px);`;
+  }
+  
+  function adjustDropdownPosition() {
+    // Recalcular posição quando a janela é redimensionada
+    calculateDropdownPosition();
   }
   
   function closeDropdown() {
@@ -88,15 +129,19 @@
   
   <!-- Dropdown -->
   {#if showDropdown}
-    <div class="absolute right-0 sm:right-0 left-2 sm:left-auto mt-2 w-80 sm:w-80 md:w-96 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-96 overflow-hidden" style="max-width: calc(100vw - 2rem);">
+    <div 
+      bind:this={dropdownElement}
+      class="absolute right-0 mt-2 w-80 sm:w-80 md:w-96 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-96 overflow-hidden" 
+      style="max-width: calc(100vw - 1rem); {dropdownStyle}"
+    >
       <!-- Header -->
-      <div class="px-3 sm:px-4 py-3 border-b border-gray-200 flex items-center justify-between">
-        <h3 class="text-lg font-semibold text-gray-900">Notificações</h3>
+      <div class="px-2 sm:px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+        <h3 class="text-base sm:text-lg font-semibold text-gray-900">Notificações</h3>
         {#if $notificacoesNaoLidas.length > 0}
           <button
             on:click={handleMarcarTodasLidas}
             disabled={loading}
-            class="text-sm text-blue-600 hover:text-blue-800 font-medium disabled:opacity-50"
+            class="text-xs sm:text-sm text-blue-600 hover:text-blue-800 font-medium disabled:opacity-50"
           >
             {loading ? 'Marcando...' : 'Marcar todas como lidas'}
           </button>
@@ -106,7 +151,7 @@
       <!-- Lista de notificações -->
       <div class="max-h-80 overflow-y-auto">
         {#if $notificacoes.length === 0}
-          <div class="px-3 sm:px-4 py-8 text-center text-gray-500">
+          <div class="px-2 sm:px-4 py-8 text-center text-gray-500">
             <svg class="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V4a2 2 0 10-4 0v1.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h11z" />
             </svg>
@@ -116,13 +161,13 @@
           {#each $notificacoes as notificacao}
             <button
               on:click={() => handleNotificationClick(notificacao)}
-              class="w-full px-3 sm:px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-100 last:border-b-0 transition-colors {notificacao.lida ? 'bg-white' : 'bg-blue-50'}"
+              class="w-full px-2 sm:px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-100 last:border-b-0 transition-colors {notificacao.lida ? 'bg-white' : 'bg-blue-50'}"
             >
-              <div class="flex items-start space-x-3">
+              <div class="flex items-start space-x-2 sm:space-x-3">
                 <!-- Ícone -->
                 <div class="flex-shrink-0 mt-1">
-                  <div class="w-8 h-8 rounded-full flex items-center justify-center {getCorNotificacao(notificacao.tipo)}">
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center {getCorNotificacao(notificacao.tipo)}">
+                    <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={getIconeNotificacao(notificacao.tipo)} />
                     </svg>
                   </div>
@@ -131,14 +176,14 @@
                 <!-- Conteúdo -->
                 <div class="flex-1 min-w-0">
                   <div class="flex items-center justify-between">
-                    <p class="text-sm font-medium text-gray-900 truncate">
+                    <p class="text-xs sm:text-sm font-medium text-gray-900 truncate">
                       {notificacao.titulo}
                     </p>
                     {#if !notificacao.lida}
                       <div class="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></div>
                     {/if}
                   </div>
-                  <p class="text-sm text-gray-600 mt-1 line-clamp-2">
+                  <p class="text-xs sm:text-sm text-gray-600 mt-1 line-clamp-2">
                     {notificacao.mensagem}
                   </p>
                   <p class="text-xs text-gray-400 mt-1">
@@ -153,13 +198,13 @@
       
       <!-- Footer -->
       {#if $notificacoes.length > 0}
-        <div class="px-3 sm:px-4 py-3 border-t border-gray-200">
+        <div class="px-2 sm:px-4 py-3 border-t border-gray-200">
           <button
             on:click={() => {
               closeDropdown();
               goto('/notificacoes');
             }}
-            class="w-full text-center text-sm text-blue-600 hover:text-blue-800 font-medium"
+            class="w-full text-center text-xs sm:text-sm text-blue-600 hover:text-blue-800 font-medium"
           >
             Ver todas as notificações
           </button>
@@ -173,6 +218,7 @@
   .line-clamp-2 {
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }

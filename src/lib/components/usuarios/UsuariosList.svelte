@@ -1,5 +1,6 @@
 <script>
   import { onMount } from 'svelte';
+  import { writable } from 'svelte/store';
   import { loadUsuarios, loadUserRoles, updateUsuario, roles, loadRoles, usuarios, deleteUsuario } from '$lib/stores/usuarios';
   import { userProfile } from '$lib/stores/auth';
   import { createLogHistorico } from '$lib/stores/logs-historico';
@@ -17,6 +18,10 @@
   let searchTerm = '';
   let filterRole = '';
   let filterStatus = '';
+  let forceUpdate = 0; // Para forçar reatividade
+  
+  // Store reativo para searchTerm
+  const searchTermStore = writable('');
   
   // Modal de edição
   let showEditModal = false;
@@ -36,6 +41,9 @@
         loadUserRoles(),
         loadRoles()
       ]);
+      console.log('Dados carregados, usuários:', $usuarios);
+      console.log('Primeiro usuário:', $usuarios[0]);
+      console.log('Estrutura do primeiro usuário:', $usuarios[0] ? Object.keys($usuarios[0]) : 'Nenhum usuário');
     } catch (err) {
       error = err.message;
     } finally {
@@ -43,30 +51,46 @@
     }
   }
   
-  // Função para filtrar usuários
-  function getFilteredUsuarios() {
-    return $usuarios.filter(usuario => {
+  // Utilitários de normalização
+  function normalize(str) {
+    return (str || '')
+      .toString()
+      .normalize('NFD')
+      .replace(/\p{Diacritic}+/gu, '')
+      .toLowerCase();
+  }
+
+  // Lista filtrada reativa (derivada)
+  $: filteredUsuarios = (() => {
+    const currentSearchTerm = $searchTermStore || searchTerm;
+    console.log('derived filteredUsuarios com searchTerm:', currentSearchTerm, 'forceUpdate:', forceUpdate);
+
+    const termNorm = normalize((currentSearchTerm || '').trim());
+
+    const result = ($usuarios || []).filter((usuario) => {
       // Filtro por termo de busca
-      if (searchTerm && !usuario.nome.toLowerCase().includes(searchTerm.toLowerCase()) && 
-          !usuario.email.toLowerCase().includes(searchTerm.toLowerCase())) {
-        return false;
+      if (termNorm) {
+        const nomeNorm = normalize(usuario?.nome);
+        const emailNorm = normalize(usuario?.email);
+        if (!nomeNorm.includes(termNorm) && !emailNorm.includes(termNorm)) return false;
       }
-      
+
       // Filtro por papel
       if (filterRole) {
-        const userRole = userRoles.find(ur => ur.user_id === usuario.id && ur.ativo);
-        if (!userRole || userRole.role_id !== filterRole) {
-          return false;
-        }
+        const userRole = userRoles.find((ur) => ur.user_id === usuario.id && ur.ativo);
+        if (!userRole || userRole.role_id !== filterRole) return false;
       }
-      
+
       // Filtro por status
       if (filterStatus === 'ativo' && !usuario.ativo) return false;
       if (filterStatus === 'inativo' && usuario.ativo) return false;
-      
+
       return true;
     });
-  }
+
+    console.log('Usuários filtrados (derived):', result.length, 'de', $usuarios.length);
+    return result;
+  })();
   
   // Função para obter papel do usuário
   function getUserRole(usuarioId) {
@@ -155,7 +179,18 @@
   
   // Função para lidar com seleção de sugestão no autocomplete
   function handleSelectSuggestion(suggestion) {
+    console.log('Sugestão selecionada:', suggestion);
+    
     searchTerm = suggestion.nome;
+    searchTermStore.set(suggestion.nome); // Atualizar store reativo
+    forceUpdate++; // Forçar reatividade
+    console.log('searchTerm definido como:', searchTerm, 'forceUpdate:', forceUpdate);
+    
+    // Forçar re-renderização
+    setTimeout(() => {
+      forceUpdate++;
+      console.log('Forçando re-renderização, forceUpdate:', forceUpdate);
+    }, 10);
   }
 </script>
 
@@ -187,21 +222,46 @@
           id="search-usuarios"
           placeholder="Nome ou email"
           bind:value={searchTerm}
+          minLength={1}
+          debounceMs={100}
           on:select={(e) => handleSelectSuggestion(e.detail.suggestion)}
           searchFunction={async (term) => {
-            if (!term || term.length < 2) return [];
-            return $usuarios
-              .filter(usuario => 
-                usuario.nome.toLowerCase().includes(term.toLowerCase()) ||
-                usuario.email.toLowerCase().includes(term.toLowerCase())
-              )
-              .slice(0, 5)
-              .map(usuario => ({
+            console.log('searchFunction chamada com term:', term);
+            console.log('usuarios disponíveis:', $usuarios);
+            if (!term || term.length < 1) return [];
+            
+            // Normalizar acentos e caixa
+            const normalize = (s) => (s || '')
+              .toString()
+              .normalize('NFD')
+              .replace(/\p{Diacritic}+/gu, '')
+              .toLowerCase();
+
+            const termNorm = normalize(term.trim());
+
+            // Priorizar quem começa com o termo; depois quem contém
+            const startsWith = [];
+            const includes = [];
+
+            for (const usuario of $usuarios) {
+              const nomeNorm = normalize(usuario.nome);
+              const emailNorm = normalize(usuario.email);
+              const matchStart = nomeNorm.startsWith(termNorm) || emailNorm.startsWith(termNorm);
+              const matchInclude = !matchStart && (nomeNorm.includes(termNorm) || emailNorm.includes(termNorm));
+              if (matchStart) startsWith.push(usuario);
+              else if (matchInclude) includes.push(usuario);
+            }
+
+            const result = [...startsWith, ...includes]
+              .slice(0, 8)
+              .map((usuario) => ({
                 id: usuario.id,
                 nome: usuario.nome,
                 email: usuario.email,
                 display: `${usuario.nome} (${usuario.email})`
               }));
+            console.log('resultado filtrado:', result);
+            return result;
           }}
         />
       </div>
@@ -245,7 +305,7 @@
           <p class="text-sm text-red-600 font-medium">{error}</p>
         </div>
       </div>
-    {:else if getFilteredUsuarios().length === 0}
+    {:else if filteredUsuarios.length === 0}
       <Card class="p-8">
         <div class="text-center">
           <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -263,7 +323,7 @@
     {:else}
       <!-- Lista de usuários -->
       <div class="space-y-4">
-        {#each getFilteredUsuarios() as usuario}
+        {#each filteredUsuarios as usuario}
           <Card class="p-6">
             <div class="flex items-start space-x-4">
               <!-- Foto -->
@@ -322,6 +382,17 @@
               
               <!-- Ações -->
               <div class="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  on:click={() => goto(`/usuarios/${usuario.id}`)}
+                >
+                  <svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  Ver Perfil
+                </Button>
+                
                 <Button
                   size="sm"
                   variant="outline"

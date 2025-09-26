@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { user, loading, userProfile, hasRole } from '$lib/stores/auth';
+  import { getUserLevelName } from '$lib/stores/niveis-acesso';
   import { goto } from '$app/navigation';
   import { page } from '$app/stores';
   import { supabase } from '$lib/utils/supabase';
@@ -33,6 +34,11 @@
     };
   });
   
+  // Debug: Log do nível do usuário
+  $: if ($userProfile) {
+    const papelExibido = getUserLevelName($userProfile);
+  }
+
   // Redirecionar automaticamente usuários com papel "jovem" para o cadastro
   // (exceto para páginas permitidas como /viagem)
   $: (async () => {
@@ -186,14 +192,16 @@
                           {$userProfile?.nome || 'Usuário'}
                         </h3>
                         <p class="text-sm text-gray-500 truncate">
-                          {$userProfile?.user_roles?.[0]?.roles?.nome || 'Usuário'}
+                          {getUserLevelName($userProfile)}
                         </p>
                       </div>
                     </div>
                   </div>
                   
-                  <!-- Estatísticas do Usuário -->
-                  <EstatisticasUsuario />
+                  <!-- Estatísticas do Usuário (não mostrar para jovens) -->
+                  {#if getUserLevelName($userProfile) !== 'Jovem'}
+                    <EstatisticasUsuario />
+                  {/if}
                   
                   <!-- Cards de Status dos Jovens -->
                   <StatusJovensCards />
@@ -239,7 +247,8 @@
                     </div>
                   </div>
                   
-                  <!-- Quick actions -->
+                  <!-- Quick actions (não mostrar para jovens) -->
+                  {#if getUserLevelName($userProfile) !== 'Jovem'}
                   <div class="fb-card p-4">
                     <h4 class="font-semibold text-gray-900 mb-3">Ações Rápidas</h4>
                     <div class="space-y-2">
@@ -275,9 +284,12 @@
                       </button>
                     </div>
                   </div>
+                  {/if}
                   
-                  <!-- Médias de Avaliações -->
-                  <MediasAvaliacoesCard />
+                  <!-- Médias de Avaliações (não mostrar para jovens) -->
+                  {#if getUserLevelName($userProfile) !== 'Jovem'}
+                    <MediasAvaliacoesCard />
+                  {/if}
                 </div>
               </div>
               {/if}

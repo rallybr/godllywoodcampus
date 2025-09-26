@@ -3,6 +3,7 @@
   import { onMount } from 'svelte';
   import { gerarEstatisticasGerais } from '$lib/stores/relatorios';
   import { userProfile } from '$lib/stores/auth';
+  import { getUserLevelName } from '$lib/stores/niveis-acesso';
   import Card from '$lib/components/ui/Card.svelte';
   import Button from '$lib/components/ui/Button.svelte';
   
@@ -66,6 +67,8 @@
   }
 </script>
 
+<!-- Página de Relatórios (não mostrar para jovens) -->
+{#if getUserLevelName($userProfile) !== 'Jovem'}
 <div class="space-y-6">
   <!-- Header -->
   <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -96,129 +99,80 @@
     </div>
   {:else if estatisticas}
     <!-- Estatísticas Principais -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
       <!-- Card Total de Jovens -->
-      <Card class="p-4 sm:p-6 bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 hover:shadow-lg transition-all duration-300">
-        <div class="flex items-center justify-between">
-          <div class="flex-1">
-            <div class="flex items-center space-x-3 mb-4">
-              <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
-                <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
-                </svg>
-              </div>
-              <div>
-                <p class="text-sm font-semibold text-blue-700 uppercase tracking-wide">Total de Jovens</p>
-                <p class="text-xs text-blue-600">Cadastrados no sistema</p>
-              </div>
-            </div>
-            <div class="text-center">
-              <p class="text-4xl font-bold text-blue-900">{estatisticas.totalJovens}</p>
-              <p class="text-sm text-blue-600 font-medium">jovens cadastrados</p>
-            </div>
+      <Card padding="p-4 sm:p-6" class="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 hover:shadow-lg transition-all duration-300">
+        <div class="flex items-center space-x-3 mb-4">
+          <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+            <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+            </svg>
           </div>
+          <div>
+            <p class="text-sm font-semibold text-blue-700 uppercase tracking-wide">Total</p>
+            <p class="text-xs text-blue-600">Jovens</p>
+          </div>
+        </div>
+        <div class="text-center">
+          <p class="text-3xl font-bold text-blue-900">{estatisticas.totalJovens}</p>
+          <p class="text-xs text-blue-600 font-medium">cadastrados</p>
         </div>
       </Card>
       
       <!-- Card Aprovados -->
-      <Card class="p-4 sm:p-6 bg-gradient-to-br from-green-50 to-green-100 border-green-200 hover:shadow-lg transition-all duration-300">
-        <div class="flex items-center justify-between">
-          <div class="flex-1">
-            <div class="flex items-center space-x-3 mb-4">
-              <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg">
-                <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <div>
-                <p class="text-sm font-semibold text-green-700 uppercase tracking-wide">Aprovados</p>
-                <p class="text-xs text-green-600">Jovens aprovados</p>
-              </div>
-            </div>
-            <div class="text-center mb-3">
-              <p class="text-4xl font-bold text-green-900">{estatisticas.aprovados}</p>
-              <p class="text-sm text-green-600 font-medium">jovens aprovados</p>
-            </div>
-            <div class="flex items-center space-x-2">
-              <div class="flex-1 bg-green-200 rounded-full h-2">
-                <div 
-                  class="bg-gradient-to-r from-green-500 to-green-600 h-2 rounded-full transition-all duration-500"
-                  style="width: {estatisticas.totalJovens > 0 ? (estatisticas.aprovados / estatisticas.totalJovens) * 100 : 0}%"
-                ></div>
-              </div>
-              <span class="text-xs font-semibold text-green-700">
-                {estatisticas.totalJovens > 0 ? ((estatisticas.aprovados / estatisticas.totalJovens) * 100).toFixed(1) : '0'}%
-              </span>
-            </div>
+      <Card padding="p-4 sm:p-6" class="bg-gradient-to-br from-green-50 to-green-100 border-green-200 hover:shadow-lg transition-all duration-300">
+        <div class="flex items-center space-x-3 mb-4">
+          <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg">
+            <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
           </div>
+          <div>
+            <p class="text-sm font-semibold text-green-700 uppercase tracking-wide">Aprovados</p>
+            <p class="text-xs text-green-600">Status</p>
+          </div>
+        </div>
+        <div class="text-center">
+          <p class="text-3xl font-bold text-green-900">{estatisticas.aprovados}</p>
+          <p class="text-xs text-green-600 font-medium">aprovados</p>
         </div>
       </Card>
       
-      <!-- Card Pré-aprovados -->
-      <Card class="p-4 sm:p-6 bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200 hover:shadow-lg transition-all duration-300">
-        <div class="flex items-center justify-between">
-          <div class="flex-1">
-            <div class="flex items-center space-x-3 mb-4">
-              <div class="w-12 h-12 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl flex items-center justify-center shadow-lg">
-                <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <div>
-                <p class="text-sm font-semibold text-yellow-700 uppercase tracking-wide">Pré-aprovados</p>
-                <p class="text-xs text-yellow-600">Aguardando aprovação</p>
-              </div>
-            </div>
-            <div class="text-center mb-3">
-              <p class="text-4xl font-bold text-yellow-900">{estatisticas.preAprovados}</p>
-              <p class="text-sm text-yellow-600 font-medium">jovens pré-aprovados</p>
-            </div>
-            <div class="flex items-center space-x-2">
-              <div class="flex-1 bg-yellow-200 rounded-full h-2">
-                <div 
-                  class="bg-gradient-to-r from-yellow-500 to-yellow-600 h-2 rounded-full transition-all duration-500"
-                  style="width: {estatisticas.totalJovens > 0 ? (estatisticas.preAprovados / estatisticas.totalJovens) * 100 : 0}%"
-                ></div>
-              </div>
-              <span class="text-xs font-semibold text-yellow-700">
-                {estatisticas.totalJovens > 0 ? ((estatisticas.preAprovados / estatisticas.totalJovens) * 100).toFixed(1) : '0'}%
-              </span>
-            </div>
+      <!-- Card Pré-Aprovados -->
+      <Card padding="p-4 sm:p-6" class="bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200 hover:shadow-lg transition-all duration-300">
+        <div class="flex items-center space-x-3 mb-4">
+          <div class="w-12 h-12 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl flex items-center justify-center shadow-lg">
+            <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
           </div>
+          <div>
+            <p class="text-sm font-semibold text-yellow-700 uppercase tracking-wide">Pré-aprovados</p>
+            <p class="text-xs text-yellow-600">Status</p>
+          </div>
+        </div>
+        <div class="text-center">
+          <p class="text-3xl font-bold text-yellow-900">{estatisticas.preAprovados}</p>
+          <p class="text-xs text-yellow-600 font-medium">pré-aprovados</p>
         </div>
       </Card>
       
       <!-- Card Pendentes -->
-      <Card class="p-4 sm:p-6 bg-gradient-to-br from-gray-50 to-gray-100 border-gray-200 hover:shadow-lg transition-all duration-300">
-        <div class="flex items-center justify-between">
-          <div class="flex-1">
-            <div class="flex items-center space-x-3 mb-4">
-              <div class="w-12 h-12 bg-gradient-to-br from-gray-500 to-gray-600 rounded-xl flex items-center justify-center shadow-lg">
-                <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-                </svg>
-              </div>
-              <div>
-                <p class="text-sm font-semibold text-gray-700 uppercase tracking-wide">Pendentes</p>
-                <p class="text-xs text-gray-600">Aguardando avaliação</p>
-              </div>
-            </div>
-            <div class="text-center mb-3">
-              <p class="text-4xl font-bold text-gray-900">{estatisticas.pendentes}</p>
-              <p class="text-sm text-gray-600 font-medium">jovens pendentes</p>
-            </div>
-            <div class="flex items-center space-x-2">
-              <div class="flex-1 bg-gray-200 rounded-full h-2">
-                <div 
-                  class="bg-gradient-to-r from-gray-500 to-gray-600 h-2 rounded-full transition-all duration-500"
-                  style="width: {estatisticas.totalJovens > 0 ? (estatisticas.pendentes / estatisticas.totalJovens) * 100 : 0}%"
-                ></div>
-              </div>
-              <span class="text-xs font-semibold text-gray-700">
-                {estatisticas.totalJovens > 0 ? ((estatisticas.pendentes / estatisticas.totalJovens) * 100).toFixed(1) : '0'}%
-              </span>
-            </div>
+      <Card padding="p-4 sm:p-6" class="bg-gradient-to-br from-gray-50 to-gray-100 border-gray-200 hover:shadow-lg transition-all duration-300">
+        <div class="flex items-center space-x-3 mb-4">
+          <div class="w-12 h-12 bg-gradient-to-br from-gray-500 to-gray-600 rounded-xl flex items-center justify-center shadow-lg">
+            <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
           </div>
+          <div>
+            <p class="text-sm font-semibold text-gray-700 uppercase tracking-wide">Pendentes</p>
+            <p class="text-xs text-gray-600">Status</p>
+          </div>
+        </div>
+        <div class="text-center">
+          <p class="text-3xl font-bold text-gray-900">{estatisticas.pendentes}</p>
+          <p class="text-xs text-gray-600 font-medium">pendentes</p>
         </div>
       </Card>
     </div>
@@ -226,7 +180,7 @@
     <!-- Estatísticas de Avaliações -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
       <!-- Card Médias de Avaliações -->
-      <Card class="p-4 sm:p-6 bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 hover:shadow-lg transition-all duration-300">
+      <Card padding="p-4 sm:p-6" class="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 hover:shadow-lg transition-all duration-300">
         <div class="flex items-center space-x-3 mb-6">
           <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
             <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -335,7 +289,7 @@
       </Card>
       
       <!-- Card Resumo de Avaliações -->
-      <Card class="p-4 sm:p-6 bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200 hover:shadow-lg transition-all duration-300">
+      <Card padding="p-4 sm:p-6" class="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200 hover:shadow-lg transition-all duration-300">
         <div class="flex items-center space-x-3 mb-6">
           <div class="w-10 h-10 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg">
             <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -420,7 +374,7 @@
     </div>
     
     <!-- Links para Relatórios -->
-    <Card class="p-4 sm:p-6 bg-gradient-to-br from-slate-50 to-slate-100 border-slate-200">
+    <Card padding="p-4 sm:p-6" class="bg-gradient-to-br from-slate-50 to-slate-100 border-slate-200">
       <div class="flex items-center space-x-3 mb-6">
         <div class="w-10 h-10 bg-gradient-to-br from-slate-500 to-slate-600 rounded-xl flex items-center justify-center shadow-lg">
           <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -505,7 +459,7 @@
             <div class="flex justify-center mb-4">
               <div class="w-16 h-16 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
                 <svg class="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100-4m0 4v2m0-6V4" />
                 </svg>
               </div>
             </div>
@@ -513,7 +467,7 @@
             <!-- Conteúdo centralizado -->
             <div class="flex-1 flex flex-col justify-center">
               <h4 class="font-bold text-gray-900 group-hover:text-orange-600 transition-colors text-lg mb-3">Relatórios Personalizados</h4>
-              <p class="text-sm text-gray-600 leading-relaxed mb-4">Crie seus próprios relatórios personalizados</p>
+              <p class="text-sm text-gray-600 leading-relaxed mb-4">Crie relatórios personalizados com filtros específicos</p>
             </div>
             
             <!-- Badge na parte inferior -->
@@ -533,3 +487,17 @@
     </Card>
   {/if}
 </div>
+{:else}
+<!-- Mensagem para usuários jovens -->
+<div class="max-w-7xl mx-auto py-8">
+  <div class="text-center">
+    <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+      <svg class="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+      </svg>
+    </div>
+    <h1 class="text-2xl font-bold text-gray-900 mb-2">Acesso Restrito</h1>
+    <p class="text-gray-600">Você não tem permissão para acessar esta página.</p>
+  </div>
+</div>
+{/if}

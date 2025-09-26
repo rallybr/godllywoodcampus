@@ -1,6 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import { userProfile } from '$lib/stores/auth';
+  import { getUserLevelName } from '$lib/stores/niveis-acesso';
   import { loadEstatisticasUsuario } from '$lib/stores/estatisticas';
   
   let estatisticasUsuario = {
@@ -13,9 +14,6 @@
   
   // Reatividade para carregar estatísticas quando o perfil mudar
   $: if ($userProfile && $userProfile.id) {
-    console.log('=== PERFIL DO USUÁRIO DETECTADO ===');
-    console.log('Perfil do usuário:', $userProfile);
-    console.log('ID do usuário:', $userProfile.id);
     loadEstatisticas();
   }
   
@@ -25,7 +23,6 @@
     loading = true;
     try {
       estatisticasUsuario = await loadEstatisticasUsuario($userProfile.id);
-      console.log('Estatísticas carregadas:', estatisticasUsuario);
     } catch (error) {
       console.error('Erro ao carregar estatísticas do usuário:', error);
     } finally {
@@ -34,12 +31,12 @@
   }
   
   onMount(() => {
-    console.log('=== COMPONENTE ESTATÍSTICAS USUÁRIO MONTADO ===');
-    console.log('Perfil inicial:', $userProfile);
+    // Componente montado
   });
 </script>
 
-<!-- Estatísticas do Usuário -->
+<!-- Estatísticas do Usuário (não mostrar para jovens) -->
+{#if getUserLevelName($userProfile) !== 'Jovem'}
 <div class="fb-card p-4">
     <h3 class="text-lg font-semibold text-gray-900 mb-4">Suas Estatísticas</h3>
     
@@ -90,3 +87,4 @@
       </div>
     {/if}
 </div>
+{/if}

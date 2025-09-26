@@ -10,6 +10,7 @@
   export let required = false;
   export let minLength = 2;
   export let debounceMs = 300;
+  export let searchFunction = null; // Função personalizada de busca
   
   const dispatch = createEventDispatcher();
   
@@ -22,6 +23,10 @@
   
   // Função para buscar sugestões
   async function searchSuggestions(searchTerm) {
+    console.log('searchSuggestions chamada com:', searchTerm);
+    console.log('minLength:', minLength);
+    console.log('searchFunction existe:', !!searchFunction);
+    
     if (searchTerm.length < minLength) {
       suggestions = [];
       showSuggestions = false;
@@ -31,22 +36,36 @@
     loading = true;
     
     try {
-      const { data, error: fetchError } = await supabase
-        .from('jovens')
-        .select('id, nome_completo, whatsapp, estado:estados(sigla)')
-        .ilike('nome_completo', `%${searchTerm}%`)
-        .order('nome_completo')
-        .limit(10);
+      let data = [];
       
-      if (fetchError) {
-        console.error('Erro ao buscar sugestões:', fetchError);
-        suggestions = [];
+      // Se uma função personalizada foi fornecida, usá-la
+      if (searchFunction && typeof searchFunction === 'function') {
+        console.log('Usando searchFunction personalizada');
+        data = await searchFunction(searchTerm);
+        console.log('Dados retornados pela searchFunction:', data);
       } else {
-        suggestions = data || [];
+        console.log('Usando busca padrão na tabela jovens');
+        // Busca padrão na tabela jovens
+        const { data: fetchData, error: fetchError } = await supabase
+          .from('jovens')
+          .select('id, nome_completo, whatsapp, estado:estados(sigla)')
+          .ilike('nome_completo', `%${searchTerm}%`)
+          .order('nome_completo')
+          .limit(10);
+        
+        if (fetchError) {
+          console.error('Erro ao buscar sugestões:', fetchError);
+          data = [];
+        } else {
+          data = fetchData || [];
+        }
       }
       
+      suggestions = data;
       showSuggestions = suggestions.length > 0;
       selectedIndex = -1;
+      console.log('Sugestões finais:', suggestions);
+      console.log('showSuggestions:', showSuggestions);
     } catch (err) {
       console.error('Erro na busca:', err);
       suggestions = [];
@@ -59,7 +78,7 @@
   // Função com debounce para evitar muitas requisições
   function handleInput(event) {
     const searchTerm = event.target.value;
-    value = searchTerm;
+    console.log('handleInput chamado com:', searchTerm);
     
     // Limpar timer anterior
     if (debounceTimer) {
@@ -68,6 +87,7 @@
     
     // Definir novo timer
     debounceTimer = setTimeout(() => {
+      console.log('Executando searchSuggestions após debounce');
       searchSuggestions(searchTerm);
     }, debounceMs);
     
@@ -76,11 +96,23 @@
   
   // Função para selecionar uma sugestão
   function selectSuggestion(suggestion) {
-    value = suggestion.nome_completo;
+    // Determinar o valor a ser exibido baseado na estrutura dos dados
+    let displayValue = '';
+    if (suggestion.nome_completo) {
+      displayValue = suggestion.nome_completo;
+    } else if (suggestion.nome) {
+      displayValue = suggestion.nome;
+    } else if (suggestion.display) {
+      displayValue = suggestion.display;
+    } else {
+      displayValue = suggestion.toString();
+    }
+    
+    value = displayValue;
     showSuggestions = false;
     selectedIndex = -1;
     dispatch('select', { suggestion });
-    dispatch('input', { value: suggestion.nome_completo });
+    dispatch('input', { value: displayValue });
   }
   
   // Função para lidar com teclas
@@ -170,7 +202,7 @@
       bind:this={inputElement}
       type="text"
       {placeholder}
-      {value}
+      bind:value
       {disabled}
       {required}
       on:input={handleInput}
@@ -205,27 +237,47 @@
   </div>
   
   <!-- Sugestões -->
-  {#if showSuggestions && suggestions.length > 0}
-    <div class="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-      {#each suggestions as suggestion, index}
-        <button
-          type="button"
-          on:click={() => selectSuggestion(suggestion)}
-          class="w-full px-4 py-3 text-left hover:bg-gray-50 focus:bg-gray-50 focus:outline-none {index === selectedIndex ? 'bg-blue-50' : ''}"
-        >
-          <div class="flex items-center justify-between">
-            <div>
-              <div class="font-medium text-gray-900">{suggestion.nome_completo}</div>
-              {#if suggestion.whatsapp}
-                <div class="text-sm text-gray-500">{suggestion.whatsapp}</div>
+  {#if showSuggestions}
+    <div class="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto" style="position: absolute; z-index: 9999;">
+      {#if suggestions.length > 0}
+        {#each suggestions as suggestion, index}
+          <button
+            type="button"
+            on:click={() => selectSuggestion(suggestion)}
+            class="w-full px-4 py-3 text-left hover:bg-gray-50 focus:bg-gray-50 focus:outline-none {index === selectedIndex ? 'bg-blue-50' : ''}"
+          >
+            <div class="flex items-center justify-between">
+              <div>
+                <!-- Para usuários (com display) -->
+                {#if suggestion.display}
+                  <div class="font-medium text-gray-900">{suggestion.display}</div>
+                <!-- Para jovens (com nome_completo) -->
+                {:else if suggestion.nome_completo}
+                  <div class="font-medium text-gray-900">{suggestion.nome_completo}</div>
+                  {#if suggestion.whatsapp}
+                    <div class="text-sm text-gray-500">{suggestion.whatsapp}</div>
+                  {/if}
+                <!-- Para outros casos -->
+                {:else}
+                  <div class="font-medium text-gray-900">{suggestion.nome || suggestion.toString()}</div>
+                {/if}
+              </div>
+              {#if suggestion.estado?.sigla}
+                <div class="text-sm text-gray-400">{suggestion.estado.sigla}</div>
               {/if}
             </div>
-            {#if suggestion.estado?.sigla}
-              <div class="text-sm text-gray-400">{suggestion.estado.sigla}</div>
-            {/if}
-          </div>
-        </button>
-      {/each}
+          </button>
+        {/each}
+      {:else}
+        <div class="px-4 py-3 text-gray-500">Nenhuma sugestão encontrada</div>
+      {/if}
+    </div>
+  {/if}
+  
+  <!-- Debug info -->
+  {#if showSuggestions}
+    <div class="absolute top-full left-0 bg-red-100 p-2 text-xs">
+      Debug: showSuggestions={showSuggestions}, suggestions.length={suggestions.length}
     </div>
   {/if}
   

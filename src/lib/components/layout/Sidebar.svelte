@@ -1,6 +1,7 @@
 <script>
   import { createEventDispatcher } from 'svelte';
   import { userProfile, hasPermission, hasRole } from '$lib/stores/auth';
+  import { getUserLevelName } from '$lib/stores/niveis-acesso';
   import { page } from '$app/stores';
   import { jovemJaCadastrado, initializeCadastroCheck } from '$lib/stores/jovem-cadastro';
   
@@ -31,14 +32,22 @@
   ];
   
   $: profile = $userProfile;
-  $: isJovem = hasRole('jovem')(profile);
+  $: isJovem = getUserLevelName($userProfile) === 'Jovem';
+  
+  // Debug logs
+  $: if ($userProfile) {
+    console.log('DEBUG Sidebar - userProfile.nivel:', $userProfile.nivel);
+    console.log('DEBUG Sidebar - getUserLevelName result:', getUserLevelName($userProfile));
+    console.log('DEBUG Sidebar - isJovem:', isJovem);
+    console.log('DEBUG Sidebar - filteredMenuItems length:', filteredMenuItems.length);
+  }
   
   
   $: filteredMenuItems = isJovem
     ? (() => {
         const menuJovem = [
-          { name: 'Meu Perfil', href: '/profile', icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z', color: 'text-gray-600' },
-          { name: 'Lista de Jovens', href: '/jovens/cards', icon: 'M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z', color: 'text-green-600' }
+          { name: 'Feed', href: '/', icon: 'M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z', color: 'text-blue-600' },
+          { name: 'Meu Perfil', href: '/profile', icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z', color: 'text-gray-600' }
         ];
         
         // Se ainda não se cadastrou, mostrar opção de cadastro

@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { loadAvaliacoes, calculateAvaliacaoStats } from '$lib/stores/avaliacoes';
   import { userProfile } from '$lib/stores/auth';
+  import { getUserLevelName } from '$lib/stores/niveis-acesso';
   import Button from '$lib/components/ui/Button.svelte';
   import Card from '$lib/components/ui/Card.svelte';
   
@@ -23,8 +24,20 @@
     try {
       const userId = $userProfile?.id;
       const userLevel = $userProfile?.nivel;
-      const data = await loadAvaliacoes(userId, userLevel);
-      avaliacoes = data || [];
+      const data = await loadAvaliacoes(userId, userLevel, $userProfile);
+      // Filtro de segurança no cliente por escopo (baseado no PAPEL exibido)
+      const papel = getUserLevelName($userProfile);
+      avaliacoes = (data || []).filter(av => {
+        const j = av?.jovem || {};
+        if (!papel) return false;
+        if (papel === 'Administrador' || papel.includes('Nacional')) return true;
+        if (papel.includes('Estadual') && $userProfile?.estado_id) return j.estado_id === $userProfile.estado_id;
+        if (papel.includes('Bloco') && $userProfile?.bloco_id) return j.bloco_id === $userProfile.bloco_id;
+        if (papel.includes('Regional') && $userProfile?.regiao_id) return j.regiao_id === $userProfile.regiao_id;
+        if (papel.includes('Igreja') && $userProfile?.igreja_id) return j.igreja_id === $userProfile.igreja_id;
+        if (papel === 'Instrutor' && $userProfile?.id) return (av.user_id === $userProfile.id) || (j.usuario_id === $userProfile.id);
+        return false;
+      });
       stats = calculateAvaliacaoStats(avaliacoes);
     } catch (err) {
       error = err.message;

@@ -2,6 +2,8 @@
   import { onMount } from 'svelte';
   import { loadInitialData, estados, blocos, regioes, igrejas, edicoes, loadBlocos, loadRegioes, loadIgrejas, clearHierarchy } from '$lib/stores/geographic';
   import { loadUsuarios } from '$lib/stores/usuarios';
+  import { userProfile } from '$lib/stores/auth';
+  import { getUserLevelName } from '$lib/stores/niveis-acesso';
   import Input from '$lib/components/ui/Input.svelte';
   import Select from '$lib/components/ui/Select.svelte';
   import Button from '$lib/components/ui/Button.svelte';
@@ -133,6 +135,8 @@
   }
 </script>
 
+<!-- Filtros de Relatório (não mostrar para jovens) -->
+{#if getUserLevelName($userProfile) !== 'Jovem'}
 <Card class="p-6">
   <div class="flex items-center justify-between mb-6">
     <h3 class="text-lg font-semibold text-gray-900">Filtros do Relatório</h3>
@@ -373,3 +377,4 @@
     </div>
   </div>
 </Card>
+{/if}
