@@ -173,12 +173,8 @@ export function clearHierarchy() {
 
 // Função para carregar dados iniciais
 export async function loadInitialData() {
-  // Importar loadRoles dinamicamente para evitar dependência circular
-  const { loadRoles } = await import('./usuarios.js');
-  
   await Promise.all([
     loadEstados(),
-    loadEdicoes(),
-    loadRoles()
+    loadEdicoes()
   ]);
 }

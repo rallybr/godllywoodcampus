@@ -99,12 +99,12 @@
     </div>
   {:else if estatisticas}
     <!-- Estatísticas Principais -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+    <div class="grid grid-cols-2 gap-3 sm:gap-4 lg:gap-6">
       <!-- Card Total de Jovens -->
-      <Card padding="p-4 sm:p-6" class="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 hover:shadow-lg transition-all duration-300">
+      <Card padding="p-3 sm:p-4 lg:p-6" class="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 hover:shadow-lg transition-all duration-300">
         <div class="flex items-center space-x-3 mb-4">
-          <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
-            <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div class="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+            <svg class="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
             </svg>
           </div>
@@ -114,16 +114,16 @@
           </div>
         </div>
         <div class="text-center">
-          <p class="text-3xl font-bold text-blue-900">{estatisticas.totalJovens}</p>
+          <p class="text-2xl sm:text-3xl font-bold text-blue-900">{estatisticas.totalJovens}</p>
           <p class="text-xs text-blue-600 font-medium">cadastrados</p>
         </div>
       </Card>
       
       <!-- Card Aprovados -->
-      <Card padding="p-4 sm:p-6" class="bg-gradient-to-br from-green-50 to-green-100 border-green-200 hover:shadow-lg transition-all duration-300">
+      <Card padding="p-3 sm:p-4 lg:p-6" class="bg-gradient-to-br from-green-50 to-green-100 border-green-200 hover:shadow-lg transition-all duration-300">
         <div class="flex items-center space-x-3 mb-4">
-          <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg">
-            <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div class="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg">
+            <svg class="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
@@ -133,16 +133,16 @@
           </div>
         </div>
         <div class="text-center">
-          <p class="text-3xl font-bold text-green-900">{estatisticas.aprovados}</p>
+          <p class="text-2xl sm:text-3xl font-bold text-green-900">{estatisticas.aprovados}</p>
           <p class="text-xs text-green-600 font-medium">aprovados</p>
         </div>
       </Card>
       
       <!-- Card Pré-Aprovados -->
-      <Card padding="p-4 sm:p-6" class="bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200 hover:shadow-lg transition-all duration-300">
+      <Card padding="p-3 sm:p-4 lg:p-6" class="bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200 hover:shadow-lg transition-all duration-300">
         <div class="flex items-center space-x-3 mb-4">
-          <div class="w-12 h-12 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl flex items-center justify-center shadow-lg">
-            <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div class="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl flex items-center justify-center shadow-lg">
+            <svg class="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
@@ -152,16 +152,16 @@
           </div>
         </div>
         <div class="text-center">
-          <p class="text-3xl font-bold text-yellow-900">{estatisticas.preAprovados}</p>
+          <p class="text-2xl sm:text-3xl font-bold text-yellow-900">{estatisticas.preAprovados}</p>
           <p class="text-xs text-yellow-600 font-medium">pré-aprovados</p>
         </div>
       </Card>
       
       <!-- Card Pendentes -->
-      <Card padding="p-4 sm:p-6" class="bg-gradient-to-br from-gray-50 to-gray-100 border-gray-200 hover:shadow-lg transition-all duration-300">
+      <Card padding="p-3 sm:p-4 lg:p-6" class="bg-gradient-to-br from-gray-50 to-gray-100 border-gray-200 hover:shadow-lg transition-all duration-300">
         <div class="flex items-center space-x-3 mb-4">
-          <div class="w-12 h-12 bg-gradient-to-br from-gray-500 to-gray-600 rounded-xl flex items-center justify-center shadow-lg">
-            <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div class="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-gray-500 to-gray-600 rounded-xl flex items-center justify-center shadow-lg">
+            <svg class="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
           </div>
@@ -171,7 +171,7 @@
           </div>
         </div>
         <div class="text-center">
-          <p class="text-3xl font-bold text-gray-900">{estatisticas.pendentes}</p>
+          <p class="text-2xl sm:text-3xl font-bold text-gray-900">{estatisticas.pendentes}</p>
           <p class="text-xs text-gray-600 font-medium">pendentes</p>
         </div>
       </Card>

@@ -1,4 +1,4 @@
-import { writable } from 'svelte/store';
+import { writable, get } from 'svelte/store';
 import { supabase } from '$lib/utils/supabase';
 
 // Stores para logs de histórico
@@ -29,7 +29,7 @@ export async function loadLogsHistorico(page = 1, limit = 20) {
   error.set(null);
   
   try {
-    const currentFilters = $filters;
+    const currentFilters = get(filters);
     
     let query = supabase
       .from('logs_historico')
@@ -126,7 +126,7 @@ export async function createLogHistorico(jovemId, acao, detalhe, dadosAnteriores
  */
 export function aplicarFiltros() {
   pagination.update(p => ({ ...p, page: 1 }));
-  loadLogsHistorico(1, $pagination.limit);
+  loadLogsHistorico(1, get(pagination).limit);
 }
 
 /**
@@ -147,7 +147,7 @@ export function limparFiltros() {
  * Exportar logs para CSV
  */
 export function exportarLogsCSV() {
-  const logs = $logsHistorico;
+  const logs = get(logsHistorico);
   
   const csv = [
     'Data,Jovem,Usuário,Ação,Detalhe,Dados Anteriores,Dados Novos',

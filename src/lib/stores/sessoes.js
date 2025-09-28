@@ -1,4 +1,4 @@
-import { writable } from 'svelte/store';
+import { writable, get } from 'svelte/store';
 import { supabase } from '$lib/utils/supabase';
 
 // Stores para sessões
@@ -29,7 +29,7 @@ export async function loadSessoesAtivas(page = 1, limit = 20) {
   error.set(null);
   
   try {
-    const currentFilters = $filters;
+    const currentFilters = get(filters);
     
     let query = supabase
       .from('sessoes_usuario')
@@ -140,7 +140,7 @@ export async function invalidarSessao(sessaoId) {
     if (updateError) throw updateError;
     
     // Recarregar lista
-    await loadSessoesAtivas($pagination.page, $pagination.limit);
+    await loadSessoesAtivas(get(pagination).page, get(pagination).limit);
     
   } catch (err) {
     console.error('Error invalidating sessão:', err);
@@ -165,7 +165,7 @@ export async function invalidarTodasSessoesUsuario(usuarioId) {
     if (updateError) throw updateError;
     
     // Recarregar lista
-    await loadSessoesAtivas($pagination.page, $pagination.limit);
+    await loadSessoesAtivas(get(pagination).page, get(pagination).limit);
     
   } catch (err) {
     console.error('Error invalidating all sessões:', err);
@@ -190,7 +190,7 @@ export async function limparSessoesExpiradas() {
     if (updateError) throw updateError;
     
     // Recarregar lista
-    await loadSessoesAtivas($pagination.page, $pagination.limit);
+    await loadSessoesAtivas(get(pagination).page, get(pagination).limit);
     
   } catch (err) {
     console.error('Error cleaning expired sessões:', err);
@@ -203,7 +203,7 @@ export async function limparSessoesExpiradas() {
  */
 export function aplicarFiltros() {
   pagination.update(p => ({ ...p, page: 1 }));
-  loadSessoesAtivas(1, $pagination.limit);
+  loadSessoesAtivas(1, get(pagination).limit);
 }
 
 /**
@@ -224,7 +224,7 @@ export function limparFiltros() {
  * Exportar sessões para CSV
  */
 export function exportarSessoesCSV() {
-  const sessoes = $sessoesAtivas;
+  const sessoes = get(sessoesAtivas);
   
   const csv = [
     'Data Criação,Usuário,IP,User Agent,Ativo,Expira Em',

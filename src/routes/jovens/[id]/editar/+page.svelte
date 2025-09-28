@@ -7,6 +7,11 @@
   import { supabase } from '$lib/utils/supabase';
   import Button from '$lib/components/ui/Button.svelte';
   import Card from '$lib/components/ui/Card.svelte';
+  import { 
+    estados, blocos, regioes, igrejas, edicoes,
+    loadEstados, loadBlocos, loadRegioes, loadIgrejas, loadEdicoes,
+    loadingEstados, loadingBlocos, loadingRegioes, loadingIgrejas, loadingEdicoes
+  } from '$lib/stores/geographic';
   
   
   // @ts-ignore
@@ -73,12 +78,69 @@
     formado_intellimen: false,
     fazendo_desafios: false,
     qual_desafio: '',
-    observacao_redes: ''
+    observacao_redes: '',
+    // Campos de localização
+    estado_id: '',
+    bloco_id: '',
+    regiao_id: '',
+    igreja_id: '',
+    edicao_id: ''
   };
   
   onMount(async () => {
     await loadJovemData();
+    await loadInitialGeographicData();
   });
+  
+  // Função para carregar dados geográficos iniciais
+  async function loadInitialGeographicData() {
+    await Promise.all([
+      loadEstados(),
+      loadEdicoes()
+    ]);
+  }
+  
+  // Função para carregar blocos quando estado muda
+  async function handleEstadoChange() {
+    if (formData.estado_id) {
+      await loadBlocos(formData.estado_id);
+      // Limpar seleções dependentes
+      formData.bloco_id = '';
+      formData.regiao_id = '';
+      formData.igreja_id = '';
+      regioes.set([]);
+      igrejas.set([]);
+    } else {
+      blocos.set([]);
+      regioes.set([]);
+      igrejas.set([]);
+    }
+  }
+  
+  // Função para carregar regiões quando bloco muda
+  async function handleBlocoChange() {
+    if (formData.bloco_id) {
+      await loadRegioes(formData.bloco_id);
+      // Limpar seleções dependentes
+      formData.regiao_id = '';
+      formData.igreja_id = '';
+      igrejas.set([]);
+    } else {
+      regioes.set([]);
+      igrejas.set([]);
+    }
+  }
+  
+  // Função para carregar igrejas quando região muda
+  async function handleRegiaoChange() {
+    if (formData.regiao_id) {
+      await loadIgrejas(formData.regiao_id);
+      // Limpar seleção dependente
+      formData.igreja_id = '';
+    } else {
+      igrejas.set([]);
+    }
+  }
   
   async function loadJovemData() {
     loading = true;
@@ -170,8 +232,25 @@
         formado_intellimen: jovem.formado_intellimen || false,
         fazendo_desafios: jovem.fazendo_desafios || false,
         qual_desafio: jovem.qual_desafio || '',
-        observacao_redes: jovem.observacao_redes || ''
+        observacao_redes: jovem.observacao_redes || '',
+        // Campos de localização
+        estado_id: jovem.estado_id || '',
+        bloco_id: jovem.bloco_id || '',
+        regiao_id: jovem.regiao_id || '',
+        igreja_id: jovem.igreja_id || '',
+        edicao_id: jovem.edicao_id || ''
       };
+      
+      // Carregar dados geográficos baseados na localização atual do jovem
+      if (jovem.estado_id) {
+        await loadBlocos(jovem.estado_id);
+        if (jovem.bloco_id) {
+          await loadRegioes(jovem.bloco_id);
+          if (jovem.regiao_id) {
+            await loadIgrejas(jovem.regiao_id);
+          }
+        }
+      }
     } catch (err) {
       error = err.message;
     } finally {
@@ -448,6 +527,134 @@
                 />
               </div>
             {/if}
+          </div>
+        </Card>
+        
+        <!-- Localização -->
+        <Card>
+          <div class="px-6 py-4 border-b border-gray-200">
+            <h3 class="text-lg font-medium text-gray-900">Localização</h3>
+            <p class="text-sm text-gray-600 mt-1">Gerencie a localização geográfica e edição do jovem</p>
+          </div>
+          <div class="p-6 space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label for="edicao_id" class="block text-sm font-medium text-gray-700 mb-1">
+                  Edição *
+                </label>
+                <select
+                  id="edicao_id"
+                  bind:value={formData.edicao_id}
+                  required
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="">Selecione a edição</option>
+                  {#each $edicoes as edicao}
+                    <option value={edicao.id}>{edicao.nome}</option>
+                  {/each}
+                </select>
+              </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label for="estado_id" class="block text-sm font-medium text-gray-700 mb-1">
+                  Estado *
+                </label>
+                <select
+                  id="estado_id"
+                  bind:value={formData.estado_id}
+                  on:change={handleEstadoChange}
+                  required
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="">Selecione o estado</option>
+                  {#each $estados as estado}
+                    <option value={estado.id}>{estado.nome}</option>
+                  {/each}
+                </select>
+              </div>
+              
+              <div>
+                <label for="bloco_id" class="block text-sm font-medium text-gray-700 mb-1">
+                  Bloco
+                </label>
+                <select
+                  id="bloco_id"
+                  bind:value={formData.bloco_id}
+                  on:change={handleBlocoChange}
+                  disabled={!formData.estado_id || $loadingBlocos}
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                >
+                  <option value="">Selecione o bloco</option>
+                  {#each $blocos as bloco}
+                    <option value={bloco.id}>{bloco.nome}</option>
+                  {/each}
+                </select>
+                {#if $loadingBlocos}
+                  <p class="text-xs text-gray-500 mt-1">Carregando blocos...</p>
+                {/if}
+              </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label for="regiao_id" class="block text-sm font-medium text-gray-700 mb-1">
+                  Região
+                </label>
+                <select
+                  id="regiao_id"
+                  bind:value={formData.regiao_id}
+                  on:change={handleRegiaoChange}
+                  disabled={!formData.bloco_id || $loadingRegioes}
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                >
+                  <option value="">Selecione a região</option>
+                  {#each $regioes as regiao}
+                    <option value={regiao.id}>{regiao.nome}</option>
+                  {/each}
+                </select>
+                {#if $loadingRegioes}
+                  <p class="text-xs text-gray-500 mt-1">Carregando regiões...</p>
+                {/if}
+              </div>
+              
+              <div>
+                <label for="igreja_id" class="block text-sm font-medium text-gray-700 mb-1">
+                  Igreja
+                </label>
+                <select
+                  id="igreja_id"
+                  bind:value={formData.igreja_id}
+                  disabled={!formData.regiao_id || $loadingIgrejas}
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                >
+                  <option value="">Selecione a igreja</option>
+                  {#each $igrejas as igreja}
+                    <option value={igreja.id}>{igreja.nome}</option>
+                  {/each}
+                </select>
+                {#if $loadingIgrejas}
+                  <p class="text-xs text-gray-500 mt-1">Carregando igrejas...</p>
+                {/if}
+              </div>
+            </div>
+            
+            <!-- Informações de Transferência -->
+            <div class="bg-blue-50 border border-blue-200 rounded-md p-4">
+              <div class="flex items-start">
+                <svg class="w-5 h-5 text-blue-400 mt-0.5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div>
+                  <h4 class="text-sm font-medium text-blue-900">Transferência de Localidade</h4>
+                  <p class="text-sm text-blue-700 mt-1">
+                    Para transferir o jovem para uma nova localidade, selecione o novo estado, bloco, região e igreja. 
+                    A alteração será registrada no histórico do jovem.
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
         </Card>
         

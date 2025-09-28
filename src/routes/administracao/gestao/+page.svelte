@@ -8,6 +8,8 @@
   let regioes = [];
   let igrejas = [];
   let regioesCache = {};
+  let igrejasCache = {};
+  let igrejasCacheReativo = {};
 
   let loading = true;
   let error = '';
@@ -109,11 +111,33 @@
 
   // Helpers
   const blocosDoEstado = () => blocos.filter(b => String(b.estado_id) === String(estadoId));
-  const regioesDoBloco = () => regioes.filter(r => String(r.bloco_id) === String(blocoId));
-  const igrejasDaRegiao = () => igrejas.filter(i => String(i.regiao_id) === String(regiaoId));
+  const regioesDoBloco = () => {
+    const resultado = regioes.filter(r => String(r.bloco_id) === String(blocoId));
+    
+    // Se cache está disponível e tem mais dados, usar cache
+    if (regioesCache[blocoId] && regioesCache[blocoId].length > resultado.length) {
+      return regioesCache[blocoId];
+    }
+    
+    return resultado;
+  };
+  // Variável reativa derivada
+  $: igrejasDaRegiao = (() => {
+    const resultado = igrejas.filter(i => String(i.regiao_id) === String(regiaoId));
+    
+    // Se cache reativo está disponível, usar cache
+    if (igrejasCacheReativo[regiaoId] && igrejasCacheReativo[regiaoId].length > 0) {
+      return igrejasCacheReativo[regiaoId];
+    }
+    
+    return resultado;
+  })();
 
+  let ultimoBlocoCarregado = '';
+  
   // Carregamento defensivo se algum conjunto não veio no lote inicial
-  $: if (blocoId) {
+  $: if (blocoId && blocoId !== ultimoBlocoCarregado) {
+    ultimoBlocoCarregado = blocoId;
     const existeParaBloco = regioes.some(r => String(r.bloco_id) === String(blocoId));
     if (!existeParaBloco) {
       supabase
@@ -146,7 +170,10 @@
     }
   }
 
-  $: if (regiaoId) {
+  let ultimaRegiaoCarregada = '';
+  
+  $: if (regiaoId && regiaoId !== ultimaRegiaoCarregada) {
+    ultimaRegiaoCarregada = regiaoId;
     // Sempre recarrega todas as igrejas da região selecionada, garantindo unicidade
     supabase
       .from('igrejas')
@@ -156,10 +183,18 @@
       .then(({ data, error }) => {
         if (!error) {
           const normalizadas = (data || []).map(i => ({ ...i, id: String(i.id), regiao_id: String(i.regiao_id) }));
+          // Atualizar cache
+          igrejasCache[regiaoId] = normalizadas;
+          // Atualizar cache reativo
+          igrejasCacheReativo[regiaoId] = normalizadas;
+          
           // Remove igrejas da região atual e substitui pelo resultado completo único
           const outrasRegioes = igrejas.filter(i => String(i.regiao_id) !== String(regiaoId));
           igrejas = [...outrasRegioes, ...normalizadas];
           igrejas = uniquifyById(igrejas);
+          
+          // Forçar reatividade do cache reativo
+          igrejasCacheReativo = { ...igrejasCacheReativo };
         }
       });
   }
@@ -175,26 +210,114 @@
 
   async function criarBloco() {
     if (!estadoId || !novoBloco.nome) return;
-    const { error } = await supabase.from('blocos').insert([{ nome: novoBloco.nome, estado_id: estadoId }]);
+    const { data, error } = await supabase.from('blocos').insert([{ nome: novoBloco.nome, estado_id: estadoId }]).select();
     if (error) { alert(error.message); return; }
+    console.log('✅ Bloco inserido com sucesso:', data);
     novoBloco = { nome: '' };
     await carregarListas();
   }
 
   async function criarRegiao() {
-    if (!blocoId || !novaRegiao.nome) return;
-    const { error } = await supabase.from('regioes').insert([{ nome: novaRegiao.nome, bloco_id: blocoId }]);
-    if (error) { alert(error.message); return; }
-    novaRegiao = { nome: '' };
-    await carregarListas();
+    console.log('🚀 Função criarRegiao() chamada!');
+    console.log('📊 Estado atual:');
+    console.log('- blocoId:', blocoId);
+    console.log('- novaRegiao:', novaRegiao);
+    console.log('- novaRegiao.nome:', novaRegiao.nome);
+    
+    // Verificar se blocoId está definido
+    if (!blocoId) {
+      console.error('❌ blocoId não está definido');
+      alert('Selecione um bloco primeiro');
+      return;
+    }
+    
+    // Verificar se nome está definido
+    if (!novaRegiao.nome || novaRegiao.nome.trim() === '') {
+      console.error('❌ Nome da região não está definido');
+      alert('Digite o nome da região');
+      return;
+    }
+    
+    console.log('✅ Validações passaram, tentando inserir...');
+    
+    try {
+      const { data, error } = await supabase
+        .from('regioes')
+        .insert([{ nome: novaRegiao.nome, bloco_id: blocoId }])
+        .select();
+      
+      if (error) {
+        console.error('❌ Erro na inserção:', error);
+        alert(`Erro: ${error.message}`);
+        return;
+      }
+      
+      console.log('✅ Região inserida com sucesso:', data);
+      
+      // Adicionar nova região ao estado imediatamente
+      if (data && data[0]) {
+        const novaRegiaoData = {
+          id: String(data[0].id),
+          nome: data[0].nome,
+          bloco_id: String(blocoId)
+        };
+        
+        console.log('🔄 Adicionando região ao estado:', novaRegiaoData);
+        
+        // Adicionar ao array global de regiões
+        regioes = [...regioes, novaRegiaoData];
+        
+        // Atualizar cache do bloco
+        if (!regioesCache[blocoId]) {
+          regioesCache[blocoId] = [];
+        }
+        regioesCache[blocoId] = [...regioesCache[blocoId], novaRegiaoData];
+        
+        console.log('✅ Estado atualizado - regioes:', regioes.length);
+        console.log('✅ Cache atualizado - regioesCache[blocoId]:', regioesCache[blocoId].length);
+      }
+      
+      novaRegiao = { nome: '' };
+      
+    } catch (err) {
+      console.error('❌ Erro inesperado:', err);
+      alert(`Erro inesperado: ${err.message}`);
+    }
   }
 
   async function criarIgreja() {
     if (!regiaoId || !novaIgreja.nome) return;
-    const { error } = await supabase.from('igrejas').insert([{ nome: novaIgreja.nome, endereco: novaIgreja.endereco, regiao_id: regiaoId }]);
+    const { data, error } = await supabase.from('igrejas').insert([{ nome: novaIgreja.nome, endereco: novaIgreja.endereco, regiao_id: regiaoId }]).select();
     if (error) { alert(error.message); return; }
+    console.log('✅ Igreja inserida com sucesso:', data);
+    
+    // Adicionar nova igreja ao estado imediatamente
+    if (data && data[0]) {
+      const novaIgrejaData = {
+        id: String(data[0].id),
+        nome: data[0].nome,
+        endereco: data[0].endereco,
+        regiao_id: String(regiaoId)
+      };
+      
+      // Adicionar ao array global de igrejas
+      igrejas = [...igrejas, novaIgrejaData];
+      
+      // Atualizar cache da região
+      if (!igrejasCache[regiaoId]) {
+        igrejasCache[regiaoId] = [];
+      }
+      if (!igrejasCacheReativo[regiaoId]) {
+        igrejasCacheReativo[regiaoId] = [];
+      }
+      igrejasCache[regiaoId] = [...igrejasCache[regiaoId], novaIgrejaData];
+      igrejasCacheReativo[regiaoId] = [...igrejasCacheReativo[regiaoId], novaIgrejaData];
+      
+      // Forçar reatividade do cache reativo
+      igrejasCacheReativo = { ...igrejasCacheReativo };
+    }
+    
     novaIgreja = { nome: '', endereco: '' };
-    await carregarListas();
   }
 
   async function atualizar(table, id, updates) {
@@ -204,10 +327,40 @@
   }
 
   async function excluir(table, id) {
-    if (!confirm('Tem certeza que deseja excluir?')) return;
-    const { error } = await supabase.from(table).delete().eq('id', id);
-    if (error) { alert(error.message); return; }
-    await carregarListas();
+    console.log('🗑️ Tentando excluir:', { table, id });
+    
+    if (!confirm('Tem certeza que deseja excluir?')) {
+      console.log('❌ Exclusão cancelada pelo usuário');
+      return;
+    }
+    
+    try {
+      console.log('🚀 Executando exclusão...');
+      const { data, error } = await supabase.from(table).delete().eq('id', id).select();
+      
+      if (error) {
+        console.error('❌ Erro na exclusão:', error);
+        alert(`Erro ao excluir: ${error.message}`);
+        return;
+      }
+      
+      console.log('✅ Exclusão bem-sucedida:', data);
+      
+      // Remover do estado local imediatamente
+      if (table === 'regioes') {
+        regioes = regioes.filter(r => r.id !== id);
+        if (regioesCache[blocoId]) {
+          regioesCache[blocoId] = regioesCache[blocoId].filter(r => r.id !== id);
+        }
+        console.log('🔄 Estado local atualizado');
+      }
+      
+      await carregarListas();
+      
+    } catch (err) {
+      console.error('❌ Erro inesperado na exclusão:', err);
+      alert(`Erro inesperado: ${err.message}`);
+    }
   }
 </script>
 
@@ -309,7 +462,16 @@
       <h2 class="text-lg font-semibold">Regiões do Bloco</h2>
       <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
         <input class="border rounded px-3 py-2" placeholder="Nome da região" bind:value={novaRegiao.nome} />
-        <button class="bg-blue-600 text-white rounded px-4" on:click={criarRegiao} disabled={!blocoId}>Adicionar</button>
+        <button 
+          class="bg-blue-600 text-white rounded px-4" 
+          on:click={() => {
+            console.log('🖱️ Botão clicado!');
+            criarRegiao();
+          }} 
+          disabled={!blocoId}
+        >
+          Adicionar
+        </button>
       </div>
       <div class="grid grid-cols-1 gap-2">
         {#each regioesDoBloco() as r}
@@ -334,7 +496,7 @@
         <button class="bg-blue-600 text-white rounded px-4" on:click={criarIgreja} disabled={!regiaoId}>Adicionar</button>
       </div>
       <div class="grid grid-cols-1 gap-2">
-        {#each igrejasDaRegiao() as i}
+        {#each igrejasDaRegiao as i}
           <div class="border rounded p-3 flex items-center justify-between">
             <div>
               <div class="font-medium">{i.nome}</div>

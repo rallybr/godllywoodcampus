@@ -491,36 +491,47 @@ export async function aprovarJovem(id, status) {
   error.set(null);
   
   try {
-    const { data, error: updateError } = await supabase
-      .from('jovens')
-      .update({ aprovado: status })
-      .eq('id', id)
-      .select()
-      .single();
+    // Usar a nova função de aprovação múltipla
+    const { data, error: rpcError } = await supabase.rpc('aprovar_jovem_multiplo', {
+      p_jovem_id: id,
+      p_tipo_aprovacao: status,
+      p_observacao: null
+    });
     
-    if (updateError) throw updateError;
+    if (rpcError) throw rpcError;
     
-    // Criar log de auditoria
-    try {
-      await supabase.rpc('criar_log_auditoria', {
-        p_jovem_id: id,
-        p_acao: 'aprovacao',
-        p_detalhe: `Status de aprovação alterado para: ${status}`,
-        p_dados_novos: JSON.stringify({ aprovado: status })
-      });
-    } catch (logError) {
-      console.warn('Erro ao criar log de auditoria:', logError);
+    if (!data.success) {
+      throw new Error(data.error || 'Erro ao aprovar jovem');
     }
     
-    // Update local store
-    jovens.update(jovens => 
-      jovens.map(j => j.id === id ? { ...j, aprovado: status } : j)
-    );
+    // Buscar aprovações atualizadas para atualizar o status do jovem
+    const { data: aprovacoes, error: aprovacoesError } = await supabase
+      .from('aprovacoes_jovens')
+      .select('tipo_aprovacao')
+      .eq('jovem_id', id);
+    
+    if (!aprovacoesError && aprovacoes) {
+      // Determinar o status mais alto (aprovado > pre_aprovado)
+      let statusFinal = null;
+      if (aprovacoes.some(a => a.tipo_aprovacao === 'aprovado')) {
+        statusFinal = 'aprovado';
+      } else if (aprovacoes.some(a => a.tipo_aprovacao === 'pre_aprovado')) {
+        statusFinal = 'pre_aprovado';
+      }
+      
+      // Atualizar o status na tabela jovens
+      if (statusFinal) {
+        await supabase
+          .from('jovens')
+          .update({ aprovado: statusFinal })
+          .eq('id', id);
+      }
+    }
     
     // Notificar mudança de aprovação via RPC (com fallback)
     try {
       const titulo = status === 'aprovado' ? 'Jovem aprovado' : status === 'pre_aprovado' ? 'Jovem pré-aprovado' : 'Status atualizado';
-      const mensagem = 'O status de aprovação do jovem foi atualizado.';
+      const mensagem = 'O jovem foi aprovado por um novo usuário.';
       await supabase.rpc('notificar_evento_jovem', {
         p_jovem_id: id,
         p_tipo: 'aprovacao',
@@ -531,13 +542,70 @@ export async function aprovarJovem(id, status) {
     } catch (e) {
       console.warn('RPC notificar_evento_jovem falhou, fallback para frontend:', e);
       const titulo = status === 'aprovado' ? 'Jovem aprovado' : status === 'pre_aprovado' ? 'Jovem pré-aprovado' : 'Status atualizado';
-      await notificarEventoJovem(id, 'aprovacao', titulo, 'O status de aprovação do jovem foi atualizado.');
+      await notificarEventoJovem(id, 'aprovacao', titulo, 'O jovem foi aprovado por um novo usuário.');
     }
     
     return data;
   } catch (err) {
     error.set(err.message);
     console.error('Error updating jovem approval:', err);
+    throw err;
+  } finally {
+    loading.set(false);
+  }
+}
+
+// Função para buscar aprovações de um jovem
+export async function buscarAprovacoesJovem(jovemId) {
+  try {
+    const { data, error } = await supabase.rpc('buscar_aprovacoes_jovem', {
+      p_jovem_id: jovemId
+    });
+    
+    if (error) throw error;
+    return data;
+  } catch (err) {
+    console.error('Error fetching approvals:', err);
+    throw err;
+  }
+}
+
+// Função para verificar se o usuário atual já aprovou um jovem
+export async function verificarSeUsuarioJaAprovou(jovemId, tipoAprovacao = null) {
+  try {
+    const { data, error } = await supabase.rpc('usuario_ja_aprovou', {
+      p_jovem_id: jovemId,
+      p_tipo_aprovacao: tipoAprovacao
+    });
+
+    if (error) throw error;
+    return data;
+  } catch (err) {
+    console.error('Error checking user approval:', err);
+    return false;
+  }
+}
+
+// Função para remover aprovação (apenas administradores)
+export async function removerAprovacaoAdmin(aprovacaoId) {
+  loading.set(true);
+  error.set(null);
+
+  try {
+    const { data, error: rpcError } = await supabase.rpc('remover_aprovacao_admin', {
+      p_aprovacao_id: aprovacaoId
+    });
+
+    if (rpcError) throw rpcError;
+
+    if (!data.success) {
+      throw new Error(data.error || 'Erro ao remover aprovação');
+    }
+
+    return data;
+  } catch (err) {
+    error.set(err.message);
+    console.error('Error removing approval:', err);
     throw err;
   } finally {
     loading.set(false);

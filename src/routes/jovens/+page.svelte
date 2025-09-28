@@ -16,6 +16,7 @@
     } else {
       const userId = $userProfile?.id;
       const userLevel = $userProfile?.nivel;
+      console.log('🔍 DEBUG - Carregando jovens:', { userId, userLevel });
       loadJovens(1, 20, userId, userLevel);
     }
   });

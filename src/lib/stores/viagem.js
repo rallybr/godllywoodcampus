@@ -160,7 +160,7 @@ export async function loadViagensCardsForJovem() {
 /**
  * Carrega dados de viagem para cards (jovens + dados_viagem + relacionamentos)
  */
-export async function loadViagensCards(page = 1, limit = 20) {
+export async function loadViagensCards(page = 1, limit = 20, userId = null, userLevel = null) {
   loading.set(true);
   error.set(null);
   
@@ -172,7 +172,7 @@ export async function loadViagensCards(page = 1, limit = 20) {
     }
     
     // Buscar jovens com dados básicos e relacionamentos
-    const { data, error: fetchError, count } = await supabase
+    let query = supabase
       .from('jovens')
       .select(`
         id,
@@ -183,11 +183,19 @@ export async function loadViagensCards(page = 1, limit = 20) {
         regiao_id,
         igreja_id,
         edicao_id,
+        usuario_id,
         estado:estados(nome, sigla),
         bloco:blocos(nome),
         regiao:regioes(nome),
         igreja:igrejas(nome)
-      `, { count: 'exact' })
+      `, { count: 'exact' });
+    
+    // Se for colaborador, filtrar apenas jovens que ele cadastrou
+    if (userLevel === 'colaborador' && userId) {
+      query = query.eq('usuario_id', userId);
+    }
+    
+    const { data, error: fetchError, count } = await query
       .order('data_cadastro', { ascending: false })
       .range((page - 1) * limit, page * limit - 1);
     
@@ -592,14 +600,18 @@ export async function getEdicaoAtiva() {
       .from('edicoes')
       .select('*')
       .eq('ativa', true)
-      .single();
+      .maybeSingle(); // Usar maybeSingle() em vez de single() para evitar erro quando não há registros
     
     if (error) {
       console.error('❌ Erro ao buscar edição ativa:', error);
       throw error;
     }
     
-    console.log('✅ Edição ativa encontrada:', data);
+    if (data) {
+      console.log('✅ Edição ativa encontrada:', data);
+    } else {
+      console.log('⚠️ Nenhuma edição ativa encontrada');
+    }
     return data;
   } catch (err) {
     console.error('❌ Error loading edicao ativa:', err);

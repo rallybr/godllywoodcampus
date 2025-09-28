@@ -18,6 +18,11 @@
     loading = true;
     error = '';
     try {
+      console.log('🔍 DEBUG - Iniciando fetchJovens');
+      console.log('🔍 DEBUG - userProfile:', $userProfile);
+      console.log('🔍 DEBUG - userProfile.nivel:', $userProfile?.nivel);
+      console.log('🔍 DEBUG - userProfile.id:', $userProfile?.id);
+      
       const from = (page - 1) * pageSize;
       const to = from + pageSize - 1;
 
@@ -27,17 +32,41 @@
           id,
           nome_completo,
           foto,
-          estado:estado_id (
+          usuario_id,
+          idade,
+          aprovado,
+          estado:estados!estado_id (
             id,
+            nome,
             sigla,
             bandeira
+          ),
+          bloco:blocos!bloco_id (
+            id,
+            nome
+          ),
+          regiao:regioes!regiao_id (
+            id,
+            nome
+          ),
+          igreja:igrejas!igreja_id (
+            id,
+            nome
+          ),
+          edicao:edicoes!edicao_id (
+            id,
+            nome,
+            numero
           )
         `, { count: 'exact' })
         .order('nome_completo', { ascending: true });
 
-      // Se nível for jovem, restringe ao próprio usuário
-      if ($userProfile?.nivel === 'jovem' && $userProfile?.id) {
+      // Se nível for jovem ou colaborador, restringe ao próprio usuário
+      if (($userProfile?.nivel === 'jovem' || $userProfile?.nivel === 'colaborador') && $userProfile?.id) {
+        console.log('🔍 DEBUG - Filtrando para usuário:', { nivel: $userProfile.nivel, userId: $userProfile.id });
         query = query.eq('usuario_id', $userProfile.id);
+      } else {
+        console.log('🔍 DEBUG - Não filtrando:', { nivel: $userProfile?.nivel, userId: $userProfile?.id });
       }
 
       if (searchTerm && searchTerm.trim().length > 0) {
@@ -46,6 +75,23 @@
 
       const { data, error: err, count } = await query.range(from, to);
       if (err) throw err;
+      
+      console.log('🔍 DEBUG - Dados retornados:', data);
+      console.log('🔍 DEBUG - Total de registros:', count);
+      console.log('🔍 DEBUG - Jovens encontrados:', data?.length);
+      
+      // Log detalhado de cada jovem
+      if (data && data.length > 0) {
+        data.forEach((jovem, index) => {
+          console.log(`🔍 DEBUG - Jovem ${index + 1}:`, {
+            id: jovem.id,
+            nome: jovem.nome_completo,
+            usuario_id: jovem.usuario_id,
+            estado: jovem.estado
+          });
+        });
+      }
+      
       jovens = data || [];
       total = count || 0;
     } catch (e) {
@@ -91,7 +137,7 @@
     <p class="text-gray-600">Lista em cartões compactos</p>
   </div>
 
-  {#if $userProfile?.nivel !== 'jovem'}
+  {#if $userProfile?.nivel !== 'jovem' && $userProfile?.nivel !== 'colaborador'}
     <!-- Busca com Autocomplete -->
     <div class="bg-white rounded-lg shadow p-4">
       <Autocomplete
@@ -121,7 +167,7 @@
       {/each}
     </div>
 
-    {#if $userProfile?.nivel !== 'jovem'}
+    {#if $userProfile?.nivel !== 'jovem' && $userProfile?.nivel !== 'colaborador'}
       <!-- Paginação -->
       <div class="flex items-center justify-center gap-3 mt-6">
         <button on:click={prevPage} disabled={page <= 1} class="px-3 py-2 border rounded disabled:opacity-50">Anterior</button>

@@ -39,18 +39,19 @@ export const PERMISSOES = {
   SISTEMA_AUDITORIA: 'sistema.auditoria'
 };
 
-// Níveis hierárquicos
+// Níveis hierárquicos (alinhados com o banco de dados)
 export const NIVEIS_HIERARQUICOS = {
   ADMINISTRADOR: 1,
-  COLABORADOR: 2,
-  LIDER_NACIONAL_IURD: 3,
-  LIDER_NACIONAL_FJU: 3,
-  LIDER_ESTADUAL_IURD: 4,
-  LIDER_ESTADUAL_FJU: 4,
-  LIDER_BLOCO_IURD: 5,
-  LIDER_BLOCO_FJU: 5,
-  LIDER_REGIONAL_IURD: 6,
-  LIDER_IGREJA_IURD: 7
+  LIDER_NACIONAL_IURD: 2,
+  LIDER_NACIONAL_FJU: 2,
+  LIDER_ESTADUAL_IURD: 3,
+  LIDER_ESTADUAL_FJU: 3,
+  LIDER_BLOCO_IURD: 4,
+  LIDER_BLOCO_FJU: 4,
+  LIDER_REGIONAL_IURD: 5,
+  LIDER_IGREJA_IURD: 6,
+  COLABORADOR: 7,
+  JOVEM: 8
 };
 
 // Função para carregar permissões do usuário

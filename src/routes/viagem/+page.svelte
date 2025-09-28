@@ -49,7 +49,10 @@
         if (hasRole('jovem')($userProfile)) {
           await loadViagensCardsForJovem();
         } else {
-          await loadViagensCards(); 
+          // Passar userId e userLevel para filtrar corretamente
+          const userId = $userProfile?.id;
+          const userLevel = $userProfile?.nivel;
+          await loadViagensCards(1, 20, userId, userLevel);
         }
         console.log('✅ Dados de viagem carregados com sucesso');
       } catch (viagemError) {

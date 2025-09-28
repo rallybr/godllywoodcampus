@@ -72,21 +72,50 @@ export async function loadJovens(page = 1, limit = 20, userId = null, userLevel 
       .from('jovens')
       .select(`
         *,
-        estado:estados(id, nome, sigla),
-        bloco:blocos(id, nome),
-        regiao:regioes(id, nome),
-        igreja:igrejas(id, nome),
-        edicao:edicoes(id, nome, numero)
+        estado:estados!estado_id(id, nome, sigla, bandeira),
+        bloco:blocos!bloco_id(id, nome),
+        regiao:regioes!regiao_id(id, nome),
+        igreja:igrejas!igreja_id(id, nome, endereco),
+        edicao:edicoes!edicao_id(id, nome, numero)
       `, { count: 'exact' });
     
     // Se for colaborador, filtrar apenas jovens que ele cadastrou
     if (userLevel === 'colaborador' && userId) {
+      console.log('🔍 DEBUG - Filtrando para colaborador:', { userId, userLevel });
       query = query.eq('usuario_id', userId);
+    } else {
+      console.log('🔍 DEBUG - Não é colaborador ou sem userId:', { userId, userLevel });
     }
     
     const { data, error: fetchError, count } = await query
       .order('data_cadastro', { ascending: false })
       .range((page - 1) * limit, page * limit - 1);
+    
+    console.log('🔍 DEBUG - Dados brutos retornados:', data);
+    console.log('🔍 DEBUG - Primeiro jovem completo:', data?.[0]);
+    console.log('🔍 DEBUG - Relacionamentos do primeiro jovem:', {
+      estado: data?.[0]?.estado,
+      bloco: data?.[0]?.bloco,
+      regiao: data?.[0]?.regiao,
+      igreja: data?.[0]?.igreja
+    });
+    
+    // Debug específico para dados geográficos
+    if (data && data.length > 0) {
+      const primeiroJovem = data[0];
+      console.log('🔍 DEBUG - IDs geográficos do primeiro jovem:', {
+        estado_id: primeiroJovem.estado_id,
+        bloco_id: primeiroJovem.bloco_id,
+        regiao_id: primeiroJovem.regiao_id,
+        igreja_id: primeiroJovem.igreja_id
+      });
+      console.log('🔍 DEBUG - Objetos geográficos do primeiro jovem:', {
+        estado: primeiroJovem.estado,
+        bloco: primeiroJovem.bloco,
+        regiao: primeiroJovem.regiao,
+        igreja: primeiroJovem.igreja
+      });
+    }
     
     if (fetchError) {
       console.error('Erro ao carregar jovens:', fetchError);
@@ -145,36 +174,25 @@ export async function loadJovemById(id) {
   error.set(null);
   
   try {
-    console.log('=== CARREGANDO JOVEM POR ID ===');
-    console.log('ID recebido:', id);
-    
+    // Usar consulta direta em vez da função RPC
     const { data, error: fetchError } = await supabase
       .from('jovens')
       .select(`
         *,
-        estado:estados(nome, sigla),
-        bloco:blocos(nome),
-        regiao:regioes(nome),
-        igreja:igrejas(nome),
-        edicao_obj:edicoes(nome, numero)
+        estados!estado_id(id, nome, sigla, bandeira),
+        blocos!bloco_id(id, nome),
+        regioes!regiao_id(id, nome),
+        igrejas!igreja_id(id, nome, endereco),
+        edicoes!edicao_id(id, nome, numero)
       `)
       .eq('id', id)
       .single();
     
-    console.log('Erro da consulta:', fetchError);
-    console.log('Dados recebidos:', data);
-    
-    if (fetchError) {
-      console.error('Erro detalhado:', fetchError);
-      throw fetchError;
-    }
-    
-    console.log('=== JOVEM CARREGADO COM SUCESSO ===');
+    if (fetchError) throw fetchError;
     return data;
   } catch (err) {
-    console.error('=== ERRO AO CARREGAR JOVEM ===');
-    console.error('Erro completo:', err);
-    error.set(err.message || 'Erro desconhecido');
+    console.error('Erro ao carregar jovem:', err);
+    error.set(err.message);
     return null;
   } finally {
     loading.set(false);
@@ -262,5 +280,110 @@ export async function deleteJovem(id) {
 }
 
 export async function aprovarJovem(id, status) {
-  return updateJovem(id, { aprovado: status });
+  loading.set(true);
+  error.set(null);
+  
+  try {
+    // Usar a nova função de aprovação múltipla
+    const { data, error: rpcError } = await supabase.rpc('aprovar_jovem_multiplo', {
+      p_jovem_id: id,
+      p_tipo_aprovacao: status,
+      p_observacao: null
+    });
+    
+    if (rpcError) throw rpcError;
+    
+    if (!data.success) {
+      throw new Error(data.error || 'Erro ao aprovar jovem');
+    }
+    
+    // Buscar aprovações atualizadas para atualizar o status do jovem
+    const { data: aprovacoes, error: aprovacoesError } = await supabase
+      .from('aprovacoes_jovens')
+      .select('tipo_aprovacao')
+      .eq('jovem_id', id);
+    
+    if (!aprovacoesError && aprovacoes) {
+      // Determinar o status mais alto (aprovado > pre_aprovado)
+      let statusFinal = null;
+      if (aprovacoes.some(a => a.tipo_aprovacao === 'aprovado')) {
+        statusFinal = 'aprovado';
+      } else if (aprovacoes.some(a => a.tipo_aprovacao === 'pre_aprovado')) {
+        statusFinal = 'pre_aprovado';
+      }
+      
+      // Atualizar o status na tabela jovens
+      if (statusFinal) {
+        await supabase
+          .from('jovens')
+          .update({ aprovado: statusFinal })
+          .eq('id', id);
+      }
+    }
+    
+    return data;
+  } catch (err) {
+    error.set(err.message);
+    console.error('Error updating jovem approval:', err);
+    throw err;
+  } finally {
+    loading.set(false);
+  }
+}
+
+// Função para buscar aprovações de um jovem
+export async function buscarAprovacoesJovem(jovemId) {
+  try {
+    const { data, error } = await supabase.rpc('buscar_aprovacoes_jovem', {
+      p_jovem_id: jovemId
+    });
+    
+    if (error) throw error;
+    return data;
+  } catch (err) {
+    console.error('Error fetching approvals:', err);
+    throw err;
+  }
+}
+
+// Função para verificar se o usuário atual já aprovou um jovem
+export async function verificarSeUsuarioJaAprovou(jovemId, tipoAprovacao = null) {
+  try {
+    const { data, error } = await supabase.rpc('usuario_ja_aprovou', {
+      p_jovem_id: jovemId,
+      p_tipo_aprovacao: tipoAprovacao
+    });
+
+    if (error) throw error;
+    return data;
+  } catch (err) {
+    console.error('Error checking user approval:', err);
+    return false;
+  }
+}
+
+// Função para remover aprovação (apenas administradores)
+export async function removerAprovacaoAdmin(aprovacaoId) {
+  loading.set(true);
+  error.set(null);
+
+  try {
+    const { data, error: rpcError } = await supabase.rpc('remover_aprovacao_admin', {
+      p_aprovacao_id: aprovacaoId
+    });
+
+    if (rpcError) throw rpcError;
+
+    if (!data.success) {
+      throw new Error(data.error || 'Erro ao remover aprovação');
+    }
+
+    return data;
+  } catch (err) {
+    error.set(err.message);
+    console.error('Error removing approval:', err);
+    throw err;
+  } finally {
+    loading.set(false);
+  }
 }

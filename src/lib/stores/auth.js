@@ -1,5 +1,6 @@
 import { writable } from 'svelte/store';
 import { supabase } from '$lib/utils/supabase';
+import { registrarUltimoAcesso } from './usuarios';
 import { initializeAccessLevels } from './niveis-acesso';
 import { initializeCadastroCheck, marcarJovemNaoCadastrado } from './jovem-cadastro';
 import { browser } from '$app/environment';
@@ -94,6 +95,13 @@ export async function loadUserProfile(userId) {
     
     // Inicializar verificação de cadastro do jovem
     await initializeCadastroCheck();
+    
+    // Registrar último acesso
+    try {
+      await registrarUltimoAcesso();
+    } catch (err) {
+      console.warn('Erro ao registrar último acesso:', err);
+    }
   } catch (error) {
     console.error('Error loading user profile:', error);
     console.error('Error details:', JSON.stringify(error, null, 2));

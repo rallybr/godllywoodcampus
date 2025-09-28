@@ -122,59 +122,59 @@
     </div>
   {:else if estatisticas}
     <!-- Estatísticas Principais -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-      <Card class="p-4 sm:p-6">
+    <div class="grid gap-3 sm:gap-4 lg:gap-6" style="grid-template-columns: 1fr 1fr; display: grid;">
+      <Card class="p-3 sm:p-4 lg:p-6">
         <div class="flex items-center">
-          <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mr-4">
-            <svg class="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div class="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-full flex items-center justify-center mr-3 sm:mr-4">
+            <svg class="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
             </svg>
           </div>
           <div>
             <p class="text-sm font-medium text-gray-500">Total de Jovens</p>
-            <p class="text-2xl font-bold text-gray-900">{estatisticas.totalJovens}</p>
+            <p class="text-xl sm:text-2xl font-bold text-gray-900">{estatisticas.totalJovens}</p>
           </div>
         </div>
       </Card>
       
-      <Card class="p-4 sm:p-6">
+      <Card class="p-3 sm:p-4 lg:p-6">
         <div class="flex items-center">
-          <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mr-4">
-            <svg class="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div class="w-10 h-10 sm:w-12 sm:h-12 bg-green-100 rounded-full flex items-center justify-center mr-3 sm:mr-4">
+            <svg class="w-5 h-5 sm:w-6 sm:h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
           <div>
             <p class="text-sm font-medium text-gray-500">Aprovados</p>
-            <p class="text-2xl font-bold text-gray-900">{estatisticas.aprovados}</p>
+            <p class="text-xl sm:text-2xl font-bold text-gray-900">{estatisticas.aprovados}</p>
           </div>
         </div>
       </Card>
       
-      <Card class="p-4 sm:p-6">
+      <Card class="p-3 sm:p-4 lg:p-6">
         <div class="flex items-center">
-          <div class="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center mr-4">
-            <svg class="w-6 h-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div class="w-10 h-10 sm:w-12 sm:h-12 bg-yellow-100 rounded-full flex items-center justify-center mr-3 sm:mr-4">
+            <svg class="w-5 h-5 sm:w-6 sm:h-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
           <div>
             <p class="text-sm font-medium text-gray-500">Pré-aprovados</p>
-            <p class="text-2xl font-bold text-gray-900">{estatisticas.preAprovados}</p>
+            <p class="text-xl sm:text-2xl font-bold text-gray-900">{estatisticas.preAprovados}</p>
           </div>
         </div>
       </Card>
       
-      <Card class="p-4 sm:p-6">
+      <Card class="p-3 sm:p-4 lg:p-6">
         <div class="flex items-center">
-          <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mr-4">
-            <svg class="w-6 h-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div class="w-10 h-10 sm:w-12 sm:h-12 bg-gray-100 rounded-full flex items-center justify-center mr-3 sm:mr-4">
+            <svg class="w-5 h-5 sm:w-6 sm:h-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
             </svg>
           </div>
           <div>
             <p class="text-sm font-medium text-gray-500">Pendentes</p>
-            <p class="text-2xl font-bold text-gray-900">{estatisticas.pendentes}</p>
+            <p class="text-xl sm:text-2xl font-bold text-gray-900">{estatisticas.pendentes}</p>
           </div>
         </div>
       </Card>
@@ -182,7 +182,7 @@
     
     <!-- Estatísticas de Avaliações -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-      <Card class="p-4 sm:p-6">
+      <Card class="p-3 sm:p-4 lg:p-6">
         <h3 class="text-lg font-semibold text-gray-900 mb-4">Médias de Avaliações</h3>
         <div class="space-y-4">
           <div>
@@ -247,7 +247,7 @@
         </div>
       </Card>
       
-      <Card class="p-4 sm:p-6">
+      <Card class="p-3 sm:p-4 lg:p-6">
         <h3 class="text-lg font-semibold text-gray-900 mb-4">Resumo de Avaliações</h3>
         <div class="space-y-4">
           <div class="flex items-center justify-between">
@@ -274,7 +274,7 @@
     
     <!-- Relatório por Localização -->
     {#if relatorioLocalizacao.length > 0}
-      <Card class="p-4 sm:p-6">
+      <Card class="p-3 sm:p-4 lg:p-6">
         <h3 class="text-lg font-semibold text-gray-900 mb-4">Distribuição por Localização</h3>
         <div class="overflow-x-auto">
           <table class="min-w-full divide-y divide-gray-200">
@@ -386,7 +386,7 @@
       </div>
       
       <!-- Gráfico de Evolução -->
-      <Card class="p-4 sm:p-6">
+      <Card class="p-3 sm:p-4 lg:p-6">
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-lg font-semibold text-gray-900">Evolução Temporal</h3>
           <div class="flex space-x-2">

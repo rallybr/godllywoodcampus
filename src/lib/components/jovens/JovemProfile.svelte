@@ -1,7 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
-  import { loadJovemById, aprovarJovem } from '$lib/stores/jovens-simple';
+  import { loadJovemById, aprovarJovem, buscarAprovacoesJovem, verificarSeUsuarioJaAprovou, removerAprovacaoAdmin } from '$lib/stores/jovens-simple';
   import { goto } from '$app/navigation';
   import Button from '$lib/components/ui/Button.svelte';
   import Card from '$lib/components/ui/Card.svelte';
@@ -25,6 +25,12 @@
   let showAssociarModal = false;
   // @ts-ignore
   let avaliacoesListComponent = null;
+  // @ts-ignore
+  let aprovacoes = [];
+  let usuarioJaAprovouAprovado = false;
+  let usuarioJaAprovouPreAprovado = false;
+  let aprovacoesTab = 'pre_aprovado';
+  let removendoAprovacao = false; // Aba ativa por padrão
   
   const tabs = [
     { id: 'dados-pessoais', label: 'Dados Pessoais', icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z' },
@@ -58,11 +64,60 @@
         console.log('Sexo do jovem:', jovem.sexo);
         console.log('WhatsApp do jovem:', jovem.whatsapp);
         console.log('Edição do jovem:', jovem.edicao);
+        
+        // Debug específico para dados geográficos
+        console.log('🔍 DEBUG - Dados geográficos do jovem:', {
+          estado: jovem.estados,
+          bloco: jovem.blocos,
+          regiao: jovem.regioes,
+          igreja: jovem.igrejas
+        });
+        console.log('🔍 DEBUG - Nomes geográficos:', {
+          estado_nome: jovem.estados?.nome,
+          bloco_nome: jovem.blocos?.nome,
+          regiao_nome: jovem.regioes?.nome,
+          igreja_nome: jovem.igrejas?.nome
+        });
+        
+        // Carregar aprovações do jovem
+        await loadAprovacoes();
       }
     } catch (err) {
       error = err.message;
     } finally {
       loading = false;
+    }
+  }
+  
+  async function loadAprovacoes() {
+    try {
+      // Buscar todas as aprovações do jovem
+      aprovacoes = await buscarAprovacoesJovem(jovemId);
+      
+      // Verificar se o usuário atual já aprovou
+      usuarioJaAprovouAprovado = await verificarSeUsuarioJaAprovou(jovemId, 'aprovado');
+      usuarioJaAprovouPreAprovado = await verificarSeUsuarioJaAprovou(jovemId, 'pre_aprovado');
+    } catch (err) {
+      console.error('Erro ao carregar aprovações:', err);
+    }
+  }
+
+  async function handleRemoverAprovacao(aprovacaoId, usuarioNome, tipoAprovacao) {
+    if (!confirm(`Tem certeza que deseja remover a ${tipoAprovacao === 'aprovado' ? 'aprovação' : 'pré-aprovação'} de ${usuarioNome}?`)) {
+      return;
+    }
+
+    removendoAprovacao = true;
+    try {
+      await removerAprovacaoAdmin(aprovacaoId);
+      // Recarregar aprovações após remoção
+      await loadAprovacoes();
+      alert('Aprovação removida com sucesso!');
+    } catch (err) {
+      console.error('Erro ao remover aprovação:', err);
+      alert('Erro ao remover aprovação: ' + err.message);
+    } finally {
+      removendoAprovacao = false;
     }
   }
   
@@ -73,7 +128,16 @@
     isApproving = true;
     try {
       await aprovarJovem(jovem.id, status);
-      jovem.aprovado = status;
+      
+      // Recarregar aprovações após aprovar
+      await loadAprovacoes();
+      
+      // Atualizar status do jovem baseado nas aprovações
+      if (aprovacoes.some(a => a.tipo_aprovacao === 'aprovado')) {
+        jovem.aprovado = 'aprovado';
+      } else if (aprovacoes.some(a => a.tipo_aprovacao === 'pre_aprovado')) {
+        jovem.aprovado = 'pre_aprovado';
+      }
     } catch (err) {
       error = err.message;
     } finally {
@@ -176,18 +240,18 @@
     </Button>
   </div>
 {:else if jovem}
-  <div class="max-w-6xl mx-auto px-4 sm:px-6">
+  <div class="max-w-6xl mx-auto px-2 sm:px-4 lg:px-6">
     <!-- Header -->
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-4 sm:mb-6">
       <!-- Header azul com nome e edição -->
-      <div class="bg-blue-600 px-4 sm:px-6 py-4 sm:py-5 text-center">
-        <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-white mb-1 sm:mb-2">{jovem.nome_completo}</h1>
-        <p class="text-white text-sm sm:text-base font-medium">{jovem.edicao || 'Não informado'}</p>
+      <div class="bg-blue-600 px-3 sm:px-4 lg:px-6 py-3 sm:py-4 lg:py-5 text-center">
+        <h1 class="text-lg sm:text-xl lg:text-2xl xl:text-3xl font-bold text-white mb-1 sm:mb-2">{jovem.nome_completo}</h1>
+        <p class="text-white text-xs sm:text-sm lg:text-base font-medium">{jovem.edicao || 'Não informado'}</p>
       </div>
       
       <!-- Conteúdo do header -->
-      <div class="p-4 sm:p-6 lg:p-8">
-        <div class="flex flex-col lg:flex-row items-center lg:items-start space-y-4 lg:space-y-0 lg:space-x-6 xl:space-x-8">
+      <div class="p-3 sm:p-4 lg:p-6 xl:p-8">
+        <div class="flex flex-col lg:flex-row items-center lg:items-start space-y-3 sm:space-y-4 lg:space-y-0 lg:space-x-4 xl:space-x-6 2xl:space-x-8">
           <!-- Foto -->
           <div class="flex-shrink-0">
             {#if jovem.foto}
@@ -207,19 +271,19 @@
                 <div class="space-y-2 sm:space-y-3">
                   <div class="flex items-center space-x-2 sm:space-x-3">
                     <span class="text-gray-500 text-xs sm:text-sm font-medium w-12 sm:w-16">Estado:</span>
-                    <span class="text-gray-700 text-sm sm:text-base font-semibold">{jovem.estado?.nome || 'Não informado'}</span>
+                    <span class="text-gray-700 text-sm sm:text-base font-semibold">{jovem.estados?.nome || 'Não informado'}</span>
                   </div>
                   <div class="flex items-center space-x-2 sm:space-x-3">
                     <span class="text-gray-500 text-xs sm:text-sm font-medium w-12 sm:w-16">Bloco:</span>
-                    <span class="text-gray-700 text-sm sm:text-base font-semibold">{jovem.bloco?.nome || 'Não informado'}</span>
+                    <span class="text-gray-700 text-sm sm:text-base font-semibold">{jovem.blocos?.nome || 'Não informado'}</span>
                   </div>
                   <div class="flex items-center space-x-2 sm:space-x-3">
                     <span class="text-gray-500 text-xs sm:text-sm font-medium w-12 sm:w-16">Região:</span>
-                    <span class="text-gray-700 text-sm sm:text-base font-semibold">{jovem.regiao?.nome || 'Não informado'}</span>
+                    <span class="text-gray-700 text-sm sm:text-base font-semibold">{jovem.regioes?.nome || 'Não informado'}</span>
                   </div>
                   <div class="flex items-center space-x-2 sm:space-x-3">
                     <span class="text-gray-500 text-xs sm:text-sm font-medium w-12 sm:w-16">Igreja:</span>
-                    <span class="text-gray-700 text-sm sm:text-base font-semibold">{jovem.igreja?.nome || 'Não informado'}</span>
+                    <span class="text-gray-700 text-sm sm:text-base font-semibold">{jovem.igrejas?.nome || 'Não informado'}</span>
                   </div>
                   <div class="flex items-center space-x-2 sm:space-x-3">
                     <span class="text-gray-500 text-xs sm:text-sm font-medium w-12 sm:w-16">Idade:</span>
@@ -232,82 +296,254 @@
                 </div>
               </div>
               
-              <!-- Status e ações -->
-              <div class="flex flex-col items-center lg:items-end space-y-3 sm:space-y-4">
-                {#if !hasRole('jovem')($userProfile)}
-                  <span class="inline-flex items-center px-3 sm:px-4 py-1 sm:py-2 rounded-full text-sm sm:text-base font-semibold {getStatusBadge(jovem.aprovado)}">
-                    {getStatusText(jovem.aprovado)}
-                  </span>
-                  <div class="flex flex-col sm:flex-row lg:flex-col space-y-2 sm:space-y-0 sm:space-x-2 lg:space-x-0 lg:space-y-2 w-full max-w-xs">
-                    {#if jovem.aprovado !== 'aprovado'}
-                      <Button
-                        size="sm"
-                        variant="primary"
-                        on:click={() => handleAprovar('aprovado')}
-                        loading={isApproving}
-                        disabled={isApproving}
-                        class="text-xs sm:text-sm"
-                      >
-                        Aprovar
-                      </Button>
-                    {/if}
-                    {#if jovem.aprovado !== 'pre_aprovado'}
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        on:click={() => handleAprovar('pre_aprovado')}
-                        loading={isApproving}
-                        disabled={isApproving}
-                        class="text-xs sm:text-sm"
-                      >
-                        Pré-aprovar
-                      </Button>
-                    {/if}
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      on:click={() => goto(`/jovens/${jovem.id}/editar`)}
-                      class="text-xs sm:text-sm"
-                    >
-                      Editar
-                    </Button>
-                    <button
-                      on:click={() => goto(`/jovens/${jovem.id}/ficha`)}
-                      class="flex items-center justify-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                    >
-                      <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                      <span>Ver Ficha</span>
-                    </button>
-                    <button
-                      on:click={() => goto(`/progresso?jovem=${jovem.id}`)}
-                      class="flex items-center justify-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm font-medium text-white bg-teal-600 border border-teal-600 rounded-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500"
-                    >
-                      <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h4l3 10 4-18 3 8h4" />
-                      </svg>
-                      <span>Progresso</span>
-                    </button>
-                  {#if $userProfile?.nivel === 'administrador'}
-                  <button
-                    on:click={openAssociarModal}
-                    class="flex items-center justify-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm font-medium text-white bg-indigo-600 border border-indigo-600 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                  >
-                    <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v4m0 0v4m0-4h4m-4 0H8" />
-                    </svg>
-                    <span>Associar</span>
-                  </button>
-                  {/if}
-                  </div>
-                {/if}
-              </div>
             </div>
           </div>
         </div>
       </div>
     </div>
+    
+    <!-- Botões de Ação - Responsivo para todas as telas -->
+    {#if !hasRole('jovem')($userProfile)}
+      <div class="mt-4 sm:mt-6 space-y-2 sm:space-y-3">
+        <!-- Primeira linha: Pré-aprovar | Aprovar | Associar -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
+          <!-- Botão Pré-aprovar -->
+          <button
+            on:click={() => handleAprovar('pre_aprovado')}
+            disabled={isApproving}
+            class="flex items-center justify-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-2 sm:py-3 text-xs sm:text-sm font-medium rounded-lg transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 {usuarioJaAprovouPreAprovado 
+              ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-lg shadow-purple-200' 
+              : 'bg-gradient-to-r from-purple-100 to-purple-200 text-purple-700 hover:from-purple-200 hover:to-purple-300 border border-purple-300'}"
+          >
+            <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span class="hidden xs:inline">{usuarioJaAprovouPreAprovado ? 'Pré-aprovado por você' : 'Pré-aprovar'}</span>
+            <span class="xs:hidden">{usuarioJaAprovouPreAprovado ? 'Pré-aprovado' : 'Pré-aprovar'}</span>
+          </button>
+          
+          <!-- Botão Aprovar -->
+          <button
+            on:click={() => handleAprovar('aprovado')}
+            disabled={isApproving}
+            class="flex items-center justify-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-2 sm:py-3 text-xs sm:text-sm font-medium rounded-lg transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 {usuarioJaAprovouAprovado 
+              ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-200' 
+              : 'bg-gradient-to-r from-blue-100 to-blue-200 text-blue-700 hover:from-blue-200 hover:to-blue-300 border border-blue-300'}"
+          >
+            <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+            <span class="hidden xs:inline">{usuarioJaAprovouAprovado ? 'Aprovado por você' : 'Aprovar'}</span>
+            <span class="xs:hidden">{usuarioJaAprovouAprovado ? 'Aprovado' : 'Aprovar'}</span>
+          </button>
+          
+          <!-- Botão Associar (apenas para administrador) -->
+          {#if $userProfile?.nivel === 'administrador'}
+            <button
+              on:click={openAssociarModal}
+              class="flex items-center justify-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-2 sm:py-3 text-xs sm:text-sm font-medium rounded-lg transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 bg-gradient-to-r from-indigo-100 to-indigo-200 text-indigo-700 hover:from-indigo-200 hover:to-indigo-300 border border-indigo-300"
+            >
+              <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v4m0 0v4m0-4h4m-4 0H8" />
+              </svg>
+              <span class="hidden xs:inline">Associar</span>
+              <span class="xs:hidden">Associar</span>
+            </button>
+          {:else}
+            <div class="hidden lg:block"></div>
+          {/if}
+        </div>
+        
+        <!-- Segunda linha: Ver Ficha | Progresso | Editar -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
+          <!-- Botão Ver Ficha -->
+          <button
+            on:click={() => goto(`/jovens/${jovem.id}/ficha`)}
+            class="flex items-center justify-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-2 sm:py-3 text-xs sm:text-sm font-medium rounded-lg transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 hover:from-gray-200 hover:to-gray-300 border border-gray-300"
+          >
+            <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <span class="hidden xs:inline">Ver Ficha</span>
+            <span class="xs:hidden">Ficha</span>
+          </button>
+          
+          <!-- Botão Progresso -->
+          <button
+            on:click={() => goto(`/progresso?jovem=${jovem.id}`)}
+            class="flex items-center justify-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-2 sm:py-3 text-xs sm:text-sm font-medium rounded-lg transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 bg-gradient-to-r from-teal-500 to-teal-600 text-white shadow-lg shadow-teal-200 hover:from-teal-600 hover:to-teal-700"
+          >
+            <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h4l3 10 4-18 3 8h4" />
+            </svg>
+            <span class="hidden xs:inline">Progresso</span>
+            <span class="xs:hidden">Progresso</span>
+          </button>
+          
+          <!-- Botão Editar -->
+          <button
+            on:click={() => goto(`/jovens/${jovem.id}/editar`)}
+            class="flex items-center justify-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-2 sm:py-3 text-xs sm:text-sm font-medium rounded-lg transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 bg-gradient-to-r from-orange-100 to-orange-200 text-orange-700 hover:from-orange-200 hover:to-orange-300 border border-orange-300"
+          >
+            <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+            <span class="hidden xs:inline">Editar</span>
+            <span class="xs:hidden">Editar</span>
+          </button>
+        </div>
+      </div>
+    {/if}
+    
+    <!-- Status e Histórico de Aprovações -->
+    {#if !hasRole('jovem')($userProfile) && aprovacoes && aprovacoes.length > 0}
+      <div class="mt-4 sm:mt-6 bg-white rounded-lg shadow-sm border border-gray-200 p-3 sm:p-4 lg:p-6">
+        <h3 class="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Histórico de Aprovações</h3>
+        
+        
+        <!-- Abas de Aprovações -->
+        <div class="mb-4 sm:mb-6">
+          <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
+            <button
+              class="flex-1 py-2 sm:py-3 px-3 sm:px-4 rounded-lg font-semibold text-xs sm:text-sm transition-all duration-200 transform hover:scale-105 {aprovacoesTab === 'pre_aprovado' 
+                ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-lg shadow-purple-200' 
+                : 'bg-gradient-to-r from-purple-100 to-purple-200 text-purple-700 hover:from-purple-200 hover:to-purple-300 border border-purple-300'}"
+              on:click={() => aprovacoesTab = 'pre_aprovado'}
+            >
+              <div class="flex items-center justify-center space-x-1 sm:space-x-2">
+                <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span class="hidden xs:inline">Pré-aprovado</span>
+                <span class="xs:hidden">Pré-aprovado</span>
+                <span class="bg-white bg-opacity-20 px-1 sm:px-2 py-1 rounded-full text-xs font-bold">
+                  {aprovacoes.filter(a => a.tipo_aprovacao === 'pre_aprovado').length}
+                </span>
+              </div>
+            </button>
+            
+            <button
+              class="flex-1 py-2 sm:py-3 px-3 sm:px-4 rounded-lg font-semibold text-xs sm:text-sm transition-all duration-200 transform hover:scale-105 {aprovacoesTab === 'aprovado' 
+                ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-200' 
+                : 'bg-gradient-to-r from-blue-100 to-blue-200 text-blue-700 hover:from-blue-200 hover:to-blue-300 border border-blue-300'}"
+              on:click={() => aprovacoesTab = 'aprovado'}
+            >
+              <div class="flex items-center justify-center space-x-1 sm:space-x-2">
+                <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                <span class="hidden xs:inline">Aprovado</span>
+                <span class="xs:hidden">Aprovado</span>
+                <span class="bg-white bg-opacity-20 px-1 sm:px-2 py-1 rounded-full text-xs font-bold">
+                  {aprovacoes.filter(a => a.tipo_aprovacao === 'aprovado').length}
+                </span>
+              </div>
+            </button>
+          </div>
+        </div>
+        
+        <!-- Conteúdo das Abas -->
+        <div class="space-y-2 sm:space-y-3">
+          {#if aprovacoesTab === 'pre_aprovado'}
+            <div class="space-y-2">
+              <h4 class="text-xs sm:text-sm font-medium text-gray-700 mb-2 sm:mb-3">PRÉ-APROVADO POR:</h4>
+              {#each aprovacoes.filter(a => a.tipo_aprovacao === 'pre_aprovado') as aprovacao}
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between p-2 sm:p-3 bg-yellow-50 rounded-lg border border-yellow-200 space-y-2 sm:space-y-0">
+                  <div class="flex items-center space-x-2 sm:space-x-3">
+                    {#if aprovacao.usuario_estado_bandeira}
+                      <img src={aprovacao.usuario_estado_bandeira} alt="Bandeira" class="w-5 h-3 sm:w-6 sm:h-4 rounded flex-shrink-0" />
+                    {/if}
+                    <div class="min-w-0 flex-1">
+                      <div class="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-2">
+                        <span class="font-medium text-gray-900 text-sm sm:text-base truncate">{aprovacao.usuario_nome}</span>
+                        <span class="text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded-full inline-block w-fit">
+                          {aprovacao.usuario_nivel}
+                        </span>
+                      </div>
+                      <div class="text-xs text-gray-500">
+                        {format(parseISO(aprovacao.criado_em), 'dd/MM/yyyy HH:mm', { locale: ptBR })}
+                      </div>
+                    </div>
+                  </div>
+                  <div class="flex items-center space-x-2 sm:ml-auto">
+                    <span class="px-2 sm:px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                      Pré-aprovado
+                    </span>
+                    <!-- Botão de remover (apenas para administradores) -->
+                    {#if $userProfile?.nivel === 'administrador'}
+                      <button
+                        on:click={() => handleRemoverAprovacao(aprovacao.id, aprovacao.usuario_nome, aprovacao.tipo_aprovacao)}
+                        disabled={removendoAprovacao}
+                        class="flex items-center justify-center p-1 sm:p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-full transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Remover pré-aprovação"
+                      >
+                        <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    {/if}
+                  </div>
+                </div>
+              {/each}
+              {#if aprovacoes.filter(a => a.tipo_aprovacao === 'pre_aprovado').length === 0}
+                <div class="text-center py-6 sm:py-8 text-gray-500">
+                  <div class="text-3xl sm:text-4xl mb-2">📝</div>
+                  <p class="text-sm sm:text-base">Nenhuma pré-aprovação registrada</p>
+                </div>
+              {/if}
+            </div>
+          {:else if aprovacoesTab === 'aprovado'}
+            <div class="space-y-2">
+              <h4 class="text-xs sm:text-sm font-medium text-gray-700 mb-2 sm:mb-3">APROVADO POR:</h4>
+              {#each aprovacoes.filter(a => a.tipo_aprovacao === 'aprovado') as aprovacao}
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between p-2 sm:p-3 bg-green-50 rounded-lg border border-green-200 space-y-2 sm:space-y-0">
+                  <div class="flex items-center space-x-2 sm:space-x-3">
+                    {#if aprovacao.usuario_estado_bandeira}
+                      <img src={aprovacao.usuario_estado_bandeira} alt="Bandeira" class="w-5 h-3 sm:w-6 sm:h-4 rounded flex-shrink-0" />
+                    {/if}
+                    <div class="min-w-0 flex-1">
+                      <div class="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-2">
+                        <span class="font-medium text-gray-900 text-sm sm:text-base truncate">{aprovacao.usuario_nome}</span>
+                        <span class="text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded-full inline-block w-fit">
+                          {aprovacao.usuario_nivel}
+                        </span>
+                      </div>
+                      <div class="text-xs text-gray-500">
+                        {format(parseISO(aprovacao.criado_em), 'dd/MM/yyyy HH:mm', { locale: ptBR })}
+                      </div>
+                    </div>
+                  </div>
+                  <div class="flex items-center space-x-2 sm:ml-auto">
+                    <span class="px-2 sm:px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      Aprovado
+                    </span>
+                    <!-- Botão de remover (apenas para administradores) -->
+                    {#if $userProfile?.nivel === 'administrador'}
+                      <button
+                        on:click={() => handleRemoverAprovacao(aprovacao.id, aprovacao.usuario_nome, aprovacao.tipo_aprovacao)}
+                        disabled={removendoAprovacao}
+                        class="flex items-center justify-center p-1 sm:p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-full transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Remover aprovação"
+                      >
+                        <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    {/if}
+                  </div>
+                </div>
+              {/each}
+              {#if aprovacoes.filter(a => a.tipo_aprovacao === 'aprovado').length === 0}
+                <div class="text-center py-6 sm:py-8 text-gray-500">
+                  <div class="text-3xl sm:text-4xl mb-2">✅</div>
+                  <p class="text-sm sm:text-base">Nenhuma aprovação registrada</p>
+                </div>
+              {/if}
+            </div>
+          {/if}
+        </div>
+      </div>
+    {/if}
     
     <!-- Tabs -->
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-4 sm:mb-6">
@@ -382,19 +618,19 @@
               <dl class="space-y-3 sm:space-y-4">
                 <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 border-b border-gray-100 space-y-1 sm:space-y-0">
                   <dt class="text-xs sm:text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Estado</dt>
-                  <dd class="text-xs sm:text-sm font-semibold text-gray-900">{jovem.estado?.nome || 'Não informado'}</dd>
+                  <dd class="text-xs sm:text-sm font-semibold text-gray-900">{jovem.estados?.nome || 'Não informado'}</dd>
                 </div>
                 <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 border-b border-gray-100 space-y-1 sm:space-y-0">
                   <dt class="text-xs sm:text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Bloco</dt>
-                  <dd class="text-xs sm:text-sm font-semibold text-gray-900">{jovem.bloco?.nome || 'Não informado'}</dd>
+                  <dd class="text-xs sm:text-sm font-semibold text-gray-900">{jovem.blocos?.nome || 'Não informado'}</dd>
                 </div>
                 <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 border-b border-gray-100 space-y-1 sm:space-y-0">
                   <dt class="text-xs sm:text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Região</dt>
-                  <dd class="text-xs sm:text-sm font-semibold text-gray-900">{jovem.regiao?.nome || 'Não informado'}</dd>
+                  <dd class="text-xs sm:text-sm font-semibold text-gray-900">{jovem.regioes?.nome || 'Não informado'}</dd>
                 </div>
                 <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 border-b border-gray-100 space-y-1 sm:space-y-0">
                   <dt class="text-xs sm:text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Igreja</dt>
-                  <dd class="text-xs sm:text-sm font-semibold text-gray-900">{jovem.igreja?.nome || 'Não informado'}</dd>
+                  <dd class="text-xs sm:text-sm font-semibold text-gray-900">{jovem.igrejas?.nome || 'Não informado'}</dd>
                 </div>
                 <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 space-y-1 sm:space-y-0">
                   <dt class="text-xs sm:text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Edição</dt>
