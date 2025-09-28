@@ -1,7 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import { loadInitialData, estados, blocos, regioes, igrejas, edicoes, loadBlocos, loadRegioes, loadIgrejas, clearHierarchy } from '$lib/stores/geographic';
-  import { loadUsuarios } from '$lib/stores/usuarios';
+  import { buscarUsuarios, usuarios } from '$lib/stores/usuarios';
   import { userProfile } from '$lib/stores/auth';
   import { getUserLevelName } from '$lib/stores/niveis-acesso';
   import Input from '$lib/components/ui/Input.svelte';
@@ -9,7 +9,7 @@
   import Button from '$lib/components/ui/Button.svelte';
   import Card from '$lib/components/ui/Card.svelte';
   
-  export let filtros = {};
+  export const filtros = {};
   export let onFiltrosChange = () => {};
   export let onGerarRelatorio = () => {};
   export let onExportar = () => {};
@@ -35,7 +35,7 @@
   
   onMount(async () => {
     await loadInitialData();
-    await loadUsuarios();
+    await buscarUsuarios();
   });
   
   // Função para lidar com mudança de estado

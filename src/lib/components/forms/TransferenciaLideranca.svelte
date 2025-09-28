@@ -1,7 +1,7 @@
 <script>
   // @ts-nocheck
   import { onMount } from 'svelte';
-  import { transferirLideranca, loadUsuarios, loadUserRoles } from '$lib/stores/usuarios';
+  import { transferirLideranca, buscarUsuarios, loadUserRoles, usuarios } from '$lib/stores/usuarios';
   import { loadInitialData, estados, blocos, regioes, igrejas, loadBlocos, loadRegioes, loadIgrejas, clearHierarchy } from '$lib/stores/geographic';
   import Button from '$lib/components/ui/Button.svelte';
   import Input from '$lib/components/ui/Input.svelte';

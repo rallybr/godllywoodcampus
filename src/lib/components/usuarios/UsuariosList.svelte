@@ -1,7 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import { writable } from 'svelte/store';
-  import { loadUsuarios, loadUserRoles, updateUsuario, roles, loadRoles, usuarios, deleteUsuario } from '$lib/stores/usuarios';
+  import { buscarUsuarios, loadUserRoles, updateUsuario, roles, loadRoles, usuarios, deleteUsuario } from '$lib/stores/usuarios';
   import { userProfile } from '$lib/stores/auth';
   import { createLogHistorico } from '$lib/stores/logs-historico';
   import { goto } from '$app/navigation';
@@ -37,7 +37,7 @@
     
     try {
       await Promise.all([
-        loadUsuarios(),
+        buscarUsuarios(),
         loadUserRoles(),
         loadRoles()
       ]);
