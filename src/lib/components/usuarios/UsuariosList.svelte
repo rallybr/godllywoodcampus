@@ -1,7 +1,8 @@
 <script>
   import { onMount } from 'svelte';
   import { writable } from 'svelte/store';
-  import { buscarUsuarios, loadUserRoles, updateUsuario, roles, loadRoles, usuarios, deleteUsuario } from '$lib/stores/usuarios';
+  import { buscarUsuarios, updateUsuario, roles, loadRoles, usuarios, deleteUsuario } from '$lib/stores/usuarios';
+  import { loadUserRoles } from '$lib/stores/niveis-acesso';
   import { userProfile } from '$lib/stores/auth';
   import { createLogHistorico } from '$lib/stores/logs-historico';
   import { goto } from '$app/navigation';

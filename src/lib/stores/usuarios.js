@@ -79,6 +79,45 @@ export async function buscarUsuariosPorNome(nome) {
   }
 }
 
+// Função para criar um novo usuário
+export async function createUsuario(dadosUsuario) {
+  loading.set(true);
+  error.set(null);
+
+  try {
+    const { data, error: createError } = await supabase
+      .from('usuarios')
+      .insert([{
+        id_auth: dadosUsuario.id_auth,
+        nome: dadosUsuario.nome,
+        email: dadosUsuario.email,
+        sexo: dadosUsuario.sexo,
+        nivel: dadosUsuario.nivel,
+        foto: dadosUsuario.foto,
+        ativo: dadosUsuario.ativo !== undefined ? dadosUsuario.ativo : true,
+        estado_id: dadosUsuario.estado_id,
+        bloco_id: dadosUsuario.bloco_id,
+        regiao_id: dadosUsuario.regiao_id,
+        igreja_id: dadosUsuario.igreja_id
+      }])
+      .select()
+      .single();
+
+    if (createError) throw createError;
+
+    // Atualizar a lista de usuários
+    await buscarUsuarios();
+
+    return data;
+  } catch (err) {
+    error.set(err.message);
+    console.error('Error creating usuario:', err);
+    throw err;
+  } finally {
+    loading.set(false);
+  }
+}
+
 // Função para buscar um usuário específico
 export async function buscarUsuarioPorId(usuarioId) {
   try {
@@ -315,5 +354,64 @@ export async function obterEstatisticasAcesso() {
   } catch (err) {
     console.error('Erro ao obter estatísticas de acesso:', err);
     throw err;
+  }
+}
+
+// Função para atualizar usuário (alias para atualizarUsuario)
+export const updateUsuario = atualizarUsuario;
+
+// Função para deletar usuário
+export async function deleteUsuario(usuarioId) {
+  loading.set(true);
+  error.set(null);
+
+  try {
+    const { error: deleteError } = await supabase
+      .from('usuarios')
+      .delete()
+      .eq('id', usuarioId);
+
+    if (deleteError) throw deleteError;
+
+    // Atualizar a lista de usuários
+    await buscarUsuarios();
+
+    return true;
+  } catch (err) {
+    error.set(err.message);
+    console.error('Error deleting usuario:', err);
+    throw err;
+  } finally {
+    loading.set(false);
+  }
+}
+
+// Função para transferir liderança
+export async function transferirLideranca(dadosTransferencia) {
+  loading.set(true);
+  error.set(null);
+
+  try {
+    const { data, error: transferError } = await supabase.rpc('transferir_lideranca', {
+      p_usuario_origem_id: dadosTransferencia.usuarioOrigemId,
+      p_usuario_destino_id: dadosTransferencia.usuarioDestinoId,
+      p_estado_id: dadosTransferencia.estadoId,
+      p_bloco_id: dadosTransferencia.blocoId,
+      p_regiao_id: dadosTransferencia.regiaoId,
+      p_igreja_id: dadosTransferencia.igrejaId
+    });
+
+    if (transferError) throw transferError;
+
+    // Atualizar a lista de usuários
+    await buscarUsuarios();
+
+    return data;
+  } catch (err) {
+    error.set(err.message);
+    console.error('Error transferring leadership:', err);
+    throw err;
+  } finally {
+    loading.set(false);
   }
 }
