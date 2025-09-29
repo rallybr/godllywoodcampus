@@ -197,10 +197,22 @@ export function getLocationFilters() {
 // Função para criar log de auditoria
 export async function createAuditLog(acao, detalhe, dadosAntigos = null, dadosNovos = null) {
   try {
+    // Obter o usuário atual do store
+    const currentUser = $user;
+    const currentUserProfile = $userProfile;
+    
+    // Usar o ID do userProfile se disponível, senão do user
+    const usuarioId = currentUserProfile?.id || currentUser?.id;
+    
+    if (!usuarioId) {
+      console.warn('createAuditLog: Nenhum usuário logado encontrado, pulando log de auditoria');
+      return null;
+    }
+    
     const { data, error: logError } = await supabase
       .from('logs_auditoria')
       .insert([{
-        usuario_id: $user?.id,
+        usuario_id: usuarioId,
         acao,
         detalhe,
         dados_antigos: dadosAntigos ? JSON.stringify(dadosAntigos) : null,

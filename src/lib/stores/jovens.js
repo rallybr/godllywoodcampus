@@ -186,6 +186,23 @@ export async function createJovem(jovemData) {
     // Calcular idade automaticamente
     const hoje = new Date();
     
+    // Garantir associação do cadastro ao usuário logado (necessário para RLS)
+    let usuarioIdInsercao = null;
+    try {
+      const { data: authData } = await supabase.auth.getUser();
+      const authUser = authData?.user;
+      if (authUser?.id) {
+        const { data: usuarioRow } = await supabase
+          .from('usuarios')
+          .select('id')
+          .eq('id_auth', authUser.id)
+          .single();
+        usuarioIdInsercao = usuarioRow?.id || null;
+      }
+    } catch (e) {
+      console.warn('createJovem - Não foi possível resolver usuario_id para inserção:', e);
+    }
+    
     // Validar e formatar data de nascimento
     let dataNascimento = jovemData.data_nasc;
     console.log('createJovem - Data de nascimento original:', dataNascimento, 'Tipo:', typeof dataNascimento);
@@ -240,7 +257,9 @@ export async function createJovem(jovemData) {
       edicao: nomeEdicao, // Usar o nome da edição selecionada
       idade: idade,
       data_cadastro: new Date().toISOString(),
-      aprovado: 'null' // Status inicial
+      aprovado: 'null', // Status inicial
+      // Se o formulário não preencheu, usar o usuário logado
+      usuario_id: jovemData.usuario_id || usuarioIdInsercao || jovemData.usuarioId || null
     };
     
     // Remover campos vazios que podem causar problemas no banco
