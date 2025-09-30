@@ -302,6 +302,81 @@ export async function getDadosViagemByJovem(jovemId, edicaoId = null) {
 }
 
 /**
+ * Remove completamente o card de viagem de um jovem (registro em dados_viagem)
+ * e tenta remover também os arquivos do storage relacionados
+ */
+export async function deleteViagemCard(jovemId, edicaoId = null) {
+  try {
+    // Buscar o registro para obter URLs antes de deletar
+    let query = supabase
+      .from('dados_viagem')
+      .select('*')
+      .eq('jovem_id', jovemId)
+      .maybeSingle();
+
+    if (edicaoId) {
+      query = supabase
+        .from('dados_viagem')
+        .select('*')
+        .eq('jovem_id', jovemId)
+        .eq('edicao_id', edicaoId)
+        .maybeSingle();
+    }
+
+    const { data: row, error: fetchErr } = await query;
+    if (fetchErr && fetchErr.code !== 'PGRST116') {
+      throw fetchErr;
+    }
+
+    // Tentar excluir arquivos do storage se tivermos URLs públicas
+    const pathsToRemove = [];
+    const extractPathFromPublicUrl = (url) => {
+      if (!url) return null;
+      // Supabase public URL padrão contém "/object/public/viagens/"
+      const marker = '/object/public/viagens/';
+      const idx = url.indexOf(marker);
+      if (idx === -1) return null;
+      return url.substring(idx + marker.length);
+    };
+
+    if (row) {
+      const p1 = extractPathFromPublicUrl(row.comprovante_pagamento);
+      const p2 = extractPathFromPublicUrl(row.comprovante_passagem_ida);
+      const p3 = extractPathFromPublicUrl(row.comprovante_passagem_volta);
+      for (const p of [p1, p2, p3]) {
+        if (p) pathsToRemove.push(p);
+      }
+    } else {
+      // Caso não tenhamos a linha (ou URLs), ainda podemos tentar por convenção
+      const base = `${jovemId}/${edicaoId || ''}`.replace(/\/$/, '');
+      // Não sabemos a extensão; não force removals sem path explícito
+    }
+
+    if (pathsToRemove.length > 0) {
+      try {
+        await supabase.storage.from('viagens').remove(pathsToRemove);
+      } catch (stErr) {
+        console.warn('Falha ao remover arquivos do storage:', stErr?.message || stErr);
+      }
+    }
+
+    // Excluir o registro em dados_viagem (admin tem permissão pela policy)
+    let del = supabase.from('dados_viagem').delete().eq('jovem_id', jovemId);
+    if (edicaoId) del = del.eq('edicao_id', edicaoId);
+    const { error: delErr } = await del;
+    if (delErr) throw delErr;
+
+    // Remover o card da store local
+    viagens.update((arr) => arr.filter((j) => j.id !== jovemId));
+
+    return true;
+  } catch (err) {
+    console.error('Erro ao deletar card de viagem:', err);
+    throw err;
+  }
+}
+
+/**
  * Cria ou atualiza dados de viagem (upsert)
  */
 export async function upsertDadosViagem(jovemId, edicaoId, dadosViagem) {

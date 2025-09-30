@@ -8,10 +8,12 @@
     filteredViagens, 
     loading, 
     error,
+    pagination,
     uploadComprovantePagamento,
     uploadComprovanteIda,
     uploadComprovanteVolta,
     removeComprovante,
+    deleteViagemCard,
     getEdicaoAtiva
   } from '$lib/stores/viagem';
   import { userProfile, hasRole } from '$lib/stores/auth';
@@ -123,12 +125,17 @@
     }
   }
 
-  function handleDelete(event) {
-    const { jovemId } = event.detail;
+  async function handleDelete(event) {
+    const { jovemId, edicaoId } = event.detail;
+    if (!jovemId) return;
 
-    if (confirm('Tem certeza que deseja remover este jovem da lista de viagem?')) {
-      // Implementar remoção se necessário
-      console.log('Remover jovem:', jovemId);
+    if (confirm('Tem certeza que deseja remover este card e todos os comprovantes?')) {
+      try {
+        await deleteViagemCard(jovemId, edicaoId);
+      } catch (err) {
+        console.error('Erro ao remover card/viagem:', err);
+        alert('Falha ao remover card. Verifique suas permissões e tente novamente.');
+      }
     }
   }
 
@@ -175,7 +182,7 @@
       <div class="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center">
           <div class="text-2xl sm:text-3xl font-bold text-white mb-1">
-            {$filteredViagens.length}
+            {hasRole('jovem')($userProfile) ? $filteredViagens.length : ($pagination.total || $filteredViagens.length)}
           </div>
           <div class="text-blue-100 text-xs sm:text-sm">
             Jovens Cadastrados

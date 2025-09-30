@@ -67,7 +67,7 @@
   <!-- Botão de remoção (ícone vermelho no canto superior direito) -->
   <button
     class="absolute top-4 right-4 w-8 h-8 bg-red-600 hover:bg-red-700 rounded-full flex items-center justify-center transition-colors"
-    on:click={() => dispatch('delete', { jovemId: jovem.id })}
+    on:click={() => dispatch('delete', { jovemId: jovem.id, edicaoId })}
     title="Remover jovem"
   >
     <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
