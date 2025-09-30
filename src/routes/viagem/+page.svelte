@@ -17,6 +17,7 @@
     getEdicaoAtiva
   } from '$lib/stores/viagem';
   import { userProfile, hasRole } from '$lib/stores/auth';
+  import { estadosCache, loadEstadosOnce } from '$lib/stores/viagem';
 
   function getViagemData(jovem) { 
     if (!jovem) return null;
@@ -31,6 +32,12 @@
     edicaoId: '',
     loading: false
   };
+
+  // Controles
+  let sortBy = 'estado_id';
+  let sortDir = 'asc';
+  let pageSize = 20;
+  let selectedEstado = '';
 
   onMount(async () => {
     try { 
@@ -47,6 +54,7 @@
       
       // Carregar dados de viagem
       try {
+        await loadEstadosOnce();
         // Se for jovem, carregar apenas seus próprios dados
         if (hasRole('jovem')($userProfile)) {
           await loadViagensCardsForJovem();
@@ -54,7 +62,7 @@
           // Passar userId e userLevel para filtrar corretamente
           const userId = $userProfile?.id;
           const userLevel = $userProfile?.nivel;
-          await loadViagensCards(1, 20, userId, userLevel);
+          await loadViagensCards(1, pageSize, userId, userLevel, { sortBy, sortDir, estadoId: selectedEstado || undefined });
         }
         console.log('✅ Dados de viagem carregados com sucesso');
       } catch (viagemError) {
@@ -143,6 +151,16 @@
     uploadModal.isOpen = false;
     uploadModal.loading = false;
   }
+
+  async function applyControls(page = 1) {
+    const userId = $userProfile?.id;
+    const userLevel = $userProfile?.nivel;
+    if (hasRole('jovem')($userProfile)) {
+      await loadViagensCardsForJovem();
+    } else {
+      await loadViagensCards(page, Number(pageSize), userId, userLevel, { sortBy, sortDir, estadoId: selectedEstado || undefined });
+    }
+  }
 </script>
 
 <svelte:head>
@@ -178,17 +196,44 @@
         </div>
       </div>
       
-      <!-- Estatísticas rápidas -->
-      <div class="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <!-- Linha 1: Filtros + Total de Jovens -->
+      <div class="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4 items-stretch">
+        <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 flex flex-col gap-2">
+          <div class="grid grid-cols-2 gap-2">
+            <select class="bg-white/80 rounded px-2 py-1 text-sm" bind:value={selectedEstado} on:change={() => applyControls(1)}>
+              <option value="">Todos estados</option>
+              {#each $estadosCache as st}
+                <option value={st.id}>{st.sigla} - {st.nome}</option>
+              {/each}
+            </select>
+            <select class="bg-white/80 rounded px-2 py-1 text-sm" bind:value={sortBy} on:change={() => applyControls(1)}>
+              <option value="estado_id">Estado</option>
+              <option value="nome_completo">Nome</option>
+              <option value="data_cadastro">Data Cadastro</option>
+            </select>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <select class="bg-white/80 rounded px-2 py-1 text-sm" bind:value={sortDir} on:change={() => applyControls(1)}>
+              <option value="asc">Asc</option>
+              <option value="desc">Desc</option>
+            </select>
+            <select class="bg-white/80 rounded px-2 py-1 text-sm" bind:value={pageSize} on:change={() => applyControls(1)}>
+              <option value={10}>10 por página</option>
+              <option value={20}>20 por página</option>
+              <option value={50}>50 por página</option>
+            </select>
+          </div>
+        </div>
         <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center">
           <div class="text-2xl sm:text-3xl font-bold text-white mb-1">
             {hasRole('jovem')($userProfile) ? $filteredViagens.length : ($pagination.total || $filteredViagens.length)}
           </div>
-          <div class="text-blue-100 text-xs sm:text-sm">
-            Jovens Cadastrados
-          </div>
+          <div class="text-blue-100 text-xs sm:text-sm">Jovens Cadastrados</div>
         </div>
-        
+      </div>
+
+      <!-- Linha 2: Enviados + Taxa -->
+      <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 items-stretch">
         <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center">
           <div class="text-2xl sm:text-3xl font-bold text-white mb-1">
             {$filteredViagens.reduce((total, j) => {
@@ -199,23 +244,30 @@
               return total + count;
             }, 0)}
           </div>
-          <div class="text-blue-100 text-xs sm:text-sm">
-            Comprovantes Enviados
-          </div>
+          <div class="text-blue-100 text-xs sm:text-sm">Comprovantes Enviados</div>
         </div>
-        
         <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center">
           <div class="text-2xl sm:text-3xl font-bold text-white mb-1">
-            {Math.round(($filteredViagens.filter(j => {
-              // Considera completo se tem pelo menos o comprovante de pagamento
-              return j.comprovante_pagamento;
-            }).length / Math.max($filteredViagens.length, 1)) * 100)}%
+            {Math.round(($filteredViagens.filter(j => j.comprovante_pagamento).length / Math.max($filteredViagens.length, 1)) * 100)}%
           </div>
-          <div class="text-blue-100 text-xs sm:text-sm">
-            Taxa de Conclusão
-          </div>
+          <div class="text-blue-100 text-xs sm:text-sm">Taxa de Conclusão</div>
         </div>
       </div>
+
+      <!-- Linha 3: Paginação -->
+      {#if !hasRole('jovem')($userProfile)}
+        <div class="mt-4 bg-white/10 backdrop-blur-sm rounded-xl p-4 flex items-center justify-center">
+          {#if $pagination.totalPages > 1}
+            <div class="flex items-center gap-3">
+              <button class="px-3 py-1 bg-white/10 text-white rounded disabled:opacity-50" on:click={() => applyControls(Math.max(1, $pagination.page - 1))} disabled={$pagination.page <= 1}>Anterior</button>
+              <div class="text-white/90 text-sm">Página {$pagination.page} de {$pagination.totalPages}</div>
+              <button class="px-3 py-1 bg-white/10 text-white rounded disabled:opacity-50" on:click={() => applyControls(Math.min($pagination.totalPages, $pagination.page + 1))} disabled={$pagination.page >= $pagination.totalPages}>Próxima</button>
+            </div>
+          {:else}
+            <div class="text-white/70 text-sm">Página única</div>
+          {/if}
+        </div>
+      {/if}
     </div>
   </div>
 
@@ -266,6 +318,18 @@
           on:delete={handleDelete}
         />
       {/each}
+      <!-- Paginação -->
+      {#if !hasRole('jovem')($userProfile) && $pagination.totalPages > 1}
+        <div class="flex items-center justify-center gap-2 py-2">
+          <button class="px-3 py-1 bg-white/10 text-white rounded disabled:opacity-50" on:click={() => applyControls(Math.max(1, $pagination.page - 1))} disabled={$pagination.page <= 1}>
+            Anterior
+          </button>
+          <div class="text-white/90 text-sm">Página {$pagination.page} de {$pagination.totalPages}</div>
+          <button class="px-3 py-1 bg-white/10 text-white rounded disabled:opacity-50" on:click={() => applyControls(Math.min($pagination.totalPages, $pagination.page + 1))} disabled={$pagination.page >= $pagination.totalPages}>
+            Próxima
+          </button>
+        </div>
+      {/if}
     </div>
   {/if}
 

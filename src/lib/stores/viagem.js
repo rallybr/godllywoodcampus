@@ -25,6 +25,15 @@ export const pagination = writable({
   totalPages: 0
 });
 
+// Utilitário simples para estados (id/nome/sigla) reusado na página
+export const estadosCache = writable([]);
+
+export async function loadEstadosOnce() {
+  if ((await new Promise((res) => estadosCache.subscribe(v => res(v)))).length > 0) return;
+  const { data } = await supabase.from('estados').select('id,nome,sigla').order('sigla');
+  estadosCache.set(data || []);
+}
+
 // Derived store for filtered viagens
 export const filteredViagens = derived(
   [viagens, filters],
@@ -160,7 +169,7 @@ export async function loadViagensCardsForJovem() {
 /**
  * Carrega dados de viagem para cards (jovens + dados_viagem + relacionamentos)
  */
-export async function loadViagensCards(page = 1, limit = 20, userId = null, userLevel = null) {
+export async function loadViagensCards(page = 1, limit = 20, userId = null, userLevel = null, options = {}) {
   loading.set(true);
   error.set(null);
   
@@ -194,9 +203,15 @@ export async function loadViagensCards(page = 1, limit = 20, userId = null, user
     if (userLevel === 'colaborador' && userId) {
       query = query.eq('usuario_id', userId);
     }
+    // Filtro por estado (opcional)
+    if (options?.estadoId) {
+      query = query.eq('estado_id', options.estadoId);
+    }
     
+    const sortBy = options?.sortBy || 'data_cadastro';
+    const sortDir = options?.sortDir || 'desc';
     const { data, error: fetchError, count } = await query
-      .order('data_cadastro', { ascending: false })
+      .order(sortBy, { ascending: sortDir === 'asc' })
       .range((page - 1) * limit, page * limit - 1);
     
 
