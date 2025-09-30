@@ -213,9 +213,25 @@ export async function loadViagensCards(page = 1, limit = 20, userId = null, user
         igreja:igrejas(nome)
       `, { count: 'exact' });
     
-    // Se for colaborador, filtrar apenas jovens que ele cadastrou
-    if (userLevel === 'colaborador' && userId) {
-      query = query.eq('usuario_id', userId);
+    // Escopo por nível de acesso
+    if (userLevel && userId) {
+      if (userLevel === 'colaborador') {
+        // Colaborador: apenas jovens que cadastrou
+        query = query.eq('usuario_id', userId);
+      } else if (userLevel === 'lider_estadual_iurd' || userLevel === 'lider_estadual_fju') {
+        const estadoIdScope = options?.scope?.estadoId;
+        if (estadoIdScope) query = query.eq('estado_id', estadoIdScope);
+      } else if (userLevel === 'lider_bloco_iurd' || userLevel === 'lider_bloco_fju') {
+        const blocoIdScope = options?.scope?.blocoId;
+        if (blocoIdScope) query = query.eq('bloco_id', blocoIdScope);
+      } else if (userLevel === 'lider_regional_iurd') {
+        const regiaoIdScope = options?.scope?.regiaoId;
+        if (regiaoIdScope) query = query.eq('regiao_id', regiaoIdScope);
+      } else if (userLevel === 'lider_igreja_iurd') {
+        const igrejaIdScope = options?.scope?.igrejaId;
+        if (igrejaIdScope) query = query.eq('igreja_id', igrejaIdScope);
+      }
+      // Admin e líderes nacionais enxergam tudo (sem escopo adicional)
     }
     // Filtro por estado (opcional)
     if (options?.estadoId) {

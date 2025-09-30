@@ -62,7 +62,7 @@ export const filteredJovens = derived(
   }
 );
 
-export async function loadJovens(page = 1, limit = 20, userId = null, userLevel = null) {
+export async function loadJovens(page = 1, limit = 20, userId = null, userLevel = null, options = {}) {
   loading.set(true);
   error.set(null);
   
@@ -79,12 +79,23 @@ export async function loadJovens(page = 1, limit = 20, userId = null, userLevel 
         edicao:edicoes!edicao_id(id, nome, numero)
       `, { count: 'exact' });
     
-    // Se for colaborador, filtrar apenas jovens que ele cadastrou
-    if (userLevel === 'colaborador' && userId) {
-      console.log('🔍 DEBUG - Filtrando para colaborador:', { userId, userLevel });
-      query = query.eq('usuario_id', userId);
-    } else {
-      console.log('🔍 DEBUG - Não é colaborador ou sem userId:', { userId, userLevel });
+    // Escopo por nível (alinha com can_access_jovem)
+    if (userLevel && userId) {
+      if (userLevel === 'colaborador') {
+        query = query.eq('usuario_id', userId);
+      } else if (userLevel === 'lider_estadual_iurd' || userLevel === 'lider_estadual_fju') {
+        const estadoId = options?.scope?.estadoId;
+        if (estadoId) query = query.eq('estado_id', estadoId);
+      } else if (userLevel === 'lider_bloco_iurd' || userLevel === 'lider_bloco_fju') {
+        const blocoId = options?.scope?.blocoId;
+        if (blocoId) query = query.eq('bloco_id', blocoId);
+      } else if (userLevel === 'lider_regional_iurd') {
+        const regiaoId = options?.scope?.regiaoId;
+        if (regiaoId) query = query.eq('regiao_id', regiaoId);
+      } else if (userLevel === 'lider_igreja_iurd') {
+        const igrejaId = options?.scope?.igrejaId;
+        if (igrejaId) query = query.eq('igreja_id', igrejaId);
+      }
     }
     
     const { data, error: fetchError, count } = await query

@@ -16,8 +16,13 @@
     } else {
       const userId = $userProfile?.id;
       const userLevel = $userProfile?.nivel;
-      console.log('🔍 DEBUG - Carregando jovens:', { userId, userLevel });
-      loadJovens(1, 20, userId, userLevel);
+      const scope = {
+        estadoId: $userProfile?.estado_id || undefined,
+        blocoId: $userProfile?.bloco_id || undefined,
+        regiaoId: $userProfile?.regiao_id || undefined,
+        igrejaId: $userProfile?.igreja_id || undefined
+      };
+      loadJovens(1, 20, userId, userLevel, { scope });
     }
   });
   
@@ -52,7 +57,13 @@
     currentPage = page;
     const userId = $userProfile?.id;
     const userLevel = $userProfile?.nivel;
-    loadJovens(page, 20, userId, userLevel);
+    const scope = {
+      estadoId: $userProfile?.estado_id || undefined,
+      blocoId: $userProfile?.bloco_id || undefined,
+      regiaoId: $userProfile?.regiao_id || undefined,
+      igrejaId: $userProfile?.igreja_id || undefined
+    };
+    loadJovens(page, 20, userId, userLevel, { scope });
   }
 </script>
 

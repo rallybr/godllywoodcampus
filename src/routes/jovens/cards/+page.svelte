@@ -61,12 +61,35 @@
         `, { count: 'exact' })
         .order('nome_completo', { ascending: true });
 
-      // Se nível for jovem ou colaborador, restringe ao próprio usuário
-      if (($userProfile?.nivel === 'jovem' || $userProfile?.nivel === 'colaborador') && $userProfile?.id) {
-        console.log('🔍 DEBUG - Filtrando para usuário:', { nivel: $userProfile.nivel, userId: $userProfile.id });
+      // Aplicar escopo por nível (alinhado ao can_access_jovem)
+      const nivel = $userProfile?.nivel;
+      if (!nivel) {
+        console.log('🔍 DEBUG - Sem nível definido, sem filtros adicionais');
+      } else if (nivel === 'administrador' || nivel === 'lider_nacional_iurd' || nivel === 'lider_nacional_fju') {
+        console.log('🔍 DEBUG - Visão nacional (admin/nacional)');
+      } else if (nivel === 'lider_estadual_iurd' || nivel === 'lider_estadual_fju') {
+        if ($userProfile?.estado_id) {
+          console.log('🔍 DEBUG - Filtrando por estado:', $userProfile.estado_id);
+          query = query.eq('estado_id', $userProfile.estado_id);
+        }
+      } else if (nivel === 'lider_bloco_iurd' || nivel === 'lider_bloco_fju') {
+        if ($userProfile?.bloco_id) {
+          console.log('🔍 DEBUG - Filtrando por bloco:', $userProfile.bloco_id);
+          query = query.eq('bloco_id', $userProfile.bloco_id);
+        }
+      } else if (nivel === 'lider_regional_iurd') {
+        if ($userProfile?.regiao_id) {
+          console.log('🔍 DEBUG - Filtrando por região:', $userProfile.regiao_id);
+          query = query.eq('regiao_id', $userProfile.regiao_id);
+        }
+      } else if (nivel === 'lider_igreja_iurd') {
+        if ($userProfile?.igreja_id) {
+          console.log('🔍 DEBUG - Filtrando por igreja:', $userProfile.igreja_id);
+          query = query.eq('igreja_id', $userProfile.igreja_id);
+        }
+      } else if ((nivel === 'colaborador' || nivel === 'jovem') && $userProfile?.id) {
+        console.log('🔍 DEBUG - Filtrando por usuário (colaborador/jovem):', $userProfile.id);
         query = query.eq('usuario_id', $userProfile.id);
-      } else {
-        console.log('🔍 DEBUG - Não filtrando:', { nivel: $userProfile?.nivel, userId: $userProfile?.id });
       }
 
       if (searchTerm && searchTerm.trim().length > 0) {

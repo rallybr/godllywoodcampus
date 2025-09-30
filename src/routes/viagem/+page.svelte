@@ -64,7 +64,13 @@
           // Passar userId e userLevel para filtrar corretamente
           const userId = $userProfile?.id;
           const userLevel = $userProfile?.nivel;
-          await loadViagensCards(1, pageSize, userId, userLevel, { sortBy, sortDir, estadoId: selectedEstado || undefined, edicaoId: selectedEdicao || undefined, condicao: selectedCondicao || undefined });
+          const scope = {
+            estadoId: $userProfile?.estado_id || undefined,
+            blocoId: $userProfile?.bloco_id || undefined,
+            regiaoId: $userProfile?.regiao_id || undefined,
+            igrejaId: $userProfile?.igreja_id || undefined
+          };
+          await loadViagensCards(1, pageSize, userId, userLevel, { sortBy, sortDir, estadoId: selectedEstado || undefined, edicaoId: selectedEdicao || undefined, condicao: selectedCondicao || undefined, scope });
         }
         console.log('✅ Dados de viagem carregados com sucesso');
       } catch (viagemError) {
@@ -160,7 +166,13 @@
     if (hasRole('jovem')($userProfile)) {
       await loadViagensCardsForJovem();
     } else {
-      await loadViagensCards(page, Number(pageSize), userId, userLevel, { sortBy, sortDir, estadoId: selectedEstado || undefined, edicaoId: selectedEdicao || undefined, condicao: selectedCondicao || undefined });
+      const scope = {
+        estadoId: $userProfile?.estado_id || undefined,
+        blocoId: $userProfile?.bloco_id || undefined,
+        regiaoId: $userProfile?.regiao_id || undefined,
+        igrejaId: $userProfile?.igreja_id || undefined
+      };
+      await loadViagensCards(page, Number(pageSize), userId, userLevel, { sortBy, sortDir, estadoId: selectedEstado || undefined, edicaoId: selectedEdicao || undefined, condicao: selectedCondicao || undefined, scope });
     }
   }
 </script>

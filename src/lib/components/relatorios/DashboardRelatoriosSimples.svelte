@@ -22,7 +22,18 @@
     try {
       const userId = $userProfile?.id;
       const userLevel = $userProfile?.nivel;
-      estatisticas = await gerarEstatisticasGerais({}, userId, userLevel);
+      // Montar filtros de escopo automaticamente a partir do perfil
+      const scope = {};
+      if (userLevel === 'lider_estadual_iurd' || userLevel === 'lider_estadual_fju') {
+        if ($userProfile?.estado_id) scope.estado_id = $userProfile.estado_id;
+      } else if (userLevel === 'lider_bloco_iurd' || userLevel === 'lider_bloco_fju') {
+        if ($userProfile?.bloco_id) scope.bloco_id = $userProfile.bloco_id;
+      } else if (userLevel === 'lider_regional_iurd') {
+        if ($userProfile?.regiao_id) scope.regiao_id = $userProfile.regiao_id;
+      } else if (userLevel === 'lider_igreja_iurd') {
+        if ($userProfile?.igreja_id) scope.igreja_id = $userProfile.igreja_id;
+      }
+      estatisticas = await gerarEstatisticasGerais(scope, userId, userLevel);
     } catch (err) {
       error = err.message;
       console.error('Erro ao carregar estatísticas:', err);

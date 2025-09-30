@@ -237,9 +237,27 @@ export async function gerarEstatisticasGerais(filtros = {}, userId = null, userL
       .from('jovens')
       .select('aprovado');
     
-    // Se for colaborador, filtrar apenas jovens que ele cadastrou
-    if (userLevel === 'colaborador' && userId) {
-      jovensQuery = jovensQuery.eq('usuario_id', userId);
+    // Escopo por nível
+    if (userLevel && userId) {
+      if (userLevel === 'colaborador') {
+        jovensQuery = jovensQuery.eq('usuario_id', userId);
+      } else if (userLevel === 'lider_estadual_iurd' || userLevel === 'lider_estadual_fju') {
+        if (filtros.estado_id) {
+          jovensQuery = jovensQuery.eq('estado_id', filtros.estado_id);
+        }
+      } else if (userLevel === 'lider_bloco_iurd' || userLevel === 'lider_bloco_fju') {
+        if (filtros.bloco_id) {
+          jovensQuery = jovensQuery.eq('bloco_id', filtros.bloco_id);
+        }
+      } else if (userLevel === 'lider_regional_iurd') {
+        if (filtros.regiao_id) {
+          jovensQuery = jovensQuery.eq('regiao_id', filtros.regiao_id);
+        }
+      } else if (userLevel === 'lider_igreja_iurd') {
+        if (filtros.igreja_id) {
+          jovensQuery = jovensQuery.eq('igreja_id', filtros.igreja_id);
+        }
+      }
     }
     
     // Aplicar outros filtros
@@ -271,9 +289,32 @@ export async function gerarEstatisticasGerais(filtros = {}, userId = null, userL
       .from('avaliacoes')
       .select('nota, espirito, caractere, disposicao');
     
-    // Se for colaborador, filtrar apenas avaliações que ele fez
-    if (userLevel === 'colaborador' && userId) {
-      avaliacoesQuery = avaliacoesQuery.eq('user_id', userId);
+    // Escopo por nível nas avaliações
+    if (userLevel && userId) {
+      if (userLevel === 'colaborador') {
+        avaliacoesQuery = avaliacoesQuery.eq('user_id', userId);
+      } else if (userLevel !== 'administrador' && userLevel !== 'lider_nacional_iurd' && userLevel !== 'lider_nacional_fju') {
+        // Para níveis estaduais/regionais/etc., restringir pelo escopo através do JOIN lógico
+        // Buscar IDs de jovens do escopo para filtrar as avaliações
+        let jovensEscopo = supabase.from('jovens').select('id');
+        if (userLevel === 'lider_estadual_iurd' || userLevel === 'lider_estadual_fju') {
+          if (filtros.estado_id) jovensEscopo = jovensEscopo.eq('estado_id', filtros.estado_id);
+        } else if (userLevel === 'lider_bloco_iurd' || userLevel === 'lider_bloco_fju') {
+          if (filtros.bloco_id) jovensEscopo = jovensEscopo.eq('bloco_id', filtros.bloco_id);
+        } else if (userLevel === 'lider_regional_iurd') {
+          if (filtros.regiao_id) jovensEscopo = jovensEscopo.eq('regiao_id', filtros.regiao_id);
+        } else if (userLevel === 'lider_igreja_iurd') {
+          if (filtros.igreja_id) jovensEscopo = jovensEscopo.eq('igreja_id', filtros.igreja_id);
+        }
+        const { data: idsEscopo } = await jovensEscopo;
+        const ids = (idsEscopo || []).map(r => r.id);
+        if (ids.length > 0) {
+          avaliacoesQuery = avaliacoesQuery.in('jovem_id', ids);
+        } else {
+          // força zero resultados
+          avaliacoesQuery = avaliacoesQuery.eq('jovem_id', '00000000-0000-0000-0000-000000000000');
+        }
+      }
     }
     
     const { data: avaliacoes, error: avaliacoesError } = await avaliacoesQuery;
