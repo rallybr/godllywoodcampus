@@ -27,11 +27,25 @@ export const pagination = writable({
 
 // Utilitário simples para estados (id/nome/sigla) reusado na página
 export const estadosCache = writable([]);
+export const edicoesCache = writable([]);
+export const condicoesCache = writable([]);
 
 export async function loadEstadosOnce() {
   if ((await new Promise((res) => estadosCache.subscribe(v => res(v)))).length > 0) return;
   const { data } = await supabase.from('estados').select('id,nome,sigla').order('sigla');
   estadosCache.set(data || []);
+}
+
+export async function loadEdicoesOnce() {
+  if ((await new Promise((res) => edicoesCache.subscribe(v => res(v)))).length > 0) return;
+  const { data } = await supabase.from('edicoes').select('id,nome,numero,ativa').order('numero', { ascending: false });
+  edicoesCache.set(data || []);
+}
+
+export async function loadCondicoesOnce() {
+  if ((await new Promise((res) => condicoesCache.subscribe(v => res(v)))).length > 0) return;
+  const { data } = await supabase.from('jovens').select('condicao').not('condicao','is',null).neq('condicao','').order('condicao').then(({ data }) => ({ data: Array.from(new Set((data||[]).map(r => r.condicao))) }));
+  condicoesCache.set(data || []);
 }
 
 // Derived store for filtered viagens
@@ -206,6 +220,14 @@ export async function loadViagensCards(page = 1, limit = 20, userId = null, user
     // Filtro por estado (opcional)
     if (options?.estadoId) {
       query = query.eq('estado_id', options.estadoId);
+    }
+    // Filtro por edição (opcional)
+    if (options?.edicaoId) {
+      query = query.eq('edicao_id', options.edicaoId);
+    }
+    // Filtro por condição (opcional)
+    if (options?.condicao) {
+      query = query.eq('condicao', options.condicao);
     }
     
     const sortBy = options?.sortBy || 'data_cadastro';

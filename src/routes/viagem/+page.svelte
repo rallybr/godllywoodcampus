@@ -17,7 +17,7 @@
     getEdicaoAtiva
   } from '$lib/stores/viagem';
   import { userProfile, hasRole } from '$lib/stores/auth';
-  import { estadosCache, loadEstadosOnce } from '$lib/stores/viagem';
+  import { estadosCache, edicoesCache, condicoesCache, loadEstadosOnce, loadEdicoesOnce, loadCondicoesOnce } from '$lib/stores/viagem';
 
   function getViagemData(jovem) { 
     if (!jovem) return null;
@@ -38,6 +38,8 @@
   let sortDir = 'asc';
   let pageSize = 20;
   let selectedEstado = '';
+  let selectedEdicao = '';
+  let selectedCondicao = '';
 
   onMount(async () => {
     try { 
@@ -54,7 +56,7 @@
       
       // Carregar dados de viagem
       try {
-        await loadEstadosOnce();
+        await Promise.all([loadEstadosOnce(), loadEdicoesOnce(), loadCondicoesOnce()]);
         // Se for jovem, carregar apenas seus próprios dados
         if (hasRole('jovem')($userProfile)) {
           await loadViagensCardsForJovem();
@@ -62,7 +64,7 @@
           // Passar userId e userLevel para filtrar corretamente
           const userId = $userProfile?.id;
           const userLevel = $userProfile?.nivel;
-          await loadViagensCards(1, pageSize, userId, userLevel, { sortBy, sortDir, estadoId: selectedEstado || undefined });
+          await loadViagensCards(1, pageSize, userId, userLevel, { sortBy, sortDir, estadoId: selectedEstado || undefined, edicaoId: selectedEdicao || undefined, condicao: selectedCondicao || undefined });
         }
         console.log('✅ Dados de viagem carregados com sucesso');
       } catch (viagemError) {
@@ -158,7 +160,7 @@
     if (hasRole('jovem')($userProfile)) {
       await loadViagensCardsForJovem();
     } else {
-      await loadViagensCards(page, Number(pageSize), userId, userLevel, { sortBy, sortDir, estadoId: selectedEstado || undefined });
+      await loadViagensCards(page, Number(pageSize), userId, userLevel, { sortBy, sortDir, estadoId: selectedEstado || undefined, edicaoId: selectedEdicao || undefined, condicao: selectedCondicao || undefined });
     }
   }
 </script>
@@ -210,6 +212,20 @@
               <option value="estado_id">Estado</option>
               <option value="nome_completo">Nome</option>
               <option value="data_cadastro">Data Cadastro</option>
+            </select>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <select class="bg-white/80 rounded px-2 py-1 text-sm" bind:value={selectedEdicao} on:change={() => applyControls(1)}>
+              <option value="">Todas edições</option>
+              {#each $edicoesCache as ed}
+                <option value={ed.id}>Edição {ed.numero} {ed.ativa ? '(Ativa)' : ''}</option>
+              {/each}
+            </select>
+            <select class="bg-white/80 rounded px-2 py-1 text-sm" bind:value={selectedCondicao} on:change={() => applyControls(1)}>
+              <option value="">Todas condições</option>
+              {#each $condicoesCache as c}
+                <option value={c}>{c}</option>
+              {/each}
             </select>
           </div>
           <div class="grid grid-cols-2 gap-2">
