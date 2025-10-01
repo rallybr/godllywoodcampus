@@ -13,6 +13,14 @@
   let page = 1;
   let pageSize = 24;
   let total = 0;
+  let estados = [];
+  let selectedEstado = '';
+  let edicoes = [];
+  let selectedEdicao = '';
+  let condicoes = [];
+  let selectedCondicao = '';
+  let idadeMin = '';
+  let idadeMax = '';
 
   async function fetchJovens() {
     loading = true;
@@ -96,6 +104,29 @@
         query = query.ilike('nome_completo', `%${searchTerm.trim()}%`);
       }
 
+      // Filtro por estado selecionado
+      if (selectedEstado) {
+        query = query.eq('estado_id', selectedEstado);
+      }
+
+      // Filtro por edição selecionada
+      if (selectedEdicao) {
+        query = query.eq('edicao_id', selectedEdicao);
+      }
+
+      // Filtro por condição selecionada
+      if (selectedCondicao) {
+        query = query.eq('condicao', selectedCondicao);
+      }
+
+      // Filtro por idade mínima e máxima
+      if (idadeMin !== '' && !Number.isNaN(Number(idadeMin))) {
+        query = query.gte('idade', Number(idadeMin));
+      }
+      if (idadeMax !== '' && !Number.isNaN(Number(idadeMax))) {
+        query = query.lte('idade', Number(idadeMax));
+      }
+
       const { data, error: err, count } = await query.range(from, to);
       if (err) throw err;
       
@@ -124,7 +155,52 @@
     }
   }
 
+  async function loadEstados() {
+    try {
+      const { data, error: err } = await supabase
+        .from('estados')
+        .select('id,nome,sigla')
+        .order('sigla');
+      if (err) throw err;
+      estados = data || [];
+    } catch (e) {
+      console.warn('Falha ao carregar estados:', e?.message || e);
+      estados = [];
+    }
+  }
+
+  async function loadEdicoes() {
+    try {
+      const { data, error: err } = await supabase
+        .from('edicoes')
+        .select('id,numero,nome,ativa')
+        .order('numero', { ascending: false });
+      if (err) throw err;
+      edicoes = data || [];
+    } catch (e) {
+      console.warn('Falha ao carregar edições:', e?.message || e);
+      edicoes = [];
+    }
+  }
+
+  async function loadCondicoes() {
+    try {
+      const { data, error: err } = await supabase
+        .from('jovens')
+        .select('condicao')
+        .not('condicao', 'is', null)
+        .neq('condicao', '')
+        .order('condicao');
+      if (err) throw err;
+      condicoes = Array.from(new Set((data || []).map(r => r.condicao)));
+    } catch (e) {
+      console.warn('Falha ao carregar condições:', e?.message || e);
+      condicoes = [];
+    }
+  }
+
   onMount(async () => {
+    await Promise.all([loadEstados(), loadEdicoes(), loadCondicoes()]);
     fetchJovens();
   });
 
@@ -161,15 +237,86 @@
   </div>
 
   {#if $userProfile?.nivel !== 'jovem' && $userProfile?.nivel !== 'colaborador'}
-    <!-- Busca com Autocomplete -->
-    <div class="bg-white rounded-lg shadow p-4">
-      <Autocomplete
-        placeholder="Pesquisar por nome..."
-        bind:value={searchTerm}
-        on:input={(e) => { searchTerm = e.detail.value; if ((searchTerm || '').trim().length >= 2) { page = 1; fetchJovens(); } }}
-        on:select={(e) => { searchTerm = e.detail.suggestion.nome_completo; page = 1; fetchJovens(); }}
-        on:search={() => handleSearchSubmit()}
-      />
+    <!-- Banner de filtros com efeito vidro + bordas neon -->
+      <div class="rounded-3xl p-1 bg-gradient-to-br from-[#0c0d11] via-[#12131a] to-[#0a0b0f] mb-6">
+      <div class="relative neon-glass rounded-2xl p-4 sm:p-6 overflow-hidden">
+        <!-- Texturas/gradientes sutis no fundo para destacar o brilho -->
+        <div class="pointer-events-none absolute inset-0 opacity-60"
+             style="background:
+               radial-gradient(1200px 400px at -10% -10%, rgba(59,130,246,0.08), transparent 60%),
+               radial-gradient(800px 300px at 110% 0%, rgba(168,85,247,0.09), transparent 60%),
+               radial-gradient(800px 300px at 50% 120%, rgba(99,102,241,0.08), transparent 60%);"></div>
+
+        <Autocomplete
+          placeholder="Pesquisar por nome..."
+          bind:value={searchTerm}
+          on:input={(e) => { searchTerm = e.detail.value; if ((searchTerm || '').trim().length >= 2) { page = 1; fetchJovens(); } }}
+          on:select={(e) => { searchTerm = e.detail.suggestion.nome_completo; page = 1; fetchJovens(); }}
+          on:search={() => handleSearchSubmit()}
+        />
+
+        <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label for="estadoSelect" class="block text-sm text-blue-100 mb-1">Filtrar por estado</label>
+            <select
+              id="estadoSelect"
+              class="w-full bg-white/10 text-white placeholder-gray-300 border border-white/20 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/70"
+              bind:value={selectedEstado}
+              on:change={() => { page = 1; fetchJovens(); }}
+            >
+              <option value="">Todos os estados</option>
+              {#each estados as st}
+                <option value={st.id}>{st.sigla} - {st.nome}</option>
+              {/each}
+            </select>
+          </div>
+          <div>
+            <label for="edicaoSelect" class="block text-sm text-blue-100 mb-1">Filtrar por edição</label>
+            <select
+              id="edicaoSelect"
+              class="w-full bg-white/10 text-white placeholder-gray-300 border border-white/20 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-400/70"
+              bind:value={selectedEdicao}
+              on:change={() => { page = 1; fetchJovens(); }}
+            >
+              <option value="">Todas as edições</option>
+              {#each edicoes as ed}
+                <option value={ed.id}>Edição {ed.numero} {ed.ativa ? '(Ativa)' : ''}</option>
+              {/each}
+            </select>
+          </div>
+        </div>
+
+        <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label for="condicaoSelect" class="block text-sm text-blue-100 mb-1">Filtrar por condição</label>
+            <select
+              id="condicaoSelect"
+              class="w-full bg-white/10 text-white placeholder-gray-300 border border-white/20 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/70"
+              bind:value={selectedCondicao}
+              on:change={() => { page = 1; fetchJovens(); }}
+            >
+              <option value="">Todas as condições</option>
+              {#each condicoes as c}
+                <option value={c}>{c}</option>
+              {/each}
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm text-blue-100 mb-1" for="idadeMin">Filtrar por idade</label>
+            <div class="flex items-center gap-2">
+              <input id="idadeMin" type="number" min="0" placeholder="Mín"
+                class="w-full bg-white/10 text-white placeholder-gray-300 border border-white/20 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/70"
+                bind:value={idadeMin}
+                on:change={() => { page = 1; fetchJovens(); }} />
+              <span class="text-sm text-blue-200">-</span>
+              <input id="idadeMax" type="number" min="0" placeholder="Máx"
+                class="w-full bg-white/10 text-white placeholder-gray-300 border border-white/20 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400/70"
+                bind:value={idadeMax}
+                on:change={() => { page = 1; fetchJovens(); }} />
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   {/if}
 

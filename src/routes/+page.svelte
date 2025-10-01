@@ -31,6 +31,14 @@
   let pageFeed = 1;
   let pageSizeFeed = 24;
   let totalFeed = 0;
+  // Filtros e caches para o card de jovens do feed
+  let estadosFeed = [];
+  let selectedEstadoFeed = '';
+  let condicoesFeed = [];
+  let selectedCondicaoFeed = '';
+  let selectedEdicaoFeed = '';
+  let idadeMinFeed = '';
+  let idadeMaxFeed = '';
   
   onMount(async () => {
     if (!$user) {
@@ -45,6 +53,7 @@
       }
       
       await loadDashboardData();
+      await Promise.all([loadEstadosFeed(), loadCondicoesFeed()]);
       await fetchJovensFeed();
     }
   });
@@ -187,6 +196,23 @@
         query = query.ilike('nome_completo', `%${searchTermFeed.trim()}%`);
       }
 
+      // Filtros adicionais (estado/edição/condição/idade)
+      if (selectedEstadoFeed) {
+        query = query.eq('estado_id', selectedEstadoFeed);
+      }
+      if (selectedEdicaoFeed) {
+        query = query.eq('edicao_id', selectedEdicaoFeed);
+      }
+      if (selectedCondicaoFeed) {
+        query = query.eq('condicao', selectedCondicaoFeed);
+      }
+      if (idadeMinFeed !== '' && !Number.isNaN(Number(idadeMinFeed))) {
+        query = query.gte('idade', Number(idadeMinFeed));
+      }
+      if (idadeMaxFeed !== '' && !Number.isNaN(Number(idadeMaxFeed))) {
+        query = query.lte('idade', Number(idadeMaxFeed));
+      }
+
       const { data, error: err, count } = await query.range(from, to);
       if (err) throw err;
       
@@ -212,6 +238,36 @@
       errorJovensFeed = e.message || 'Erro ao carregar jovens';
     } finally {
       loadingJovensFeed = false;
+    }
+  }
+
+  async function loadEstadosFeed() {
+    try {
+      const { data, error } = await supabase
+        .from('estados')
+        .select('id,nome,sigla')
+        .order('sigla');
+      if (error) throw error;
+      estadosFeed = data || [];
+    } catch (e) {
+      console.warn('Falha ao carregar estados (feed):', e?.message || e);
+      estadosFeed = [];
+    }
+  }
+
+  async function loadCondicoesFeed() {
+    try {
+      const { data, error } = await supabase
+        .from('jovens')
+        .select('condicao')
+        .not('condicao', 'is', null)
+        .neq('condicao', '')
+        .order('condicao');
+      if (error) throw error;
+      condicoesFeed = Array.from(new Set((data || []).map(r => r.condicao)));
+    } catch (e) {
+      console.warn('Falha ao carregar condições (feed):', e?.message || e);
+      condicoesFeed = [];
     }
   }
 
@@ -848,15 +904,86 @@
   <!-- Jovens (Cards) no Feed -->
   {#if $userProfile?.nivel !== 'jovem'}
     <div class="fb-card p-6">
-      <h3 class="text-lg font-semibold text-gray-900 mb-4">JOVENS</h3>
-      <div class="bg-white rounded-lg shadow p-4 mb-4">
-        <Autocomplete
-          placeholder="Pesquisar por nome..."
-          bind:value={searchTermFeed}
-          on:input={(e) => { searchTermFeed = e.detail.value; if ((searchTermFeed || '').trim().length >= 2) { pageFeed = 1; fetchJovensFeed(); } }}
-          on:select={(e) => { searchTermFeed = e.detail.suggestion.nome_completo; pageFeed = 1; fetchJovensFeed(); }}
-          on:search={() => handleSearchSubmitFeed()}
-        />
+      <h3 class="text-lg font-semibold text-gray-900 mb-4">BUSCAR JOVENS POR:</h3>
+      <!-- Banner neon-glass (igual ao de /jovens/cards) -->
+      <div class="rounded-3xl p-1 bg-gradient-to-br from-[#0c0d11] via-[#12131a] to-[#0a0b0f] mb-6">
+        <div class="relative neon-glass rounded-2xl p-4 sm:p-6 overflow-hidden">
+          <div class="pointer-events-none absolute inset-0 opacity-60"
+               style="background:
+                 radial-gradient(1200px 400px at -10% -10%, rgba(59,130,246,0.08), transparent 60%),
+                 radial-gradient(800px 300px at 110% 0%, rgba(168,85,247,0.09), transparent 60%),
+                 radial-gradient(800px 300px at 50% 120%, rgba(99,102,241,0.08), transparent 60%);"></div>
+
+          <Autocomplete
+            placeholder="Pesquisar por nome..."
+            bind:value={searchTermFeed}
+            on:input={(e) => { searchTermFeed = e.detail.value; if ((searchTermFeed || '').trim().length >= 2) { pageFeed = 1; fetchJovensFeed(); } }}
+            on:select={(e) => { searchTermFeed = e.detail.suggestion.nome_completo; pageFeed = 1; fetchJovensFeed(); }}
+            on:search={() => handleSearchSubmitFeed()}
+          />
+
+          <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label for="estadoSelectFeed" class="block text-sm text-blue-100 mb-1">Filtrar por estado</label>
+              <select
+                id="estadoSelectFeed"
+                class="w-full bg-white/10 text-white placeholder-gray-300 border border-white/20 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/70"
+                bind:value={selectedEstadoFeed}
+                on:change={() => { pageFeed = 1; fetchJovensFeed(); }}
+              >
+                <option value="">Todos os estados</option>
+                {#each estadosFeed as st}
+                  <option value={st.id}>{st.sigla} - {st.nome}</option>
+                {/each}
+              </select>
+            </div>
+            <div>
+              <label for="edicaoSelectFeed" class="block text-sm text-blue-100 mb-1">Filtrar por edição</label>
+              <select
+                id="edicaoSelectFeed"
+                class="w-full bg-white/10 text-white placeholder-gray-300 border border-white/20 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-400/70"
+                bind:value={selectedEdicaoFeed}
+                on:change={() => { pageFeed = 1; fetchJovensFeed(); }}
+              >
+                <option value="">Todas as edições</option>
+                {#each $edicoes as ed}
+                  <option value={ed.id}>Edição {ed.numero} {ed.ativa ? '(Ativa)' : ''}</option>
+                {/each}
+              </select>
+            </div>
+          </div>
+
+          <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label for="condicaoSelectFeed" class="block text-sm text-blue-100 mb-1">Filtrar por condição</label>
+              <select
+                id="condicaoSelectFeed"
+                class="w-full bg-white/10 text-white placeholder-gray-300 border border-white/20 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/70"
+                bind:value={selectedCondicaoFeed}
+                on:change={() => { pageFeed = 1; fetchJovensFeed(); }}
+              >
+                <option value="">Todas as condições</option>
+                {#each condicoesFeed as c}
+                  <option value={c}>{c}</option>
+                {/each}
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm text-blue-100 mb-1" for="idadeMinFeed">Filtrar por idade</label>
+              <div class="flex items-center gap-2">
+                <input id="idadeMinFeed" type="number" min="0" placeholder="Mín"
+                  class="w-full bg-white/10 text-white placeholder-gray-300 border border-white/20 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/70"
+                  bind:value={idadeMinFeed}
+                  on:change={() => { pageFeed = 1; fetchJovensFeed(); }} />
+                <span class="text-sm text-blue-200">-</span>
+                <input id="idadeMaxFeed" type="number" min="0" placeholder="Máx"
+                  class="w-full bg-white/10 text-white placeholder-gray-300 border border-white/20 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400/70"
+                  bind:value={idadeMaxFeed}
+                  on:change={() => { pageFeed = 1; fetchJovensFeed(); }} />
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {#if loadingJovensFeed}
