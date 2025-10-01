@@ -41,10 +41,14 @@
   let selectedEdicao = '';
   let selectedCondicao = '';
 
+  // Flags de controle de carregamento
+  let readyToLoad = false;
+  let initialLoaded = false;
+
   onMount(async () => {
-    try { 
+    try {
       console.log('🚀 Iniciando carregamento da página de viagem...');
-      
+
       // Carregar edição ativa primeiro
       try {
         edicaoAtiva = await getEdicaoAtiva();
@@ -53,15 +57,29 @@
         console.error('❌ Erro ao carregar edição ativa:', edicaoError);
         edicaoAtiva = null;
       }
-      
-      // Carregar dados de viagem
+
+      // Carregar caches auxiliares (estados/edições/condições)
       try {
         await Promise.all([loadEstadosOnce(), loadEdicoesOnce(), loadCondicoesOnce()]);
-        // Se for jovem, carregar apenas seus próprios dados
+      } catch (viagemError) {
+        console.error('❌ Erro ao carregar caches iniciais:', viagemError);
+      }
+
+      // Sinaliza que estamos prontos para carregar conforme o perfil
+      readyToLoad = true;
+    } catch (e) {
+      console.error('❌ Erro geral ao carregar dados:', e);
+      console.error('Stack trace:', e.stack);
+    }
+  });
+
+  // Reage quando o perfil do usuário estiver disponível para decidir a fonte de dados
+  $: if (readyToLoad && !initialLoaded && $userProfile !== null) {
+    (async () => {
+      try {
         if (hasRole('jovem')($userProfile)) {
           await loadViagensCardsForJovem();
         } else {
-          // Passar userId e userLevel para filtrar corretamente
           const userId = $userProfile?.id;
           const userLevel = $userProfile?.nivel;
           const scope = {
@@ -72,16 +90,13 @@
           };
           await loadViagensCards(1, pageSize, userId, userLevel, { sortBy, sortDir, estadoId: selectedEstado || undefined, edicaoId: selectedEdicao || undefined, condicao: selectedCondicao || undefined, scope });
         }
-        console.log('✅ Dados de viagem carregados com sucesso');
-      } catch (viagemError) {
-        console.error('❌ Erro ao carregar dados de viagem:', viagemError);
+        initialLoaded = true;
+        console.log('✅ Dados de viagem carregados com sucesso (perfil pronto)');
+      } catch (err) {
+        console.error('❌ Erro ao carregar dados de viagem (perfil pronto):', err);
       }
-      
-    } catch (e) { 
-      console.error('❌ Erro geral ao carregar dados:', e);
-      console.error('Stack trace:', e.stack);
-    }
-  });
+    })();
+  }
 
   function handleUpload(event) {
     const { tipo, jovemId, edicaoId } = event.detail;
