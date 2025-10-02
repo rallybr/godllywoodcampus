@@ -1,4 +1,15 @@
--- RPC para atualizar usuário (com verificação de permissões)
+-- APLICAR CORREÇÃO DOS CAMPOS GEOGRÁFICOS NO MODAL DE EDITAR USUÁRIO
+-- Execute este script no Supabase SQL Editor
+
+-- 1. Primeiro, vamos verificar se a função existe
+SELECT 
+    proname as function_name,
+    pronargs as parameter_count,
+    pg_get_function_arguments(oid) as arguments
+FROM pg_proc 
+WHERE proname = 'atualizar_usuario_admin';
+
+-- 2. Atualizar a RPC com os campos geográficos
 CREATE OR REPLACE FUNCTION public.atualizar_usuario_admin(
   p_usuario_id uuid,
   p_nome text,
@@ -40,8 +51,6 @@ BEGIN
   END IF;
 
   -- Verificar permissões
-  -- Administradores podem editar qualquer usuário
-  -- Usuários comuns podem editar apenas seu próprio perfil
   IF user_role_info.nivel = 'administrador' THEN
     can_edit := true;
   ELSIF user_role_info.id = p_usuario_id THEN
@@ -158,13 +167,28 @@ BEGIN
 END;
 $$;
 
--- Teste da função
--- SELECT public.atualizar_usuario_admin(
---   'uuid-do-usuario',
---   'Novo Nome',
---   'novo@email.com',
---   'masculino',
---   'https://nova-foto-url.com',
---   'colaborador',
---   true
--- );
+-- 3. Verificar se a função foi atualizada corretamente
+SELECT 
+    'Função atualizada com sucesso!' as status,
+    proname as function_name,
+    pronargs as parameter_count,
+    pg_get_function_arguments(oid) as arguments
+FROM pg_proc 
+WHERE proname = 'atualizar_usuario_admin';
+
+-- 4. Teste rápido (opcional - descomente para testar)
+/*
+SELECT public.atualizar_usuario_admin(
+  'f2b0d1aa-92b9-4eb7-aa27-0ff9865ffbde'::uuid,
+  'Teste Nome',
+  'teste@email.com',
+  'masculino',
+  null,
+  'colaborador',
+  true,
+  null,
+  null,
+  null,
+  null
+);
+*/

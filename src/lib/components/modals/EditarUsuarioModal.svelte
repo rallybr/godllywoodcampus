@@ -2,8 +2,10 @@
   import { createEventDispatcher } from 'svelte';
   import { userProfile, hasRole } from '$lib/stores/auth';
   import { atualizarUsuario, uploadFotoUsuario, deletarFotoAntiga, buscarPapeisDisponiveis, buscarPapeisUsuario, atribuirPapelUsuario, removerPapelUsuario } from '$lib/stores/usuarios';
+  import { loadInitialData, estados, blocos, regioes, igrejas, loadBlocos, loadRegioes, loadIgrejas, clearHierarchy } from '$lib/stores/geographic';
   import Button from '$lib/components/ui/Button.svelte';
   import Card from '$lib/components/ui/Card.svelte';
+  import Select from '$lib/components/ui/Select.svelte';
 
   const dispatch = createEventDispatcher();
 
@@ -48,6 +50,32 @@
   $: if (isOpen && usuario?.id) {
     carregarPapeisDisponiveis();
     carregarPapeisUsuario();
+    carregarDadosGeograficos();
+  }
+
+  // Carregar dados geográficos iniciais
+  async function carregarDadosGeograficos() {
+    await loadInitialData();
+    
+    // Pré-selecionar valores atuais do usuário se existirem
+    if (usuario?.estado_id) {
+      estadoId = usuario.estado_id;
+      await loadBlocos(usuario.estado_id);
+      
+      if (usuario?.bloco_id) {
+        blocoId = usuario.bloco_id;
+        await loadRegioes(usuario.bloco_id);
+        
+        if (usuario?.regiao_id) {
+          regiaoId = usuario.regiao_id;
+          await loadIgrejas(usuario.regiao_id);
+          
+          if (usuario?.igreja_id) {
+            igrejaId = usuario.igreja_id;
+          }
+        }
+      }
+    }
   }
 
   // Pré-selecionar o papel atual quando os papéis estiverem carregados
@@ -60,6 +88,51 @@
 
   function fecharModal() {
     dispatch('close');
+  }
+
+  // Função para lidar com mudança de estado
+  async function handleEstadoChange(event) {
+    const novoEstadoId = event.detail.value;
+    estadoId = novoEstadoId;
+    blocoId = null;
+    regiaoId = null;
+    igrejaId = null;
+    clearHierarchy();
+    
+    if (novoEstadoId) {
+      await loadBlocos(novoEstadoId);
+    }
+  }
+
+  // Função para lidar com mudança de bloco
+  async function handleBlocoChange(event) {
+    const novoBlocoId = event.detail.value;
+    blocoId = novoBlocoId;
+    regiaoId = null;
+    igrejaId = null;
+    regioes.set([]);
+    igrejas.set([]);
+    
+    if (novoBlocoId) {
+      await loadRegioes(novoBlocoId);
+    }
+  }
+
+  // Função para lidar com mudança de região
+  async function handleRegiaoChange(event) {
+    const novaRegiaoId = event.detail.value;
+    regiaoId = novaRegiaoId;
+    igrejaId = null;
+    igrejas.set([]);
+    
+    if (novaRegiaoId) {
+      await loadIgrejas(novaRegiaoId);
+    }
+  }
+
+  // Função para lidar com mudança de igreja
+  function handleIgrejaChange(event) {
+    igrejaId = event.detail.value;
   }
 
   // Carregar papéis disponíveis
@@ -195,7 +268,13 @@
     success = null;
 
     try {
-      let dadosAtualizacao = { ...dadosFormulario };
+      let dadosAtualizacao = { 
+        ...dadosFormulario,
+        estado_id: estadoId,
+        bloco_id: blocoId,
+        regiao_id: regiaoId,
+        igreja_id: igrejaId
+      };
 
       // Upload da nova foto se houver
       if (arquivoFoto) {
@@ -459,51 +538,54 @@
 
                   <div class="grid grid-cols-2 gap-4">
                     <div>
-                      <label for="estado" class="block text-sm font-medium text-gray-700 mb-1">
-                        Estado (opcional)
-                      </label>
-                      <input
-                        id="estado"
-                        type="text"
+                      <Select
+                        label="Estado (opcional)"
                         bind:value={estadoId}
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        placeholder="ID do estado"
+                        on:change={handleEstadoChange}
+                        placeholder="Selecione o estado"
+                        options={$estados.map(estado => ({
+                          value: estado.id,
+                          label: estado.nome
+                        }))}
                       />
                     </div>
                     <div>
-                      <label for="bloco" class="block text-sm font-medium text-gray-700 mb-1">
-                        Bloco (opcional)
-                      </label>
-                      <input
-                        id="bloco"
-                        type="text"
+                      <Select
+                        label="Bloco (opcional)"
                         bind:value={blocoId}
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        placeholder="ID do bloco"
+                        on:change={handleBlocoChange}
+                        disabled={!estadoId}
+                        placeholder="Selecione o bloco"
+                        options={$blocos.map(bloco => ({
+                          value: bloco.id,
+                          label: bloco.nome
+                        }))}
                       />
                     </div>
                     <div>
-                      <label for="regiao" class="block text-sm font-medium text-gray-700 mb-1">
-                        Região (opcional)
-                      </label>
-                      <input
-                        id="regiao"
-                        type="text"
+                      <Select
+                        label="Região (opcional)"
                         bind:value={regiaoId}
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        placeholder="ID da região"
+                        on:change={handleRegiaoChange}
+                        disabled={!blocoId}
+                        placeholder="Selecione a região"
+                        options={$regioes.map(regiao => ({
+                          value: regiao.id,
+                          label: regiao.nome
+                        }))}
                       />
                     </div>
                     <div>
-                      <label for="igreja" class="block text-sm font-medium text-gray-700 mb-1">
-                        Igreja (opcional)
-                      </label>
-                      <input
-                        id="igreja"
-                        type="text"
+                      <Select
+                        label="Igreja (opcional)"
                         bind:value={igrejaId}
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        placeholder="ID da igreja"
+                        on:change={handleIgrejaChange}
+                        disabled={!regiaoId}
+                        placeholder="Selecione a igreja"
+                        options={$igrejas.map(igreja => ({
+                          value: igreja.id,
+                          label: igreja.nome
+                        }))}
                       />
                     </div>
                   </div>

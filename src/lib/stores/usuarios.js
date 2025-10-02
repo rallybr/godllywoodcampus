@@ -170,8 +170,8 @@ export async function atualizarUsuario(usuarioId, dadosAtualizacao) {
   error.set(null);
 
   try {
-    // Usar RPC para atualização com verificação de permissões
-    const { data, error: rpcError } = await supabase.rpc('atualizar_usuario_admin', {
+    // 1. Primeiro, atualizar dados básicos usando a RPC existente
+    const { data: rpcData, error: rpcError } = await supabase.rpc('atualizar_usuario_admin', {
       p_usuario_id: usuarioId,
       p_nome: dadosAtualizacao.nome || null,
       p_email: dadosAtualizacao.email || null,
@@ -183,14 +183,37 @@ export async function atualizarUsuario(usuarioId, dadosAtualizacao) {
 
     if (rpcError) throw rpcError;
 
-    if (!data.success) {
-      throw new Error(data.error || 'Erro ao atualizar usuário');
+    if (!rpcData.success) {
+      throw new Error(rpcData.error || 'Erro ao atualizar usuário');
+    }
+
+    // 2. Depois, atualizar campos geográficos diretamente na tabela
+    if (dadosAtualizacao.estado_id !== undefined || 
+        dadosAtualizacao.bloco_id !== undefined || 
+        dadosAtualizacao.regiao_id !== undefined || 
+        dadosAtualizacao.igreja_id !== undefined) {
+      
+      const camposGeograficos = {};
+      if (dadosAtualizacao.estado_id !== undefined) camposGeograficos.estado_id = dadosAtualizacao.estado_id;
+      if (dadosAtualizacao.bloco_id !== undefined) camposGeograficos.bloco_id = dadosAtualizacao.bloco_id;
+      if (dadosAtualizacao.regiao_id !== undefined) camposGeograficos.regiao_id = dadosAtualizacao.regiao_id;
+      if (dadosAtualizacao.igreja_id !== undefined) camposGeograficos.igreja_id = dadosAtualizacao.igreja_id;
+
+      const { error: geoError } = await supabase
+        .from('usuarios')
+        .update(camposGeograficos)
+        .eq('id', usuarioId);
+
+      if (geoError) {
+        console.warn('Erro ao atualizar campos geográficos:', geoError);
+        // Não falha a operação principal, apenas loga o erro
+      }
     }
 
     // Atualizar a lista de usuários
     await buscarUsuarios();
 
-    return data;
+    return rpcData;
   } catch (err) {
     error.set(err.message);
     console.error('Error updating usuario:', err);

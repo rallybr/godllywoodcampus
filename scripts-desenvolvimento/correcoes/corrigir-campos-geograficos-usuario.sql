@@ -1,4 +1,7 @@
--- RPC para atualizar usuário (com verificação de permissões)
+-- CORRIGIR CAMPOS GEOGRÁFICOS NO MODAL DE EDITAR USUÁRIO
+-- Este script atualiza a RPC para incluir os campos geográficos
+
+-- 1. Atualizar a RPC atualizar_usuario_admin para incluir campos geográficos
 CREATE OR REPLACE FUNCTION public.atualizar_usuario_admin(
   p_usuario_id uuid,
   p_nome text,
@@ -158,13 +161,27 @@ BEGIN
 END;
 $$;
 
--- Teste da função
--- SELECT public.atualizar_usuario_admin(
---   'uuid-do-usuario',
---   'Novo Nome',
---   'novo@email.com',
---   'masculino',
---   'https://nova-foto-url.com',
---   'colaborador',
---   true
--- );
+-- 2. Verificar se a função foi atualizada corretamente
+SELECT 
+    'Função atualizada com sucesso!' as status,
+    proname as function_name,
+    pronargs as parameter_count
+FROM pg_proc 
+WHERE proname = 'atualizar_usuario_admin';
+
+-- 3. Testar a função com dados de exemplo (comentado para não executar)
+/*
+SELECT public.atualizar_usuario_admin(
+  'uuid-do-usuario',
+  'Novo Nome',
+  'novo@email.com',
+  'masculino',
+  'https://nova-foto-url.com',
+  'colaborador',
+  true,
+  'uuid-do-estado',
+  'uuid-do-bloco',
+  'uuid-da-regiao',
+  'uuid-da-igreja'
+);
+*/

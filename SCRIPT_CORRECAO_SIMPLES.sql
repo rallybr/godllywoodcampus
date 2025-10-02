@@ -1,4 +1,14 @@
--- RPC para atualizar usuário (com verificação de permissões)
+-- CORREÇÃO SIMPLES - CAMPOS GEOGRÁFICOS
+-- Execute este script no Supabase SQL Editor
+
+-- 1. Verificar função atual
+SELECT 
+    proname as function_name,
+    pronargs as parameter_count
+FROM pg_proc 
+WHERE proname = 'atualizar_usuario_admin';
+
+-- 2. Atualizar a RPC com campos geográficos
 CREATE OR REPLACE FUNCTION public.atualizar_usuario_admin(
   p_usuario_id uuid,
   p_nome text,
@@ -27,21 +37,16 @@ BEGIN
     RETURN jsonb_build_object('success', false, 'error', 'Usuário não autenticado.');
   END IF;
 
-  -- Obter informações do usuário atual
   SELECT id, nivel INTO user_role_info FROM public.usuarios WHERE id_auth = current_user_id;
   IF user_role_info.id IS NULL THEN
     RETURN jsonb_build_object('success', false, 'error', 'Perfil de usuário não encontrado.');
   END IF;
 
-  -- Obter informações do usuário alvo
   SELECT id, nivel, nome, email INTO target_user FROM public.usuarios WHERE id = p_usuario_id;
   IF target_user.id IS NULL THEN
     RETURN jsonb_build_object('success', false, 'error', 'Usuário não encontrado.');
   END IF;
 
-  -- Verificar permissões
-  -- Administradores podem editar qualquer usuário
-  -- Usuários comuns podem editar apenas seu próprio perfil
   IF user_role_info.nivel = 'administrador' THEN
     can_edit := true;
   ELSIF user_role_info.id = p_usuario_id THEN
@@ -52,14 +57,12 @@ BEGIN
     RETURN jsonb_build_object('success', false, 'error', 'Você não tem permissão para editar este usuário.');
   END IF;
 
-  -- Verificar se o email já existe em outro usuário
   IF p_email IS NOT NULL AND p_email != target_user.email THEN
     IF EXISTS (SELECT 1 FROM public.usuarios WHERE email = p_email AND id != p_usuario_id) THEN
       RETURN jsonb_build_object('success', false, 'error', 'Este email já está sendo usado por outro usuário.');
     END IF;
   END IF;
 
-  -- Preparar dados para atualização
   DECLARE
     update_data jsonb := '{}';
   BEGIN
@@ -79,7 +82,7 @@ BEGIN
       update_data := update_data || jsonb_build_object('foto', p_foto);
     END IF;
     
-    -- Campos geográficos (sempre permitidos)
+    -- Campos geográficos
     IF p_estado_id IS NOT NULL THEN
       update_data := update_data || jsonb_build_object('estado_id', p_estado_id);
     END IF;
@@ -96,7 +99,6 @@ BEGIN
       update_data := update_data || jsonb_build_object('igreja_id', p_igreja_id);
     END IF;
     
-    -- Apenas administradores podem alterar nível e status
     IF user_role_info.nivel = 'administrador' THEN
       IF p_nivel IS NOT NULL THEN
         update_data := update_data || jsonb_build_object('nivel', p_nivel);
@@ -107,7 +109,6 @@ BEGIN
       END IF;
     END IF;
 
-    -- Atualizar usuário
     UPDATE public.usuarios
     SET 
       nome = COALESCE((update_data->>'nome')::text, nome),
@@ -130,7 +131,6 @@ BEGIN
       END
     WHERE id = p_usuario_id;
 
-    -- Criar log de auditoria
     INSERT INTO public.logs_auditoria (usuario_id, acao, detalhe, dados_novos)
     VALUES (
       user_role_info.id, 
@@ -158,13 +158,10 @@ BEGIN
 END;
 $$;
 
--- Teste da função
--- SELECT public.atualizar_usuario_admin(
---   'uuid-do-usuario',
---   'Novo Nome',
---   'novo@email.com',
---   'masculino',
---   'https://nova-foto-url.com',
---   'colaborador',
---   true
--- );
+-- 3. Verificar se foi atualizada
+SELECT 
+    'Função atualizada!' as status,
+    proname as function_name,
+    pronargs as parameter_count
+FROM pg_proc 
+WHERE proname = 'atualizar_usuario_admin';
