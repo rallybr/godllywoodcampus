@@ -203,6 +203,105 @@ export function canAccessViagem(jovemData) {
 }
 
 /**
+ * Verificar se o usuário pode cadastrar jovens
+ */
+export function canCadastrarJovem() {
+  const profile = get(userProfile);
+  
+  if (!profile) return false;
+  
+  // Níveis que PODEM cadastrar jovens:
+  // - Administrador
+  // - Líderes nacionais
+  
+  // Níveis que NÃO PODEM cadastrar jovens:
+  // - Líderes estaduais
+  // - Líderes de bloco
+  // - Líder regional
+  // - Líder de igreja
+  // - Colaborador
+  // - Jovem (apenas visualiza seus próprios dados)
+  
+  const niveisPermitidos = [
+    'administrador',
+    'lider_nacional_iurd',
+    'lider_nacional_fju'
+  ];
+  
+  return niveisPermitidos.includes(profile.nivel);
+}
+
+/**
+ * Verificar se o usuário pode ver o card "AÇÕES RÁPIDAS"
+ */
+export function canViewAcoesRapidas() {
+  const profile = get(userProfile);
+  
+  if (!profile) return false;
+  
+  // Níveis que PODEM ver o card "AÇÕES RÁPIDAS":
+  // - Administrador
+  // - Líderes nacionais
+  
+  // Níveis que NÃO PODEM ver o card "AÇÕES RÁPIDAS":
+  // - Líderes estaduais
+  // - Líderes de bloco
+  // - Líder regional
+  // - Líder de igreja
+  // - Colaborador
+  // - Jovem (apenas visualiza seus próprios dados)
+  
+  const niveisPermitidos = [
+    'administrador',
+    'lider_nacional_iurd',
+    'lider_nacional_fju'
+  ];
+  
+  return niveisPermitidos.includes(profile.nivel);
+}
+
+/**
+ * Verificar se o usuário pode clicar em um estado específico
+ */
+export function canClickEstado(estadoId) {
+  const profile = get(userProfile);
+  
+  if (!profile || !estadoId) return false;
+  
+  // Administrador e líderes nacionais: podem clicar em qualquer estado
+  if (profile.nivel === 'administrador' || 
+      profile.nivel === 'lider_nacional_iurd' || 
+      profile.nivel === 'lider_nacional_fju') {
+    return true;
+  }
+  
+  // Líder estadual: só pode clicar no seu estado
+  if (profile.nivel === 'lider_estadual_iurd' || profile.nivel === 'lider_estadual_fju') {
+    return profile.estado_id === estadoId;
+  }
+  
+  // Líder de bloco: só pode clicar no estado do seu bloco
+  if (profile.nivel === 'lider_bloco_iurd' || profile.nivel === 'lider_bloco_fju') {
+    // Precisamos verificar se o estado pertence ao bloco do usuário
+    // Por enquanto, vamos assumir que o usuário tem estado_id definido
+    return profile.estado_id === estadoId;
+  }
+  
+  // Líder regional: só pode clicar no estado da sua região
+  if (profile.nivel === 'lider_regional_iurd') {
+    return profile.estado_id === estadoId;
+  }
+  
+  // Líder de igreja: só pode clicar no estado da sua igreja
+  if (profile.nivel === 'lider_igreja_iurd') {
+    return profile.estado_id === estadoId;
+  }
+  
+  // Colaborador e jovem: não podem clicar em estados
+  return false;
+}
+
+/**
  * Obter filtros de localização baseados no nível de acesso
  */
 export function getLocationFilters() {

@@ -176,7 +176,41 @@
         `)
         .eq('estado_id', estadoId);
       
-      // Aplicar filtros em cascata
+      // 🔧 APLICAR FILTROS BASEADOS NO NÍVEL DE ACESSO
+      const userLevel = $userProfile?.nivel;
+      const userId = $userProfile?.id;
+      
+      console.log('🔍 DEBUG - Carregando jovens por estado:', { userLevel, userId, estadoId, siglaEstado });
+      
+      if (userLevel === 'colaborador' && userId) {
+        console.log('🔍 DEBUG - Filtrando por colaborador:', userId);
+        query = query.eq('usuario_id', userId);
+      } else if (userLevel === 'lider_estadual_iurd' || userLevel === 'lider_estadual_fju') {
+        // Líder estadual: apenas jovens do seu estado (já filtrado por estado_id)
+        console.log('🔍 DEBUG - Líder estadual: mostrando jovens do estado:', estadoId);
+        // Não precisa de filtro adicional, já está filtrado por estado_id
+      } else if (userLevel === 'lider_bloco_iurd' || userLevel === 'lider_bloco_fju') {
+        // Líder de bloco: apenas jovens do seu bloco
+        if ($userProfile?.bloco_id) {
+          console.log('🔍 DEBUG - Filtrando por bloco:', $userProfile.bloco_id);
+          query = query.eq('bloco_id', $userProfile.bloco_id);
+        }
+      } else if (userLevel === 'lider_regional_iurd') {
+        // Líder regional: apenas jovens da sua região
+        if ($userProfile?.regiao_id) {
+          console.log('🔍 DEBUG - Filtrando por região:', $userProfile.regiao_id);
+          query = query.eq('regiao_id', $userProfile.regiao_id);
+        }
+      } else if (userLevel === 'lider_igreja_iurd') {
+        // Líder de igreja: apenas jovens da sua igreja
+        if ($userProfile?.igreja_id) {
+          console.log('🔍 DEBUG - Filtrando por igreja:', $userProfile.igreja_id);
+          query = query.eq('igreja_id', $userProfile.igreja_id);
+        }
+      }
+      // Administrador e líderes nacionais: sem filtros adicionais (podem ver todos os jovens do estado)
+      
+      // Aplicar filtros em cascata (se o usuário tiver permissão para usar)
       if (blocoSelecionado) {
         query = query.eq('bloco_id', blocoSelecionado);
       }
@@ -197,6 +231,8 @@
       const { data, error: fetchError } = await query.order('nome_completo', { ascending: true });
       
       if (fetchError) throw fetchError;
+      
+      console.log('🔍 DEBUG - Jovens carregados:', data?.length);
       
       // Processar dados para incluir informações adicionais
       jovens = data.map(jovem => ({

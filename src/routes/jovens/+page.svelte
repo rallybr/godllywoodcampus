@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
   import { user, userProfile } from '$lib/stores/auth';
+  import { canCadastrarJovem } from '$lib/stores/niveis-acesso';
   import { loadJovens, filteredJovens, filters, loading, error, pagination } from '$lib/stores/jovens-simple';
   import JovemCard from '$lib/components/jovens/JovemCard.svelte';
   import Autocomplete from '$lib/components/ui/Autocomplete.svelte';
@@ -99,12 +100,14 @@
         </button>
       </div>
       
+      {#if canCadastrarJovem()}
       <a href="/jovens/cadastrar" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
         <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
         </svg>
         Cadastrar Jovem
       </a>
+      {/if}
     </div>
   </div>
   

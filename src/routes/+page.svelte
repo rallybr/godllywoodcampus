@@ -1,7 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import { user, userProfile } from '$lib/stores/auth';
-  import { getUserLevelName } from '$lib/stores/niveis-acesso';
+  import { getUserLevelName, canCadastrarJovem, canViewAcoesRapidas, canClickEstado } from '$lib/stores/niveis-acesso';
   import { goto } from '$app/navigation';
   import Button from '$lib/components/ui/Button.svelte';
   import AvaliacoesChart from '$lib/components/charts/AvaliacoesChart.svelte';
@@ -243,10 +243,66 @@
 
   async function loadEstadosFeed() {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('estados')
         .select('id,nome,sigla')
         .order('sigla');
+      
+      // 🔧 APLICAR FILTROS BASEADOS NO NÍVEL DE ACESSO
+      const userLevel = $userProfile?.nivel;
+      
+      if (userLevel === 'lider_estadual_iurd' || userLevel === 'lider_estadual_fju') {
+        // Líder estadual: apenas seu estado
+        if ($userProfile?.estado_id) {
+          console.log('🔍 DEBUG - Filtrando estados para líder estadual (feed):', $userProfile.estado_id);
+          query = query.eq('id', $userProfile.estado_id);
+        }
+      } else if (userLevel === 'lider_bloco_iurd' || userLevel === 'lider_bloco_fju') {
+        // Líder de bloco: apenas estados do seu bloco
+        if ($userProfile?.bloco_id) {
+          console.log('🔍 DEBUG - Filtrando estados para líder de bloco (feed):', $userProfile.bloco_id);
+          // Buscar estados que têm blocos com o bloco_id do usuário
+          const { data: blocosData } = await supabase
+            .from('blocos')
+            .select('estado_id')
+            .eq('id', $userProfile.bloco_id);
+          
+          if (blocosData && blocosData.length > 0) {
+            query = query.eq('id', blocosData[0].estado_id);
+          }
+        }
+      } else if (userLevel === 'lider_regional_iurd') {
+        // Líder regional: apenas estados da sua região
+        if ($userProfile?.regiao_id) {
+          console.log('🔍 DEBUG - Filtrando estados para líder regional (feed):', $userProfile.regiao_id);
+          // Buscar estados que têm regiões com o regiao_id do usuário
+          const { data: regioesData } = await supabase
+            .from('regioes')
+            .select('estado_id')
+            .eq('id', $userProfile.regiao_id);
+          
+          if (regioesData && regioesData.length > 0) {
+            query = query.eq('id', regioesData[0].estado_id);
+          }
+        }
+      } else if (userLevel === 'lider_igreja_iurd') {
+        // Líder de igreja: apenas estados da sua igreja
+        if ($userProfile?.igreja_id) {
+          console.log('🔍 DEBUG - Filtrando estados para líder de igreja (feed):', $userProfile.igreja_id);
+          // Buscar estados que têm igrejas com o igreja_id do usuário
+          const { data: igrejasData } = await supabase
+            .from('igrejas')
+            .select('estado_id')
+            .eq('id', $userProfile.igreja_id);
+          
+          if (igrejasData && igrejasData.length > 0) {
+            query = query.eq('id', igrejasData[0].estado_id);
+          }
+        }
+      }
+      // Administrador e líderes nacionais: sem filtros adicionais
+      
+      const { data, error } = await query;
       if (error) throw error;
       estadosFeed = data || [];
     } catch (e) {
@@ -257,12 +313,48 @@
 
   async function loadCondicoesFeed() {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('jovens')
         .select('condicao')
         .not('condicao', 'is', null)
         .neq('condicao', '')
         .order('condicao');
+      
+      // 🔧 APLICAR FILTROS BASEADOS NO NÍVEL DE ACESSO
+      const userLevel = $userProfile?.nivel;
+      
+      if (userLevel === 'colaborador' && $userProfile?.id) {
+        // Colaborador: apenas condições dos jovens que ele cadastrou
+        console.log('🔍 DEBUG - Filtrando condições para colaborador (feed):', $userProfile.id);
+        query = query.eq('usuario_id', $userProfile.id);
+      } else if (userLevel === 'lider_estadual_iurd' || userLevel === 'lider_estadual_fju') {
+        // Líder estadual: apenas condições dos jovens do seu estado
+        if ($userProfile?.estado_id) {
+          console.log('🔍 DEBUG - Filtrando condições para líder estadual (feed):', $userProfile.estado_id);
+          query = query.eq('estado_id', $userProfile.estado_id);
+        }
+      } else if (userLevel === 'lider_bloco_iurd' || userLevel === 'lider_bloco_fju') {
+        // Líder de bloco: apenas condições dos jovens do seu bloco
+        if ($userProfile?.bloco_id) {
+          console.log('🔍 DEBUG - Filtrando condições para líder de bloco (feed):', $userProfile.bloco_id);
+          query = query.eq('bloco_id', $userProfile.bloco_id);
+        }
+      } else if (userLevel === 'lider_regional_iurd') {
+        // Líder regional: apenas condições dos jovens da sua região
+        if ($userProfile?.regiao_id) {
+          console.log('🔍 DEBUG - Filtrando condições para líder regional (feed):', $userProfile.regiao_id);
+          query = query.eq('regiao_id', $userProfile.regiao_id);
+        }
+      } else if (userLevel === 'lider_igreja_iurd') {
+        // Líder de igreja: apenas condições dos jovens da sua igreja
+        if ($userProfile?.igreja_id) {
+          console.log('🔍 DEBUG - Filtrando condições para líder de igreja (feed):', $userProfile.igreja_id);
+          query = query.eq('igreja_id', $userProfile.igreja_id);
+        }
+      }
+      // Administrador e líderes nacionais: sem filtros adicionais
+      
+      const { data, error } = await query;
       if (error) throw error;
       condicoesFeed = Array.from(new Set((data || []).map(r => r.condicao)));
     } catch (e) {
@@ -854,39 +946,75 @@
     {:else if estadosStats.length > 0}
       <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-6 gap-2 sm:gap-3">
         {#each estadosStats as estado}
-          <a href="/estados/{estado.sigla}" class="group cursor-pointer hover:scale-105 transition-all duration-300">
-            <div class="bg-white rounded-t-2xl shadow-md hover:shadow-lg border border-gray-100 p-2 sm:p-3 group-hover:border-blue-200 transition-all duration-300">
-              <!-- Bandeira Circular -->
-              <div class="w-10 h-10 sm:w-12 sm:h-12 bg-white border border-gray-200 rounded-full flex items-center justify-center mx-auto mb-2 group-hover:border-blue-300 transition-all duration-300 overflow-hidden shadow-sm">
-                {#if estado.bandeira}
-                  <img 
-                    src={estado.bandeira} 
-                    alt={estado.nome}
-                    class="w-full h-full object-cover rounded-full"
-                  />
-                {:else}
-                  <div class="w-full h-full bg-gradient-to-br from-blue-100 to-blue-200 rounded-full flex items-center justify-center">
-                    <span class="text-blue-600 font-bold text-xs">{estado.sigla}</span>
-                  </div>
-                {/if}
-              </div>
-              
-              <!-- Sigla e Número -->
-              <div class="flex items-center justify-between">
-                <div class="inline-flex items-center px-2 py-1 transition-all duration-300">
-                  <span class="text-xs font-semibold text-gray-700 group-hover:text-blue-700 transition-colors">
-                    {estado.sigla}
-                  </span>
+          {#if canClickEstado(estado.id)}
+            <a href="/estados/{estado.sigla}" class="group cursor-pointer hover:scale-105 transition-all duration-300">
+              <div class="bg-white rounded-t-2xl shadow-md hover:shadow-lg border border-gray-100 p-2 sm:p-3 group-hover:border-blue-200 transition-all duration-300">
+                <!-- Bandeira Circular -->
+                <div class="w-10 h-10 sm:w-12 sm:h-12 bg-white border border-gray-200 rounded-full flex items-center justify-center mx-auto mb-2 group-hover:border-blue-300 transition-all duration-300 overflow-hidden shadow-sm">
+                  {#if estado.bandeira}
+                    <img 
+                      src={estado.bandeira} 
+                      alt={estado.nome}
+                      class="w-full h-full object-cover rounded-full"
+                    />
+                  {:else}
+                    <div class="w-full h-full bg-gradient-to-br from-blue-100 to-blue-200 rounded-full flex items-center justify-center">
+                      <span class="text-blue-600 font-bold text-xs">{estado.sigla}</span>
+                    </div>
+                  {/if}
                 </div>
                 
-                <div class="text-right">
-                  <p class="text-lg sm:text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent group-hover:from-blue-700 group-hover:to-purple-700 transition-all duration-300" style="font-weight: bold;">
-                    {estado.totalJovens}
-                  </p>
+                <!-- Sigla e Número -->
+                <div class="flex items-center justify-between">
+                  <div class="inline-flex items-center px-2 py-1 transition-all duration-300">
+                    <span class="text-xs font-semibold text-gray-700 group-hover:text-blue-700 transition-colors">
+                      {estado.sigla}
+                    </span>
+                  </div>
+                  
+                  <div class="text-right">
+                    <p class="text-lg sm:text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent group-hover:from-blue-700 group-hover:to-purple-700 transition-all duration-300" style="font-weight: bold;">
+                      {estado.totalJovens}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </a>
+          {:else}
+            <div class="group cursor-not-allowed opacity-60">
+              <div class="bg-white rounded-t-2xl shadow-md border border-gray-100 p-2 sm:p-3">
+                <!-- Bandeira Circular -->
+                <div class="w-10 h-10 sm:w-12 sm:h-12 bg-white border border-gray-200 rounded-full flex items-center justify-center mx-auto mb-2 overflow-hidden shadow-sm">
+                  {#if estado.bandeira}
+                    <img 
+                      src={estado.bandeira} 
+                      alt={estado.nome}
+                      class="w-full h-full object-cover rounded-full"
+                    />
+                  {:else}
+                    <div class="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center">
+                      <span class="text-gray-600 font-bold text-xs">{estado.sigla}</span>
+                    </div>
+                  {/if}
+                </div>
+                
+                <!-- Sigla e Número -->
+                <div class="flex items-center justify-between">
+                  <div class="inline-flex items-center px-2 py-1">
+                    <span class="text-xs font-semibold text-gray-500">
+                      {estado.sigla}
+                    </span>
+                  </div>
+                  
+                  <div class="text-right">
+                    <p class="text-lg sm:text-xl font-bold text-gray-500" style="font-weight: bold;">
+                      {estado.totalJovens}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
-          </a>
+          {/if}
         {/each}
       </div>
     {:else}
@@ -1067,16 +1195,18 @@
     <AvaliacoesChart jovemId={null} title="ESTATÍSTICAS GERAIS DE AVALIAÇÕES" />
     
     <!-- Quick actions (não mostrar para jovens) -->
-    {#if getUserLevelName($userProfile) !== 'Jovem'}
+    {#if getUserLevelName($userProfile) !== 'Jovem' && canViewAcoesRapidas()}
     <div class="fb-card p-6">
       <h3 class="text-lg font-semibold text-gray-900 mb-4">AÇÕES RÁPIDAS</h3>
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {#if canCadastrarJovem()}
       <Button href="/jovens/cadastrar" variant="primary">
         <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
         </svg>
         Cadastrar Jovem
       </Button>
+      {/if}
       
       <Button href="/avaliacoes" variant="outline">
         <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">

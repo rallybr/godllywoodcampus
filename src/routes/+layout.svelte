@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { user, loading, userProfile, hasRole } from '$lib/stores/auth';
-  import { getUserLevelName } from '$lib/stores/niveis-acesso';
+  import { getUserLevelName, canCadastrarJovem, canViewAcoesRapidas } from '$lib/stores/niveis-acesso';
   import { goto } from '$app/navigation';
   import { page } from '$app/stores';
   import { supabase } from '$lib/utils/supabase';
@@ -248,10 +248,11 @@
                   </div>
                   
                   <!-- Quick actions (não mostrar para jovens) -->
-                  {#if getUserLevelName($userProfile) !== 'Jovem'}
+                  {#if getUserLevelName($userProfile) !== 'Jovem' && canViewAcoesRapidas()}
                   <div class="fb-card p-4">
                     <h4 class="font-semibold text-gray-900 mb-3">Ações Rápidas</h4>
                     <div class="space-y-2">
+                      {#if canCadastrarJovem()}
                       <button class="w-full text-left p-2 rounded-lg hover:bg-gray-50 transition-colors">
                         <div class="flex items-center space-x-3">
                           <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
@@ -262,6 +263,7 @@
                           <span class="text-sm font-medium">Cadastrar Jovem</span>
                         </div>
                       </button>
+                      {/if}
                       <button class="w-full text-left p-2 rounded-lg hover:bg-gray-50 transition-colors">
                         <div class="flex items-center space-x-3">
                           <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">

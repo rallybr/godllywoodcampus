@@ -82,6 +82,43 @@
       // Filtrar por condição
       query = query.eq('condicao', condicao);
       
+      // 🔧 APLICAR FILTROS BASEADOS NO NÍVEL DE ACESSO
+      const userLevel = $userProfile?.nivel;
+      const userId = $userProfile?.id;
+      
+      console.log('🔍 DEBUG - Carregando jovens por condição:', { userLevel, userId, condicao, estado_id: $userProfile?.estado_id });
+      
+      if (userLevel === 'colaborador' && userId) {
+        // Colaborador: apenas jovens que ele cadastrou
+        console.log('🔍 DEBUG - Filtrando por colaborador:', userId);
+        query = query.eq('usuario_id', userId);
+      } else if (userLevel === 'lider_estadual_iurd' || userLevel === 'lider_estadual_fju') {
+        // Líder estadual: apenas jovens do seu estado
+        if ($userProfile?.estado_id) {
+          console.log('🔍 DEBUG - Filtrando por estado:', $userProfile.estado_id);
+          query = query.eq('estado_id', $userProfile.estado_id);
+        }
+      } else if (userLevel === 'lider_bloco_iurd' || userLevel === 'lider_bloco_fju') {
+        // Líder de bloco: apenas jovens do seu bloco
+        if ($userProfile?.bloco_id) {
+          console.log('🔍 DEBUG - Filtrando por bloco:', $userProfile.bloco_id);
+          query = query.eq('bloco_id', $userProfile.bloco_id);
+        }
+      } else if (userLevel === 'lider_regional_iurd') {
+        // Líder regional: apenas jovens da sua região
+        if ($userProfile?.regiao_id) {
+          console.log('🔍 DEBUG - Filtrando por região:', $userProfile.regiao_id);
+          query = query.eq('regiao_id', $userProfile.regiao_id);
+        }
+      } else if (userLevel === 'lider_igreja_iurd') {
+        // Líder de igreja: apenas jovens da sua igreja
+        if ($userProfile?.igreja_id) {
+          console.log('🔍 DEBUG - Filtrando por igreja:', $userProfile.igreja_id);
+          query = query.eq('igreja_id', $userProfile.igreja_id);
+        }
+      }
+      // Administrador e líderes nacionais: sem filtros adicionais
+      
       // Filtrar por edição se selecionada
       if (edicaoSelecionada) {
         query = query.eq('edicao_id', edicaoSelecionada);
@@ -97,6 +134,8 @@
         edicao: jovem.edicao_obj?.nome || 'N/A',
         tem_avaliacoes: false // Será implementado depois se necessário
       }));
+      
+      console.log('🔍 DEBUG - Jovens por condição carregados:', jovens.length);
       
     } catch (err) {
       error = err.message;

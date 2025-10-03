@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
   import { user, userProfile } from '$lib/stores/auth';
+  import { canCadastrarJovem } from '$lib/stores/niveis-acesso';
   import { supabase } from '$lib/utils/supabase';
   import JovemCard from '$lib/components/jovens/JovemCard.svelte';
   import Button from '$lib/components/ui/Button.svelte';
@@ -60,6 +61,43 @@
           edicao_obj:edicoes(nome)
         `);
       
+      // 🔧 APLICAR FILTROS BASEADOS NO NÍVEL DE ACESSO
+      const userLevel = $userProfile?.nivel;
+      const userId = $userProfile?.id;
+      
+      console.log('🔍 DEBUG - Carregando todos os jovens:', { userLevel, userId, estado_id: $userProfile?.estado_id });
+      
+      if (userLevel === 'colaborador' && userId) {
+        // Colaborador: apenas jovens que ele cadastrou
+        console.log('🔍 DEBUG - Filtrando por colaborador:', userId);
+        query = query.eq('usuario_id', userId);
+      } else if (userLevel === 'lider_estadual_iurd' || userLevel === 'lider_estadual_fju') {
+        // Líder estadual: apenas jovens do seu estado
+        if ($userProfile?.estado_id) {
+          console.log('🔍 DEBUG - Filtrando por estado:', $userProfile.estado_id);
+          query = query.eq('estado_id', $userProfile.estado_id);
+        }
+      } else if (userLevel === 'lider_bloco_iurd' || userLevel === 'lider_bloco_fju') {
+        // Líder de bloco: apenas jovens do seu bloco
+        if ($userProfile?.bloco_id) {
+          console.log('🔍 DEBUG - Filtrando por bloco:', $userProfile.bloco_id);
+          query = query.eq('bloco_id', $userProfile.bloco_id);
+        }
+      } else if (userLevel === 'lider_regional_iurd') {
+        // Líder regional: apenas jovens da sua região
+        if ($userProfile?.regiao_id) {
+          console.log('🔍 DEBUG - Filtrando por região:', $userProfile.regiao_id);
+          query = query.eq('regiao_id', $userProfile.regiao_id);
+        }
+      } else if (userLevel === 'lider_igreja_iurd') {
+        // Líder de igreja: apenas jovens da sua igreja
+        if ($userProfile?.igreja_id) {
+          console.log('🔍 DEBUG - Filtrando por igreja:', $userProfile.igreja_id);
+          query = query.eq('igreja_id', $userProfile.igreja_id);
+        }
+      }
+      // Administrador e líderes nacionais: sem filtros adicionais
+      
       // Filtrar por edição se selecionada
       if (edicaoSelecionada) {
         query = query.eq('edicao_id', edicaoSelecionada);
@@ -75,6 +113,8 @@
         edicao: jovem.edicao_obj?.nome || 'N/A',
         tem_avaliacoes: false // Será implementado depois se necessário
       }));
+      
+      console.log('🔍 DEBUG - Todos os jovens carregados:', jovens.length);
       
     } catch (err) {
       error = err.message;
@@ -139,12 +179,14 @@
           </div>
           
           <!-- Botão Cadastrar -->
+          {#if canCadastrarJovem()}
           <Button href="/jovens/cadastrar" variant="primary" class="w-full sm:w-auto">
             <svg class="w-4 h-4 sm:w-5 sm:h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
             </svg>
             <span class="text-sm sm:text-base">Cadastrar Jovem</span>
           </Button>
+          {/if}
         </div>
       </div>
     </div>

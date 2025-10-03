@@ -157,10 +157,66 @@
 
   async function loadEstados() {
     try {
-      const { data, error: err } = await supabase
+      let query = supabase
         .from('estados')
         .select('id,nome,sigla')
         .order('sigla');
+      
+      // 🔧 APLICAR FILTROS BASEADOS NO NÍVEL DE ACESSO
+      const userLevel = $userProfile?.nivel;
+      
+      if (userLevel === 'lider_estadual_iurd' || userLevel === 'lider_estadual_fju') {
+        // Líder estadual: apenas seu estado
+        if ($userProfile?.estado_id) {
+          console.log('🔍 DEBUG - Filtrando estados para líder estadual:', $userProfile.estado_id);
+          query = query.eq('id', $userProfile.estado_id);
+        }
+      } else if (userLevel === 'lider_bloco_iurd' || userLevel === 'lider_bloco_fju') {
+        // Líder de bloco: apenas estados do seu bloco
+        if ($userProfile?.bloco_id) {
+          console.log('🔍 DEBUG - Filtrando estados para líder de bloco:', $userProfile.bloco_id);
+          // Buscar estados que têm blocos com o bloco_id do usuário
+          const { data: blocosData } = await supabase
+            .from('blocos')
+            .select('estado_id')
+            .eq('id', $userProfile.bloco_id);
+          
+          if (blocosData && blocosData.length > 0) {
+            query = query.eq('id', blocosData[0].estado_id);
+          }
+        }
+      } else if (userLevel === 'lider_regional_iurd') {
+        // Líder regional: apenas estados da sua região
+        if ($userProfile?.regiao_id) {
+          console.log('🔍 DEBUG - Filtrando estados para líder regional:', $userProfile.regiao_id);
+          // Buscar estados que têm regiões com o regiao_id do usuário
+          const { data: regioesData } = await supabase
+            .from('regioes')
+            .select('estado_id')
+            .eq('id', $userProfile.regiao_id);
+          
+          if (regioesData && regioesData.length > 0) {
+            query = query.eq('id', regioesData[0].estado_id);
+          }
+        }
+      } else if (userLevel === 'lider_igreja_iurd') {
+        // Líder de igreja: apenas estados da sua igreja
+        if ($userProfile?.igreja_id) {
+          console.log('🔍 DEBUG - Filtrando estados para líder de igreja:', $userProfile.igreja_id);
+          // Buscar estados que têm igrejas com o igreja_id do usuário
+          const { data: igrejasData } = await supabase
+            .from('igrejas')
+            .select('estado_id')
+            .eq('id', $userProfile.igreja_id);
+          
+          if (igrejasData && igrejasData.length > 0) {
+            query = query.eq('id', igrejasData[0].estado_id);
+          }
+        }
+      }
+      // Administrador e líderes nacionais: sem filtros adicionais
+      
+      const { data, error: err } = await query;
       if (err) throw err;
       estados = data || [];
     } catch (e) {
@@ -171,10 +227,35 @@
 
   async function loadEdicoes() {
     try {
-      const { data, error: err } = await supabase
+      let query = supabase
         .from('edicoes')
         .select('id,numero,nome,ativa')
         .order('numero', { ascending: false });
+      
+      // 🔧 APLICAR FILTROS BASEADOS NO NÍVEL DE ACESSO
+      const userLevel = $userProfile?.nivel;
+      
+      if (userLevel === 'colaborador' && $userProfile?.id) {
+        // Colaborador: apenas edições dos jovens que ele cadastrou
+        console.log('🔍 DEBUG - Filtrando edições para colaborador:', $userProfile.id);
+        // Buscar edições dos jovens que o colaborador cadastrou
+        const { data: jovensData } = await supabase
+          .from('jovens')
+          .select('edicao_id')
+          .eq('usuario_id', $userProfile.id)
+          .not('edicao_id', 'is', null);
+        
+        if (jovensData && jovensData.length > 0) {
+          const edicaoIds = [...new Set(jovensData.map(j => j.edicao_id))];
+          query = query.in('id', edicaoIds);
+        } else {
+          // Se não tem jovens cadastrados, não mostrar nenhuma edição
+          query = query.eq('id', -1); // ID que não existe
+        }
+      }
+      // Outros níveis: sem filtros adicionais (podem ver todas as edições)
+      
+      const { data, error: err } = await query;
       if (err) throw err;
       edicoes = data || [];
     } catch (e) {
@@ -185,12 +266,48 @@
 
   async function loadCondicoes() {
     try {
-      const { data, error: err } = await supabase
+      let query = supabase
         .from('jovens')
         .select('condicao')
         .not('condicao', 'is', null)
         .neq('condicao', '')
         .order('condicao');
+      
+      // 🔧 APLICAR FILTROS BASEADOS NO NÍVEL DE ACESSO
+      const userLevel = $userProfile?.nivel;
+      
+      if (userLevel === 'colaborador' && $userProfile?.id) {
+        // Colaborador: apenas condições dos jovens que ele cadastrou
+        console.log('🔍 DEBUG - Filtrando condições para colaborador:', $userProfile.id);
+        query = query.eq('usuario_id', $userProfile.id);
+      } else if (userLevel === 'lider_estadual_iurd' || userLevel === 'lider_estadual_fju') {
+        // Líder estadual: apenas condições dos jovens do seu estado
+        if ($userProfile?.estado_id) {
+          console.log('🔍 DEBUG - Filtrando condições para líder estadual:', $userProfile.estado_id);
+          query = query.eq('estado_id', $userProfile.estado_id);
+        }
+      } else if (userLevel === 'lider_bloco_iurd' || userLevel === 'lider_bloco_fju') {
+        // Líder de bloco: apenas condições dos jovens do seu bloco
+        if ($userProfile?.bloco_id) {
+          console.log('🔍 DEBUG - Filtrando condições para líder de bloco:', $userProfile.bloco_id);
+          query = query.eq('bloco_id', $userProfile.bloco_id);
+        }
+      } else if (userLevel === 'lider_regional_iurd') {
+        // Líder regional: apenas condições dos jovens da sua região
+        if ($userProfile?.regiao_id) {
+          console.log('🔍 DEBUG - Filtrando condições para líder regional:', $userProfile.regiao_id);
+          query = query.eq('regiao_id', $userProfile.regiao_id);
+        }
+      } else if (userLevel === 'lider_igreja_iurd') {
+        // Líder de igreja: apenas condições dos jovens da sua igreja
+        if ($userProfile?.igreja_id) {
+          console.log('🔍 DEBUG - Filtrando condições para líder de igreja:', $userProfile.igreja_id);
+          query = query.eq('igreja_id', $userProfile.igreja_id);
+        }
+      }
+      // Administrador e líderes nacionais: sem filtros adicionais
+      
+      const { data, error: err } = await query;
       if (err) throw err;
       condicoes = Array.from(new Set((data || []).map(r => r.condicao)));
     } catch (e) {
