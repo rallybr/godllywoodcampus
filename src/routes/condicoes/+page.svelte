@@ -24,6 +24,8 @@
     'jovem_batizado_es': 'Jovem'
   };
   
+  let mostrarAssociados = false;
+  
   onMount(async () => {
     if (!$user) {
       goto('/login');
@@ -34,6 +36,7 @@
       // Obter condição da URL
       const urlParams = new URLSearchParams(window.location.search);
       condicao = urlParams.get('condicao') || '';
+      mostrarAssociados = urlParams.get('associados') === 'true';
       condicaoNome = condicoesMap[condicao] || condicao;
       
       if (condicao) {
@@ -86,9 +89,13 @@
       const userLevel = $userProfile?.nivel;
       const userId = $userProfile?.id;
       
-      console.log('🔍 DEBUG - Carregando jovens por condição:', { userLevel, userId, condicao, estado_id: $userProfile?.estado_id });
+      console.log('🔍 DEBUG - Carregando jovens por condição:', { userLevel, userId, condicao, mostrarAssociados, estado_id: $userProfile?.estado_id });
       
-      if (userLevel === 'colaborador' && userId) {
+      if (mostrarAssociados) {
+        // Filtrar apenas jovens associados ao usuário
+        console.log('🔍 DEBUG - Filtrando apenas jovens associados:', userId);
+        query = query.eq('usuario_id', userId);
+      } else if (userLevel === 'colaborador' && userId) {
         // Colaborador: apenas jovens que ele cadastrou
         console.log('🔍 DEBUG - Filtrando por colaborador:', userId);
         query = query.eq('usuario_id', userId);
@@ -175,8 +182,13 @@
             </svg>
           </button>
           <div class="min-w-0 flex-1">
-            <h1 class="text-xl sm:text-2xl font-bold text-gray-900 truncate">{condicaoNome}</h1>
-            <p class="text-xs sm:text-sm text-gray-500">{jovens.length} jovens encontrados</p>
+            <h1 class="text-xl sm:text-2xl font-bold text-gray-900 truncate">
+              {condicaoNome} {mostrarAssociados ? '(Associados)' : ''}
+            </h1>
+            <p class="text-xs sm:text-sm text-gray-500">
+              {jovens.length} jovens encontrados
+              {mostrarAssociados ? ' (apenas associados a você)' : ''}
+            </p>
           </div>
         </div>
         

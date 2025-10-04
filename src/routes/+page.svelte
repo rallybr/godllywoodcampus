@@ -9,6 +9,8 @@
   import { supabase } from '$lib/utils/supabase';
   import Autocomplete from '$lib/components/ui/Autocomplete.svelte';
   import JovemMiniCard from '$lib/components/jovens/JovemMiniCard.svelte';
+  import JovensAssociadosCard from '$lib/components/estatisticas/JovensAssociadosCard.svelte';
+  import CondicoesAssociadosCard from '$lib/components/estatisticas/CondicoesAssociadosCard.svelte';
   import { loadInitialData, edicoes } from '$lib/stores/geographic';
   
   let stats = {
@@ -908,6 +910,12 @@
     {/if}
     </div>
   {/if}
+  
+  <!-- Jovens Associados -->
+  <JovensAssociadosCard />
+  
+  <!-- Condições dos Jovens Associados -->
+  <CondicoesAssociadosCard />
   
   <!-- Estados dos Jovens -->
   {#if getUserLevelName($userProfile) !== 'Jovem'}

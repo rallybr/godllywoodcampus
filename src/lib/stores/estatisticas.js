@@ -26,6 +26,24 @@ export const condicoesStats = writable({
   batizadoES: 0
 });
 
+// Store para estatísticas de jovens associados
+export const jovensAssociadosStats = writable({
+  totalAssociados: 0,
+  pendentesAvaliacao: 0,
+  avaliados: 0,
+  aprovados: 0
+});
+
+// Store para condições dos jovens associados
+export const condicoesAssociadosStats = writable({
+  auxPastor: 0,
+  iburd: 0,
+  obreiro: 0,
+  colaborador: 0,
+  cpo: 0,
+  batizadoES: 0
+});
+
 export const loading = writable(false);
 export const error = writable(null);
 
@@ -533,4 +551,163 @@ function calcularCondicoes(jovensData) {
   });
   
   return stats;
+}
+
+// Função para carregar estatísticas de jovens associados
+export async function loadEstatisticasJovensAssociados(usuarioId) {
+  loading.set(true);
+  error.set(null);
+  
+  try {
+    console.log('🔍 DEBUG - Carregando estatísticas de jovens associados para usuário:', usuarioId);
+    
+    // Buscar apenas jovens associados ao usuário
+    const { data: jovensAssociados, error: jovensError } = await supabase
+      .from('jovens')
+      .select(`
+        id,
+        aprovado
+      `)
+      .eq('usuario_id', usuarioId);
+    
+    if (jovensError) {
+      console.error('Erro ao buscar jovens associados:', jovensError);
+      throw jovensError;
+    }
+    
+    console.log('🔍 DEBUG - Jovens associados encontrados:', jovensAssociados?.length || 0);
+    
+    // Calcular estatísticas
+    const stats = {
+      totalAssociados: jovensAssociados?.length || 0,
+      pendentesAvaliacao: 0,
+      avaliados: 0,
+      aprovados: 0
+    };
+    
+    // Buscar avaliações para cada jovem associado
+    if (jovensAssociados && jovensAssociados.length > 0) {
+      const jovensIds = jovensAssociados.map(j => j.id);
+      
+      const { data: avaliacoes, error: avaliacoesError } = await supabase
+        .from('avaliacoes')
+        .select('jovem_id')
+        .in('jovem_id', jovensIds);
+      
+      if (avaliacoesError) {
+        console.warn('Erro ao buscar avaliações:', avaliacoesError);
+      }
+      
+      // Criar mapa de jovens com avaliações
+      const jovensComAvaliacao = new Set(avaliacoes?.map(a => a.jovem_id) || []);
+      
+      // Processar cada jovem associado
+      jovensAssociados.forEach(jovem => {
+        const temAvaliacoes = jovensComAvaliacao.has(jovem.id);
+        
+        if (temAvaliacoes) {
+          stats.avaliados++;
+          
+          // Verificar se está aprovado
+          if (jovem.aprovado === 'aprovado') {
+            stats.aprovados++;
+          }
+        } else {
+          // Sem avaliações = pendente
+          stats.pendentesAvaliacao++;
+        }
+      });
+    }
+    
+    console.log('🔍 DEBUG - Estatísticas de jovens associados:', stats);
+    
+    // Atualizar o store
+    jovensAssociadosStats.set(stats);
+    
+    return stats;
+    
+  } catch (err) {
+    console.error('Erro ao carregar estatísticas de jovens associados:', err);
+    error.set(err.message || 'Erro ao carregar estatísticas de jovens associados');
+    throw err;
+  } finally {
+    loading.set(false);
+  }
+}
+
+// Função para carregar condições dos jovens associados
+export async function loadCondicoesAssociadosStats(usuarioId) {
+  loading.set(true);
+  error.set(null);
+  
+  try {
+    console.log('🔍 DEBUG - Carregando condições dos jovens associados para usuário:', usuarioId);
+    
+    // Buscar apenas jovens associados ao usuário
+    const { data: jovensAssociados, error: jovensError } = await supabase
+      .from('jovens')
+      .select(`
+        id,
+        condicao,
+        condicao_campus,
+        responsabilidade_igreja,
+        ja_obreiro,
+        ja_colaborador,
+        batizado_es
+      `)
+      .eq('usuario_id', usuarioId);
+    
+    if (jovensError) {
+      console.error('Erro ao buscar jovens associados:', jovensError);
+      throw jovensError;
+    }
+    
+    console.log('🔍 DEBUG - Jovens associados encontrados para condições:', jovensAssociados?.length || 0);
+    
+    // Inicializar estatísticas
+    const stats = {
+      auxPastor: 0,
+      iburd: 0,
+      obreiro: 0,
+      colaborador: 0,
+      cpo: 0,
+      batizadoES: 0
+    };
+    
+    // Processar cada jovem associado
+    jovensAssociados?.forEach(jovem => {
+      // Verificar condição principal
+      const condicao = jovem.condicao || jovem.condicao_campus || '';
+      const responsabilidade = jovem.responsabilidade_igreja || '';
+      
+      // Classificar por condição
+      if (condicao.includes('auxiliar_pastor') || responsabilidade.includes('auxiliar_pastor')) {
+        stats.auxPastor++;
+      } else if (condicao.includes('iburd') || responsabilidade.includes('iburd')) {
+        stats.iburd++;
+      } else if (condicao.includes('obreiro') || responsabilidade.includes('obreiro') || jovem.ja_obreiro) {
+        stats.obreiro++;
+      } else if (condicao.includes('colaborador') || responsabilidade.includes('colaborador') || jovem.ja_colaborador) {
+        stats.colaborador++;
+      } else if (condicao.includes('cpo') || responsabilidade.includes('cpo')) {
+        stats.cpo++;
+      } else if (jovem.batizado_es) {
+        stats.batizadoES++;
+      }
+    });
+    
+    console.log('🔍 DEBUG - Condições dos jovens associados:', stats);
+    
+    // Atualizar o store
+    condicoesAssociadosStats.set(stats);
+    
+    return stats;
+    
+  } catch (err) {
+    console.error('Erro ao carregar condições dos jovens associados:', err);
+    error.set(err.message || 'Erro ao carregar condições dos jovens associados');
+    throw err;
+  } finally {
+    loading.set(false);
+  }
 }
