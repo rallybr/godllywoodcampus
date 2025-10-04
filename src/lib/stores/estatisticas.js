@@ -310,37 +310,37 @@ export async function loadEstatisticasUsuario(usuarioId) {
       .from('jovens')
       .select('id, usuario_id');
     
-    // 🔧 APLICAR FILTROS BASEADOS NO NÍVEL DE ACESSO
+    // 🔧 APLICAR FILTROS BASEADOS NO NÍVEL DE ACESSO (inclui jovens associados)
     if (userLevel === 'colaborador') {
-      // Colaborador: apenas jovens que ele cadastrou
+      // Colaborador: jovens que cadastrou OU jovens associados a ele
       console.log('🔍 DEBUG - Filtrando jovens para colaborador:', usuarioId);
       jovensQuery = jovensQuery.eq('usuario_id', usuarioId);
     } else if (userLevel === 'lider_estadual_iurd' || userLevel === 'lider_estadual_fju') {
-      // Líder estadual: apenas jovens do seu estado
+      // Líder estadual: jovens do estado OU jovens associados a ele
       if (userData?.estado_id) {
-        console.log('🔍 DEBUG - Filtrando jovens por estado:', userData.estado_id);
-        jovensQuery = jovensQuery.eq('estado_id', userData.estado_id);
+        console.log('🔍 DEBUG - Filtrando jovens por estado OU associados:', userData.estado_id, usuarioId);
+        jovensQuery = jovensQuery.or(`estado_id.eq.${userData.estado_id},usuario_id.eq.${usuarioId}`);
       }
     } else if (userLevel === 'lider_bloco_iurd' || userLevel === 'lider_bloco_fju') {
-      // Líder de bloco: apenas jovens do seu bloco
+      // Líder de bloco: jovens do bloco OU jovens associados a ele
       if (userData?.bloco_id) {
-        console.log('🔍 DEBUG - Filtrando jovens por bloco:', userData.bloco_id);
-        jovensQuery = jovensQuery.eq('bloco_id', userData.bloco_id);
+        console.log('🔍 DEBUG - Filtrando jovens por bloco OU associados:', userData.bloco_id, usuarioId);
+        jovensQuery = jovensQuery.or(`bloco_id.eq.${userData.bloco_id},usuario_id.eq.${usuarioId}`);
       }
     } else if (userLevel === 'lider_regional_iurd') {
-      // Líder regional: apenas jovens da sua região
+      // Líder regional: jovens da região OU jovens associados a ele
       if (userData?.regiao_id) {
-        console.log('🔍 DEBUG - Filtrando jovens por região:', userData.regiao_id);
-        jovensQuery = jovensQuery.eq('regiao_id', userData.regiao_id);
+        console.log('🔍 DEBUG - Filtrando jovens por região OU associados:', userData.regiao_id, usuarioId);
+        jovensQuery = jovensQuery.or(`regiao_id.eq.${userData.regiao_id},usuario_id.eq.${usuarioId}`);
       }
     } else if (userLevel === 'lider_igreja_iurd') {
-      // Líder de igreja: apenas jovens da sua igreja
+      // Líder de igreja: jovens da igreja OU jovens associados a ele
       if (userData?.igreja_id) {
-        console.log('🔍 DEBUG - Filtrando jovens por igreja:', userData.igreja_id);
-        jovensQuery = jovensQuery.eq('igreja_id', userData.igreja_id);
+        console.log('🔍 DEBUG - Filtrando jovens por igreja OU associados:', userData.igreja_id, usuarioId);
+        jovensQuery = jovensQuery.or(`igreja_id.eq.${userData.igreja_id},usuario_id.eq.${usuarioId}`);
       }
     }
-    // Administrador e líderes nacionais: sem filtros adicionais
+    // Administrador e líderes nacionais: sem filtros adicionais (veem todos)
     
     const { data: jovensData, error: jovensError } = await jovensQuery;
     

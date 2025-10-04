@@ -157,32 +157,32 @@
         // Líderes nacionais: acesso nacional - sem filtros
         console.log('🔍 DEBUG - Líder nacional: feed sem filtros');
       } else if ($userProfile?.nivel === 'lider_estadual_iurd' || $userProfile?.nivel === 'lider_estadual_fju') {
-        // Líderes estaduais: acesso estadual
+        // Líderes estaduais: acesso estadual OU jovens associados
         if ($userProfile?.estado_id) {
-          console.log('🔍 DEBUG - Líder estadual: filtrando feed por estado:', { nivel: $userProfile.nivel, estado_id: $userProfile.estado_id });
-          query = query.eq('estado_id', $userProfile.estado_id);
+          console.log('🔍 DEBUG - Líder estadual: filtrando feed por estado OU associados:', { nivel: $userProfile.nivel, estado_id: $userProfile.estado_id, userId: $userProfile.id });
+          query = query.or(`estado_id.eq.${$userProfile.estado_id},usuario_id.eq.${$userProfile.id}`);
         }
       } else if ($userProfile?.nivel === 'lider_bloco_iurd' || $userProfile?.nivel === 'lider_bloco_fju') {
-        // Líderes de bloco: acesso ao bloco
+        // Líderes de bloco: acesso ao bloco OU jovens associados
         if ($userProfile?.bloco_id) {
-          console.log('🔍 DEBUG - Líder de bloco: filtrando feed por bloco:', { nivel: $userProfile.nivel, bloco_id: $userProfile.bloco_id });
-          query = query.eq('bloco_id', $userProfile.bloco_id);
+          console.log('🔍 DEBUG - Líder de bloco: filtrando feed por bloco OU associados:', { nivel: $userProfile.nivel, bloco_id: $userProfile.bloco_id, userId: $userProfile.id });
+          query = query.or(`bloco_id.eq.${$userProfile.bloco_id},usuario_id.eq.${$userProfile.id}`);
         }
       } else if ($userProfile?.nivel === 'lider_regional_iurd') {
-        // Líder regional: acesso à região
+        // Líder regional: acesso à região OU jovens associados
         if ($userProfile?.regiao_id) {
-          console.log('🔍 DEBUG - Líder regional: filtrando feed por região:', { nivel: $userProfile.nivel, regiao_id: $userProfile.regiao_id });
-          query = query.eq('regiao_id', $userProfile.regiao_id);
+          console.log('🔍 DEBUG - Líder regional: filtrando feed por região OU associados:', { nivel: $userProfile.nivel, regiao_id: $userProfile.regiao_id, userId: $userProfile.id });
+          query = query.or(`regiao_id.eq.${$userProfile.regiao_id},usuario_id.eq.${$userProfile.id}`);
         }
       } else if ($userProfile?.nivel === 'lider_igreja_iurd') {
-        // Líder de igreja: acesso à igreja
+        // Líder de igreja: acesso à igreja OU jovens associados
         if ($userProfile?.igreja_id) {
-          console.log('🔍 DEBUG - Líder de igreja: filtrando feed por igreja:', { nivel: $userProfile.nivel, igreja_id: $userProfile.igreja_id });
-          query = query.eq('igreja_id', $userProfile.igreja_id);
+          console.log('🔍 DEBUG - Líder de igreja: filtrando feed por igreja OU associados:', { nivel: $userProfile.nivel, igreja_id: $userProfile.igreja_id, userId: $userProfile.id });
+          query = query.or(`igreja_id.eq.${$userProfile.igreja_id},usuario_id.eq.${$userProfile.id}`);
         }
       } else if ($userProfile?.nivel === 'colaborador' && $userProfile?.id) {
-        // Colaborador: acesso aos jovens que ele cadastrou
-        console.log('🔍 DEBUG - Colaborador: filtrando feed por usuário que cadastrou:', { nivel: $userProfile.nivel, userId: $userProfile.id });
+        // Colaborador: acesso aos jovens que ele cadastrou OU jovens associados
+        console.log('🔍 DEBUG - Colaborador: filtrando feed por usuário que cadastrou OU associados:', { nivel: $userProfile.nivel, userId: $userProfile.id });
         query = query.eq('usuario_id', $userProfile.id);
       } else if ($userProfile?.nivel === 'jovem' && $userProfile?.id) {
         // Jovem: acesso apenas aos seus próprios dados

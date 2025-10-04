@@ -14,7 +14,20 @@
   let selecionado = null;
   let error = '';
   
-  const niveisPermitidos = ['lider_estadual_fju', 'lider_bloco_fju', 'colaborador'];
+  // Permitir associação a todos os níveis de usuário
+  const niveisPermitidos = [
+    'administrador',
+    'lider_nacional_iurd', 
+    'lider_nacional_fju',
+    'lider_estadual_iurd', 
+    'lider_estadual_fju', 
+    'lider_bloco_iurd', 
+    'lider_bloco_fju', 
+    'lider_regional_iurd', 
+    'lider_igreja_iurd', 
+    'colaborador',
+    'jovem'
+  ];
   
   async function buscarUsuarios() {
     error = '';

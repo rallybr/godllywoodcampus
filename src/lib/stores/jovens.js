@@ -83,24 +83,37 @@ export async function loadJovens(page = 1, limit = 20, userId = null, userLevel 
         edicao:edicoes(id, nome, numero)
       `, { count: 'exact' });
     
-    // Escopo por nível de acesso (alinha com can_access_jovem)
+    // Escopo por nível de acesso (inclui jovens associados)
     if (userLevel && userId) {
       if (userLevel === 'colaborador') {
+        // Colaborador: jovens que cadastrou OU jovens associados a ele
         query = query.eq('usuario_id', userId);
       } else if (userLevel === 'lider_estadual_iurd' || userLevel === 'lider_estadual_fju') {
+        // Líder estadual: jovens do estado OU jovens associados a ele
         const estadoId = options?.scope?.estadoId;
-        if (estadoId) query = query.eq('estado_id', estadoId);
+        if (estadoId) {
+          query = query.or(`estado_id.eq.${estadoId},usuario_id.eq.${userId}`);
+        }
       } else if (userLevel === 'lider_bloco_iurd' || userLevel === 'lider_bloco_fju') {
+        // Líder de bloco: jovens do bloco OU jovens associados a ele
         const blocoId = options?.scope?.blocoId;
-        if (blocoId) query = query.eq('bloco_id', blocoId);
+        if (blocoId) {
+          query = query.or(`bloco_id.eq.${blocoId},usuario_id.eq.${userId}`);
+        }
       } else if (userLevel === 'lider_regional_iurd') {
+        // Líder regional: jovens da região OU jovens associados a ele
         const regiaoId = options?.scope?.regiaoId;
-        if (regiaoId) query = query.eq('regiao_id', regiaoId);
+        if (regiaoId) {
+          query = query.or(`regiao_id.eq.${regiaoId},usuario_id.eq.${userId}`);
+        }
       } else if (userLevel === 'lider_igreja_iurd') {
+        // Líder de igreja: jovens da igreja OU jovens associados a ele
         const igrejaId = options?.scope?.igrejaId;
-        if (igrejaId) query = query.eq('igreja_id', igrejaId);
+        if (igrejaId) {
+          query = query.or(`igreja_id.eq.${igrejaId},usuario_id.eq.${userId}`);
+        }
       }
-      // admin/líder nacional → sem escopo adicional
+      // admin/líder nacional → sem escopo adicional (veem todos)
     }
     
     const { data, error: fetchError, count } = await query
