@@ -711,3 +711,81 @@ export async function loadCondicoesAssociadosStats(usuarioId) {
     loading.set(false);
   }
 }
+
+// Função para buscar usuários associados a um jovem
+export async function loadUsuariosAssociadosJovem(jovemId) {
+  loading.set(true);
+  error.set(null);
+  
+  try {
+    console.log('🔍 DEBUG - Carregando usuários associados ao jovem:', jovemId);
+    
+    // Buscar usuários associados ao jovem
+    const { data: associacoes, error: associacoesError } = await supabase
+      .from('jovens')
+      .select(`
+        usuario_id,
+        usuario:usuarios(
+          id,
+          nome,
+          email,
+          nivel,
+          estado:estados(nome, sigla),
+          bloco:blocos(nome),
+          regiao:regioes(nome),
+          igreja:igrejas(nome)
+        )
+      `)
+      .eq('id', jovemId)
+      .not('usuario_id', 'is', null);
+    
+    if (associacoesError) {
+      console.error('Erro ao buscar associações do jovem:', associacoesError);
+      throw associacoesError;
+    }
+    
+    console.log('🔍 DEBUG - Associações encontradas:', associacoes?.length || 0);
+    
+    return associacoes || [];
+    
+  } catch (err) {
+    console.error('Erro ao carregar usuários associados ao jovem:', err);
+    error.set(err.message || 'Erro ao carregar usuários associados ao jovem');
+    throw err;
+  } finally {
+    loading.set(false);
+  }
+}
+
+// Função para desassociar jovem de usuário
+export async function desassociarJovemUsuario(jovemId, usuarioId) {
+  loading.set(true);
+  error.set(null);
+  
+  try {
+    console.log('🔍 DEBUG - Desassociando jovem:', jovemId, 'do usuário:', usuarioId);
+    
+    // Atualizar o jovem para remover a associação
+    const { error: updateError } = await supabase
+      .from('jovens')
+      .update({ usuario_id: null })
+      .eq('id', jovemId)
+      .eq('usuario_id', usuarioId);
+    
+    if (updateError) {
+      console.error('Erro ao desassociar jovem:', updateError);
+      throw updateError;
+    }
+    
+    console.log('🔍 DEBUG - Jovem desassociado com sucesso');
+    
+    return true;
+    
+  } catch (err) {
+    console.error('Erro ao desassociar jovem do usuário:', err);
+    error.set(err.message || 'Erro ao desassociar jovem do usuário');
+    throw err;
+  } finally {
+    loading.set(false);
+  }
+}
