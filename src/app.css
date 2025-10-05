@@ -98,6 +98,113 @@ body {
   line-height: 1.6;
 }
 
+/* Safe Area Support for iPhone 14 Pro Max and other devices with notches */
+@supports (padding: max(0px)) {
+  .safe-area-top {
+    padding-top: max(1rem, env(safe-area-inset-top));
+  }
+  
+  .safe-area-bottom {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+  
+  .safe-area-left {
+    padding-left: max(1rem, env(safe-area-inset-left));
+  }
+  
+  .safe-area-right {
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+  
+  .safe-area-all {
+    padding-top: max(1rem, env(safe-area-inset-top));
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+}
+
+/* iPhone 14 Pro Max specific fixes */
+@media screen and (device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) {
+  .header-mobile {
+    padding-top: max(1rem, env(safe-area-inset-top));
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+  
+  .drawer-mobile {
+    padding-top: max(1rem, env(safe-area-inset-top));
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+}
+
+/* General mobile safe area fixes */
+@media screen and (max-width: 768px) {
+  .header-mobile {
+    padding-top: max(0.5rem, env(safe-area-inset-top));
+    padding-left: max(0.5rem, env(safe-area-inset-left));
+    padding-right: max(0.5rem, env(safe-area-inset-right));
+  }
+  
+  .drawer-mobile {
+    padding-top: max(0.5rem, env(safe-area-inset-top));
+    padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+    padding-left: max(0.5rem, env(safe-area-inset-left));
+    padding-right: max(0.5rem, env(safe-area-inset-right));
+  }
+  
+  .content-mobile {
+    padding-left: max(0.5rem, env(safe-area-inset-left));
+    padding-right: max(0.5rem, env(safe-area-inset-right));
+  }
+}
+
+/* iPhone 14 Pro Max specific optimizations */
+@media screen and (device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) {
+  .header-mobile {
+    min-height: calc(60px + env(safe-area-inset-top));
+    padding-top: max(1rem, env(safe-area-inset-top));
+  }
+  
+  .drawer-mobile {
+    padding-top: max(1.5rem, env(safe-area-inset-top));
+    padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+  }
+  
+  /* Ajustar botões para serem mais fáceis de clicar */
+  .header-mobile button {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 0.75rem;
+  }
+  
+  /* Ajustar links do drawer */
+  .drawer-mobile a {
+    min-height: 48px;
+    padding: 0.75rem 1rem;
+    display: flex;
+    align-items: center;
+  }
+}
+
+/* Melhorias gerais para dispositivos com notch */
+@media screen and (max-width: 768px) and (min-height: 800px) {
+  .header-mobile {
+    min-height: calc(60px + env(safe-area-inset-top));
+  }
+  
+  /* Garantir que os botões sejam clicáveis */
+  .header-mobile button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  .drawer-mobile a {
+    min-height: 48px;
+    padding: 0.75rem 1rem;
+  }
+}
+
 /* Facebook-like components */
 .fb-card {
   background: var(--fb-white);

@@ -37,8 +37,8 @@
   }
 </script>
 
-<header class="fb-card rounded-none border-0 border-b relative z-40" style="background-color: var(--fb-white); box-shadow: var(--shadow-sm);">
-  <div class="flex items-center justify-between px-4 py-3">
+<header class="fb-card rounded-none border-0 border-b relative z-40 header-mobile" style="background-color: var(--fb-white); box-shadow: var(--shadow-sm);">
+  <div class="flex items-center justify-between px-4 py-3 safe-area-all">
     <!-- Left side -->
     <div class="flex items-center space-x-4">
       <button

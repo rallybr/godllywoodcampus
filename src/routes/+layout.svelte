@@ -158,7 +158,7 @@
           <Header on:toggleSidebar={toggleSidebar} />
           
           <!-- Main content with social media layout -->
-          <main class="flex-1 overflow-x-hidden overflow-y-auto" style="background-color: var(--fb-gray-light);">
+          <main class="flex-1 overflow-x-hidden overflow-y-auto content-mobile" style="background-color: var(--fb-gray-light);">
             {#if hasRole('jovem')($userProfile)}
             <!-- Layout simplificado para jovem: conteúdo centralizado e mais estreito -->
             <div class="max-w-4xl mx-auto px-4 py-6">

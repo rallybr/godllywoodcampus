@@ -79,8 +79,8 @@
 {/if}
 
 <!-- Sidebar -->
-<aside class="fixed inset-y-0 left-0 z-50 w-64 bg-white transform transition-transform duration-300 ease-in-out {showSidebar ? 'translate-x-0' : '-translate-x-full'} md:fixed md:transform md:transition-transform md:duration-300 md:ease-in-out md:{showSidebar ? 'translate-x-0' : '-translate-x-full'} border-r border-gray-200 shadow-lg">
-  <div class="flex flex-col h-full">
+<aside class="fixed inset-y-0 left-0 z-50 w-64 bg-white transform transition-transform duration-300 ease-in-out {showSidebar ? 'translate-x-0' : '-translate-x-full'} md:fixed md:transform md:transition-transform md:duration-300 md:ease-in-out md:{showSidebar ? 'translate-x-0' : '-translate-x-full'} border-r border-gray-200 shadow-lg drawer-mobile">
+  <div class="flex flex-col h-full safe-area-all">
     <!-- Logo -->
     <div class="flex items-center justify-center h-16 px-4 border-b" style="border-color: var(--fb-border);">
       <div class="flex items-center space-x-2">
