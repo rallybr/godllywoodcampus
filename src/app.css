@@ -125,15 +125,16 @@ body {
 }
 
 /* iPhone 14 Pro Max specific fixes */
+/* Ajuste: -50px para subir o header 50px mais para cima */
 @media screen and (device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) {
   .header-mobile {
-    padding-top: max(1rem, env(safe-area-inset-top));
+    padding-top: max(0.5rem, calc(env(safe-area-inset-top) - 50px));
     padding-left: max(1rem, env(safe-area-inset-left));
     padding-right: max(1rem, env(safe-area-inset-right));
   }
   
   .drawer-mobile {
-    padding-top: max(1rem, env(safe-area-inset-top));
+    padding-top: max(0.5rem, calc(env(safe-area-inset-top) - 50px));
     padding-bottom: max(1rem, env(safe-area-inset-bottom));
   }
 }
@@ -162,12 +163,12 @@ body {
 /* iPhone 14 Pro Max specific optimizations */
 @media screen and (device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) {
   .header-mobile {
-    min-height: calc(60px + env(safe-area-inset-top));
-    padding-top: max(1rem, env(safe-area-inset-top));
+    min-height: calc(60px + env(safe-area-inset-top) - 50px);
+    padding-top: max(0.5rem, calc(env(safe-area-inset-top) - 50px));
   }
   
   .drawer-mobile {
-    padding-top: max(1.5rem, env(safe-area-inset-top));
+    padding-top: max(0.5rem, calc(env(safe-area-inset-top) - 50px));
     padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
   }
   

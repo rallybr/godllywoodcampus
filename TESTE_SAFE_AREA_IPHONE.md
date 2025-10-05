@@ -80,10 +80,15 @@
 .safe-area-right { padding-right: max(1rem, env(safe-area-inset-right)); }
 .safe-area-all { /* todas as direções */ }
 
-/* iPhone 14 Pro Max específico */
+/* iPhone 14 Pro Max específico - AJUSTADO 50px para cima */
 @media screen and (device-width: 430px) and (device-height: 932px) {
-  .header-mobile { min-height: calc(60px + env(safe-area-inset-top)); }
-  .drawer-mobile { padding-top: max(1.5rem, env(safe-area-inset-top)); }
+  .header-mobile { 
+    min-height: calc(60px + env(safe-area-inset-top) - 50px);
+    padding-top: max(0.5rem, calc(env(safe-area-inset-top) - 50px));
+  }
+  .drawer-mobile { 
+    padding-top: max(0.5rem, calc(env(safe-area-inset-top) - 50px));
+  }
 }
 ```
 
