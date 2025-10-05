@@ -10,6 +10,7 @@
   const dispatch = createEventDispatcher();
   
   export let jovemId;
+  export let usuarioId;
   export let onSave = () => {};
   
   let dados = {
@@ -283,8 +284,8 @@
   }
 </script>
 
-<!-- Só mostrar para usuários autorizados -->
-{#if $userProfile?.id === jovemId}
+<!-- Renderizar para usuário autenticado (a página já restringe acesso) -->
+{#if $userProfile}
   <div class="space-y-6">
     <!-- Mensagens -->
     {#if error}
