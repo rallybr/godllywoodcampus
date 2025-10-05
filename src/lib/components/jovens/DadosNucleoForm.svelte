@@ -10,7 +10,6 @@
   const dispatch = createEventDispatcher();
   
   export let jovemId;
-  export let usuarioId;
   export let onSave = () => {};
   
   let dados = {
@@ -52,6 +51,7 @@
   let saving = false;
   let error = null;
   let success = null;
+  let showSuccessModal = false;
   
   const diasSemana = [
     { id: 'segunda', label: 'Segunda-feira' },
@@ -109,6 +109,7 @@
       console.log('🔍 DEBUG - saveDadosNucleo retornou:', result);
       
       success = 'Dados do núcleo salvos com sucesso!';
+      showSuccessModal = true;
       
       // Notificar componente pai
       onSave();
@@ -1090,16 +1091,48 @@
   </div>
 {/if}
 
+<!-- Modal de Sucesso -->
+{#if showSuccessModal}
+  <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div class="absolute inset-0 bg-black/50" role="button" tabindex="0" on:keydown={(e) => (e.key === 'Enter' || e.key === ' ') && (showSuccessModal = false)} on:click={() => (showSuccessModal = false)}></div>
+    <div class="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-green-100 overflow-hidden">
+      <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-green-200 to-emerald-200 rounded-full -translate-y-16 translate-x-16 opacity-20"></div>
+      <div class="p-6 sm:p-8 relative z-10">
+        <div class="flex items-center mb-4">
+          <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl shadow-lg mr-4 flex items-center justify-center">
+            <svg class="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h3 class="text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+            Dados do Núcleo salvos!
+          </h3>
+        </div>
+        <p class="text-gray-700 leading-relaxed">
+          Os dados do núcleo foram cadastrados com sucesso. Quando precisar atualizar, basta voltar aqui neste formulário.
+        </p>
+        <div class="mt-6 flex justify-end">
+          <button
+            type="button"
+            on:click={() => (showSuccessModal = false)}
+            class="px-6 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl font-semibold hover:from-green-700 hover:to-emerald-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all duration-300 shadow-lg hover:shadow-xl"
+          >
+            Entendi
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+{/if}
+
 <!-- Modal de preview da foto -->
 {#if showPhotoPreview}
   <div 
     class="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4" 
-    on:click={closePhotoPreview}
-    on:keydown={(e) => e.key === 'Escape' && closePhotoPreview()}
     role="dialog"
     aria-modal="true"
     aria-label="Preview da foto"
-    tabindex="0"
+    tabindex="-1"
   >
     <div 
       class="relative max-w-4xl max-h-full" 
