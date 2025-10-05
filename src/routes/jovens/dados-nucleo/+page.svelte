@@ -8,6 +8,7 @@
   let dadosNucleo = null;
   let loading = true;
   let error = null;
+  let jovemId = null; // id da tabela `jovens`
 
   onMount(async () => {
     // Verificar se o usuário está logado e é jovem
@@ -22,8 +23,19 @@
     }
 
     try {
-      // Carregar dados do núcleo do jovem
-      dadosNucleo = await loadDadosNucleo($userProfile.id);
+      // Buscar o id do jovem associado ao usuário logado
+      const { data: jovem, error: jovemErr } = await supabase
+        .from('jovens')
+        .select('id')
+        .eq('usuario_id', $userProfile.id)
+        .single();
+
+      if (jovemErr) throw jovemErr;
+
+      jovemId = jovem?.id;
+
+      // Carregar dados do núcleo com o id correto do jovem
+      dadosNucleo = await loadDadosNucleo(jovemId);
     } catch (err) {
       console.error('Erro ao carregar dados do núcleo:', err);
       error = err.message || 'Erro ao carregar dados do núcleo';
@@ -41,11 +53,11 @@
       const dados = event.detail;
       console.log('🔍 DEBUG - Dados extraídos do evento:', dados);
       
-      const result = await saveDadosNucleo($userProfile.id, dados);
+      const result = await saveDadosNucleo(jovemId, dados);
       console.log('🔍 DEBUG - saveDadosNucleo retornou:', result);
       
       // Recarregar os dados após salvar
-      dadosNucleo = await loadDadosNucleo($userProfile.id);
+      dadosNucleo = await loadDadosNucleo(jovemId);
       console.log('🔍 DEBUG - dadosNucleo recarregado:', dadosNucleo);
     } catch (err) {
       console.error('Erro ao salvar dados do núcleo:', err);
@@ -102,10 +114,20 @@
         </div>
       </div>
     {:else}
-      <DadosNucleoForm 
-        jovemId={$userProfile.id}
-        on:save={handleSave}
-      />
+      {#if jovemId}
+        <DadosNucleoForm 
+          jovemId={jovemId}
+          usuarioId={$userProfile.id}
+          on:save={handleSave}
+        />
+      {:else}
+        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <div class="flex">
+            <svg class="h-5 w-5 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            <p class="ml-3 text-sm text-yellow-800">Não foi possível localizar seu cadastro de jovem. Verifique seu perfil.</p>
+          </div>
+        </div>
+      {/if}
     {/if}
   </div>
 </div>
