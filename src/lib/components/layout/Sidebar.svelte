@@ -34,15 +34,6 @@
   $: profile = $userProfile;
   $: isJovem = getUserLevelName($userProfile) === 'Jovem';
   
-  // Debug logs
-  $: if ($userProfile) {
-    console.log('DEBUG Sidebar - userProfile.nivel:', $userProfile.nivel);
-    console.log('DEBUG Sidebar - getUserLevelName result:', getUserLevelName($userProfile));
-    console.log('DEBUG Sidebar - isJovem:', isJovem);
-    console.log('DEBUG Sidebar - filteredMenuItems length:', filteredMenuItems.length);
-  }
-  
-  
   $: filteredMenuItems = isJovem
     ? (() => {
         const menuJovem = [
@@ -60,6 +51,11 @@
         // Sempre mostrar viagem
         menuJovem.push(
           { name: 'Viagem', href: '/viagem', icon: 'M12 8c-3.866 0-7 3.134-7 7v1h14v-1c0-3.866-3.134-7-7-7zm0-2a3 3 0 100-6 3 3 0 000 6z', color: 'text-teal-600' }
+        );
+        
+        // Sempre mostrar dados de núcleo
+        menuJovem.push(
+          { name: 'Dados de Núcleo', href: '/jovens/dados-nucleo', icon: 'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z', color: 'text-yellow-600' }
         );
         
         return menuJovem;
