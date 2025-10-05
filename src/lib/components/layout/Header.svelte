@@ -1,5 +1,5 @@
 <script>
-  import { createEventDispatcher } from 'svelte';
+  import { createEventDispatcher, onMount } from 'svelte';
   import { userProfile, signOut } from '$lib/stores/auth';
   import { goto } from '$app/navigation';
   import NotificacoesDropdown from '$lib/components/notificacoes/NotificacoesDropdown.svelte';
@@ -10,6 +10,14 @@
   let showUserMenu = false;
   let showNotifications = false;
   let showMobileSearch = false;
+  let isPWA = false;
+  
+  onMount(() => {
+    // Detectar se está em PWA
+    isPWA = window.matchMedia('(display-mode: standalone)').matches || 
+            window.navigator.standalone === true ||
+            document.referrer.includes('android-app://');
+  });
   
   function handleToggleSidebar() {
     dispatch('toggleSidebar');
@@ -53,65 +61,79 @@
       
       <div class="flex items-center space-x-3">
         <img src="/logo.png" alt="IM" class="w-10 h-10 rounded-xl object-contain bg-white/70 p-1 ring-1 ring-white/40" />
-        <h1 class="text-xl font-bold ig-gradient hidden sm:block">IntelliMen Campus</h1>
-        <h1 class="text-lg font-bold ig-gradient sm:hidden">IM Campus</h1>
+        {#if isPWA}
+          <!-- PWA: Apenas "IM" -->
+          <h1 class="text-xl font-bold ig-gradient">IM</h1>
+        {:else}
+          <!-- Web: Título completo -->
+          <h1 class="text-xl font-bold ig-gradient hidden sm:block">IntelliMen Campus</h1>
+          <h1 class="text-lg font-bold ig-gradient sm:hidden">IM Campus</h1>
+        {/if}
       </div>
     </div>
     
-    <!-- Center - Search bar -->
-    <div class="hidden md:flex flex-1 max-w-md mx-8">
-      <div class="relative w-full">
-        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
+    <!-- Center - Search bar (oculto em PWA) -->
+    {#if !isPWA}
+      <div class="hidden md:flex flex-1 max-w-md mx-8">
+        <div class="relative w-full">
+          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+          <input
+            type="text"
+            placeholder="Pesquisar jovens, avaliações..."
+            class="w-full pl-10 pr-4 py-2 bg-gray-100 border-0 rounded-full focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors"
+          />
         </div>
-        <input
-          type="text"
-          placeholder="Pesquisar jovens, avaliações..."
-          class="w-full pl-10 pr-4 py-2 bg-gray-100 border-0 rounded-full focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors"
-        />
       </div>
-    </div>
+    {/if}
     
     <!-- Right side -->
     <div class="flex items-center space-x-2">
-      <!-- Mobile Search Button -->
-      <button
-        type="button"
-        class="md:hidden p-2 rounded-full hover:bg-gray-100 transition-colors"
-        on:click={toggleMobileSearch}
-      >
-        <svg class="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-        </svg>
-      </button>
+      <!-- Mobile Search Button (oculto em PWA) -->
+      {#if !isPWA}
+        <button
+          type="button"
+          class="md:hidden p-2 rounded-full hover:bg-gray-100 transition-colors"
+          on:click={toggleMobileSearch}
+        >
+          <svg class="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </button>
+      {/if}
       
       <!-- Notifications -->
       <NotificacoesDropdown />
       
       <!-- User: avatar (vai para perfil) + caret (abre menu) -->
       <div class="relative flex items-center">
-        <button
-          type="button"
-          class="flex items-center p-1 rounded-full hover:bg-gray-100 transition-colors"
-          on:click={goToProfile}
-          aria-label="Ir para meu perfil"
-        >
-          {#if $userProfile?.foto}
-            <img
-              class="profile-pic profile-pic-sm"
-              src={$userProfile.foto}
-              alt={$userProfile.nome}
-            />
-          {:else}
-            <div class="profile-pic profile-pic-sm bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-              <span class="text-white font-medium text-sm">
-                {$userProfile?.nome?.charAt(0) || 'U'}
-              </span>
-            </div>
-          {/if}
-        </button>
+        {#if !isPWA}
+          <!-- Web: Mostra foto do usuário -->
+          <button
+            type="button"
+            class="flex items-center p-1 rounded-full hover:bg-gray-100 transition-colors"
+            on:click={goToProfile}
+            aria-label="Ir para meu perfil"
+          >
+            {#if $userProfile?.foto}
+              <img
+                class="profile-pic profile-pic-sm"
+                src={$userProfile.foto}
+                alt={$userProfile.nome}
+              />
+            {:else}
+              <div class="profile-pic profile-pic-sm bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                <span class="text-white font-medium text-sm">
+                  {$userProfile?.nome?.charAt(0) || 'U'}
+                </span>
+              </div>
+            {/if}
+          </button>
+        {/if}
+        <!-- PWA e Web: Sempre mostra dropdown -->
         <button
           type="button"
           class="p-1 rounded-full hover:bg-gray-100 transition-colors"
@@ -180,8 +202,8 @@
     </div>
   </div>
   
-  <!-- Mobile Search Modal -->
-  {#if showMobileSearch}
+  <!-- Mobile Search Modal (oculto em PWA) -->
+  {#if showMobileSearch && !isPWA}
     <div class="md:hidden border-t border-gray-200 bg-white">
       <div class="px-4 py-3">
         <div class="relative">
