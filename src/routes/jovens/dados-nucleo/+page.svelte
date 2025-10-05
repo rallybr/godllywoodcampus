@@ -4,6 +4,7 @@
   import { loadDadosNucleo, saveDadosNucleo } from '$lib/stores/dados-nucleo';
   import DadosNucleoForm from '$lib/components/jovens/DadosNucleoForm.svelte';
   import { goto } from '$app/navigation';
+  import { supabase } from '$lib/utils/supabase';
 
   let dadosNucleo = null;
   let loading = true;
