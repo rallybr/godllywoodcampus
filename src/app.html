@@ -2,11 +2,82 @@
 <html lang="pt-BR">
 	<head>
 		<meta charset="utf-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+		
+		<!-- PWA Meta Tags -->
+		<meta name="theme-color" content="#3b82f6" />
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+		<meta name="apple-mobile-web-app-title" content="Campus" />
+		<meta name="application-name" content="IntelliMen Campus" />
+		<meta name="description" content="Sistema de gestão de jovens da IntelliMen - Campus de Oração" />
+		<meta name="keywords" content="intellimen, campus, jovens, oração, gestão, sistema" />
+		<meta name="author" content="IntelliMen" />
+		
+		<!-- PWA Icons -->
 		<link rel="icon" href="%sveltekit.assets%/favicon.svg" type="image/svg+xml" />
+		<link rel="apple-touch-icon" href="/icon-192.svg" />
+		<link rel="apple-touch-icon" sizes="152x152" href="/icon-152.svg" />
+		<link rel="apple-touch-icon" sizes="180x180" href="/icon-192.svg" />
+		<link rel="apple-touch-icon" sizes="167x167" href="/icon-192.svg" />
+		
+		<!-- PWA Manifest -->
+		<link rel="manifest" href="/manifest.json" />
+		
+		<!-- PWA Splash Screens -->
+		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+		
+		<!-- Preconnect para performance -->
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		
 		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover">
 		<div style="display: contents">%sveltekit.body%</div>
+		
+		<!-- PWA Install Prompt (será implementado via JavaScript) -->
+		<script>
+			// Registrar Service Worker
+			if ('serviceWorker' in navigator) {
+				window.addEventListener('load', () => {
+					navigator.serviceWorker.register('/sw.js')
+						.then((registration) => {
+							console.log('✅ Service Worker registrado:', registration);
+						})
+						.catch((error) => {
+							console.log('❌ Erro ao registrar Service Worker:', error);
+						});
+				});
+			}
+			
+			// PWA Install Prompt
+			let deferredPrompt;
+			window.addEventListener('beforeinstallprompt', (e) => {
+				e.preventDefault();
+				deferredPrompt = e;
+				
+				// Mostrar botão de instalação se necessário
+				const installButton = document.getElementById('install-pwa-button');
+				if (installButton) {
+					installButton.style.display = 'block';
+					installButton.addEventListener('click', () => {
+						deferredPrompt.prompt();
+						deferredPrompt.userChoice.then((choiceResult) => {
+							if (choiceResult.outcome === 'accepted') {
+								console.log('✅ PWA instalado pelo usuário');
+							}
+							deferredPrompt = null;
+						});
+					});
+				}
+			});
+			
+			// Detectar se já está instalado
+			window.addEventListener('appinstalled', () => {
+				console.log('🎉 PWA instalado com sucesso!');
+				deferredPrompt = null;
+			});
+		</script>
 	</body>
 </html>

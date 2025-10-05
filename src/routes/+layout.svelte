@@ -10,6 +10,7 @@
   import EstatisticasUsuario from '$lib/components/estatisticas/EstatisticasUsuario.svelte';
   import StatusJovensCards from '$lib/components/estatisticas/StatusJovensCards.svelte';
   import MediasAvaliacoesCard from '$lib/components/estatisticas/MediasAvaliacoesCard.svelte';
+  import PWAInstallPrompt from '$lib/components/PWAInstallPrompt.svelte';
   import '../app.css';
   
   let showSidebar = false; // Começar fechado em todas as telas
@@ -302,4 +303,7 @@
       </div>
     {/if}
   {/if}
+  
+  <!-- PWA Install Prompt -->
+  <PWAInstallPrompt />
 </div>
