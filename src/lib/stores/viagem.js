@@ -99,6 +99,7 @@ export async function loadViagensCardsForJovem() {
     }
     
     // Buscar dados do jovem logado
+    const usuarioId = (await supabase.from('usuarios').select('id').eq('id_auth', user.id).single()).data.id;
     const { data, error: fetchError } = await supabase
       .from('jovens')
       .select(`
@@ -115,7 +116,7 @@ export async function loadViagensCardsForJovem() {
         regiao:regioes(nome),
         igreja:igrejas(nome)
       `)
-      .eq('usuario_id', (await supabase.from('usuarios').select('id').eq('id_auth', user.id).single()).data.id)
+      .or(`usuario_id.eq.${usuarioId},id_usuario_jovem.eq.${usuarioId}`)
       .single();
     
     console.log('Erro da consulta (jovem):', fetchError);

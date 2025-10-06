@@ -25,7 +25,7 @@ export async function verificarCadastroJovem() {
     const { data, error } = await supabase
       .from('jovens')
       .select('id')
-      .eq('usuario_id', profile.id)
+      .or(`usuario_id.eq.${profile.id},id_usuario_jovem.eq.${profile.id}`)
       .single();
     
     if (error && error.code !== 'PGRST116') {

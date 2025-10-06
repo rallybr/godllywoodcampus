@@ -158,7 +158,7 @@
         const { data: jovemData, error: jovemError } = await supabase
           .from('jovens')
           .select('id')
-          .eq('usuario_id', $userProfile.id)
+          .or(`usuario_id.eq.${$userProfile.id},id_usuario_jovem.eq.${$userProfile.id}`)
           .single();
         
         if (jovemError || !jovemData) {
