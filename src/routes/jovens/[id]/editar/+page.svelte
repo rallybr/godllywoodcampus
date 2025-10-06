@@ -7,6 +7,8 @@
   import { supabase } from '$lib/utils/supabase';
   import Button from '$lib/components/ui/Button.svelte';
   import Card from '$lib/components/ui/Card.svelte';
+  import Autocomplete from '$lib/components/ui/Autocomplete.svelte';
+  import { buscarUsuariosPorNomeOuEmail } from '$lib/stores/usuarios';
   import { 
     estados, blocos, regioes, igrejas, edicoes,
     loadEstados, loadBlocos, loadRegioes, loadIgrejas, loadEdicoes,
@@ -20,6 +22,9 @@
   let saving = false;
   let error = '';
   let success = '';
+  let usuarioBusca = '';
+  let salvandoUsuario = false;
+  let erroUsuario = '';
   
   // Formulário
   let formData = {
@@ -303,6 +308,22 @@
   function handleCancel() {
     goto(`/jovens/${jovem.id}`);
   }
+
+  // Auto-save do id_usuario_jovem ao selecionar um usuário no autocomplete
+  async function handleSelectUsuario(suggestion) {
+    try {
+      erroUsuario = '';
+      salvandoUsuario = true;
+      const usuarioId = suggestion?.id;
+      if (!usuarioId) return;
+      await updateJovem(jovem.id, { id_usuario_jovem: usuarioId });
+      success = 'Usuário vinculado ao jovem com sucesso!';
+    } catch (e) {
+      erroUsuario = e?.message || 'Falha ao vincular usuário ao jovem';
+    } finally {
+      salvandoUsuario = false;
+    }
+  }
 </script>
 
 <svelte:head>
@@ -530,6 +551,41 @@
           </div>
         </Card>
         
+        <!-- Usuário do Jovem -->
+        <Card>
+          <div class="px-6 py-4 border-b border-gray-200">
+            <h3 class="text-lg font-medium text-gray-900">Usuário do Jovem</h3>
+            <p class="text-sm text-gray-600 mt-1">Busque pelo nome ou email e selecione para vincular</p>
+          </div>
+          <div class="p-6 space-y-3">
+            <Autocomplete
+              label="Buscar Usuário"
+              placeholder="Digite nome ou email"
+              bind:value={usuarioBusca}
+              minLength={2}
+              debounceMs={300}
+              on:select={(e) => handleSelectUsuario(e.detail.suggestion)}
+              searchFunction={async (term) => {
+                const resultados = await buscarUsuariosPorNomeOuEmail(term);
+                return (resultados || []).map(u => ({
+                  id: u.id,
+                  display: `${u.nome} — ${u.email}`
+                }));
+              }}
+            />
+
+            {#if salvandoUsuario}
+              <p class="text-sm text-gray-500">Salvando vínculo com usuário...</p>
+            {/if}
+            {#if erroUsuario}
+              <p class="text-sm text-red-600">{erroUsuario}</p>
+            {/if}
+            {#if jovem?.id_usuario_jovem}
+              <p class="text-sm text-green-700">Usuário atual vinculado: {jovem.id_usuario_jovem}</p>
+            {/if}
+          </div>
+        </Card>
+
         <!-- Localização -->
         <Card>
           <div class="px-6 py-4 border-b border-gray-200">

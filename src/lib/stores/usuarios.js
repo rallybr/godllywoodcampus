@@ -79,6 +79,40 @@ export async function buscarUsuariosPorNome(nome) {
   }
 }
 
+// Função para buscar usuários por nome OU email (autocomplete)
+export async function buscarUsuariosPorNomeOuEmail(termo) {
+  try {
+    const { data, error: fetchError } = await supabase
+      .from('usuarios')
+      .select(`
+        id,
+        id_auth,
+        foto,
+        nome,
+        sexo,
+        nivel,
+        email,
+        ativo,
+        criado_em,
+        estado_id,
+        bloco_id,
+        regiao_id,
+        igreja_id,
+        estado_bandeira
+      `)
+      .or(`nome.ilike.%${termo}%,email.ilike.%${termo}%`)
+      .order('nome', { ascending: true })
+      .limit(10);
+
+    if (fetchError) throw fetchError;
+
+    return data || [];
+  } catch (err) {
+    console.error('Error searching usuarios por nome/email:', err);
+    return [];
+  }
+}
+
 // Função para criar um novo usuário
 export async function createUsuario(dadosUsuario) {
   loading.set(true);
