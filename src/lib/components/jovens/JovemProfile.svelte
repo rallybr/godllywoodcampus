@@ -244,12 +244,12 @@
     </Button>
   </div>
 {:else if jovem}
-  <div class="max-w-6xl mx-auto px-2 sm:px-4 lg:px-6">
+  <div class="max-w-6xl mx-auto px-2 sm:px-4 lg:px-6 overflow-x-hidden">
     <!-- Header -->
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-4 sm:mb-6">
       <!-- Header azul com nome e edição -->
       <div class="bg-blue-600 px-3 sm:px-4 lg:px-6 py-3 sm:py-4 lg:py-5 text-center">
-        <h1 class="text-lg sm:text-xl lg:text-2xl xl:text-3xl font-bold text-white mb-1 sm:mb-2">{jovem.nome_completo}</h1>
+        <h1 class="text-lg sm:text-xl lg:text-2xl xl:text-3xl font-bold text-white mb-1 sm:mb-2 break-words">{jovem.nome_completo}</h1>
         <p class="text-white text-xs sm:text-sm lg:text-base font-medium">{jovem.edicao || 'Não informado'}</p>
       </div>
       
@@ -654,23 +654,23 @@
               <dl class="space-y-4">
                 <div class="py-2 border-b border-gray-100">
                   <dt class="text-xs sm:text-sm font-medium text-blue-600 uppercase tracking-wide font-bold text-center mb-2">Observação</dt>
-                  <dd class="text-xs sm:text-sm font-semibold text-gray-900 text-left w-full">{jovem.observacao || 'Não informado'}</dd>
+                  <dd class="text-xs sm:text-sm font-semibold text-gray-900 text-left w-full break-words">{jovem.observacao || 'Não informado'}</dd>
                 </div>
                 <div class="py-2 border-b border-gray-100">
                   <dt class="text-xs sm:text-sm font-medium text-blue-600 uppercase tracking-wide font-bold text-center mb-2">Testemunho</dt>
-                  <dd class="text-xs sm:text-sm font-semibold text-gray-900 text-left w-full">{jovem.testemunho || 'Não informado'}</dd>
+                  <dd class="text-xs sm:text-sm font-semibold text-gray-900 text-left w-full break-words">{jovem.testemunho || 'Não informado'}</dd>
                 </div>
                 <div class="flex justify-between items-center py-2 border-b border-gray-100">
                   <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Instagram</dt>
-                  <dd class="text-xs sm:text-sm font-semibold text-gray-900">{jovem.instagram || 'Não informado'}</dd>
+                  <dd class="text-xs sm:text-sm font-semibold text-gray-900 break-all">{jovem.instagram || 'Não informado'}</dd>
                 </div>
                 <div class="flex justify-between items-center py-2 border-b border-gray-100">
                   <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Facebook</dt>
-                  <dd class="text-xs sm:text-sm font-semibold text-gray-900">{jovem.facebook || 'Não informado'}</dd>
+                  <dd class="text-xs sm:text-sm font-semibold text-gray-900 break-all">{jovem.facebook || 'Não informado'}</dd>
                 </div>
                 <div class="flex justify-between items-center py-2">
                   <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">TikTok</dt>
-                  <dd class="text-xs sm:text-sm font-semibold text-gray-900">{jovem.tiktok || 'Não informado'}</dd>
+                  <dd class="text-xs sm:text-sm font-semibold text-gray-900 break-all">{jovem.tiktok || 'Não informado'}</dd>
                 </div>
               </dl>
             </div>
