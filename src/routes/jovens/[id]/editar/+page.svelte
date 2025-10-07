@@ -9,6 +9,7 @@
   import Card from '$lib/components/ui/Card.svelte';
   import Autocomplete from '$lib/components/ui/Autocomplete.svelte';
   import { buscarUsuariosPorNomeOuEmail } from '$lib/stores/usuarios';
+  import { compressImage } from '$lib/stores/upload';
   import { 
     estados, blocos, regioes, igrejas, edicoes,
     loadEstados, loadBlocos, loadRegioes, loadIgrejas, loadEdicoes,
@@ -25,9 +26,24 @@
   let usuarioBusca = '';
   let salvandoUsuario = false;
   let erroUsuario = '';
+  // Cropper state (mesmo modelo do cadastro)
+  let showCropper = false;
+  let cropImageSrc = '';
+  let cropScale = 1;
+  let minScale = 1;
+  let maxScale = 3;
+  let cropOffsetX = 0;
+  let cropOffsetY = 0;
+  let isDragging = false;
+  let dragStartX = 0;
+  let dragStartY = 0;
+  let imageNaturalWidth = 0;
+  let imageNaturalHeight = 0;
+  let cropContainerSize = 320;
   
   // Formulário
   let formData = {
+    foto: '',
     nome_completo: '',
     whatsapp: '',
     data_nasc: '',
@@ -182,6 +198,7 @@
       
       // Preencher formulário com dados do jovem
       formData = {
+        foto: jovem.foto || '',
         nome_completo: jovem.nome_completo || '',
         whatsapp: jovem.whatsapp || '',
         data_nasc: jovem.data_nasc ? jovem.data_nasc.split('T')[0] : '', // Formato YYYY-MM-DD para input date
@@ -324,6 +341,125 @@
       salvandoUsuario = false;
     }
   }
+  // REMOVER BLOCO DUPLICADO (mantido somente a primeira definição acima)
+
+  async function uploadToBucket(file) {
+    if (!file) return null;
+    const ext = file.name.split('.').pop();
+    const path = `${jovem.id}/${Date.now()}.${ext}`;
+    const { error: upErr } = await supabase.storage.from('fotos_jovens').upload(path, file, { upsert: true, cacheControl: '3600' });
+    if (upErr) throw upErr;
+    const { data } = supabase.storage.from('fotos_jovens').getPublicUrl(path);
+    return data?.publicUrl || null;
+  }
+
+  async function onFotoChange(e) {
+    const file = e?.target?.files?.[0];
+    if (!file) return;
+    // Validação de tamanho (5MB)
+    const maxBytes = 5 * 1024 * 1024;
+    if (file.size > maxBytes) {
+      error = 'A imagem excede 5MB. Escolha uma imagem menor.';
+      return;
+    }
+    // Abrir cropper com dataURL
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      cropImageSrc = ev.target.result;
+      cropScale = 1; cropOffsetX = 0; cropOffsetY = 0;
+      // Ajuste responsivo do viewport
+      const screenWidth = window.innerWidth;
+      if (screenWidth < 640) cropContainerSize = Math.min(280, screenWidth - 80);
+      else if (screenWidth < 768) cropContainerSize = Math.min(320, screenWidth - 120);
+      else cropContainerSize = 320;
+
+      const img = new Image();
+      img.onload = () => {
+        imageNaturalWidth = img.naturalWidth;
+        imageNaturalHeight = img.naturalHeight;
+        const scaleToFitW = cropContainerSize / imageNaturalWidth;
+        const scaleToFitH = cropContainerSize / imageNaturalHeight;
+        minScale = Math.min(scaleToFitW, scaleToFitH);
+        if (!isFinite(minScale) || minScale <= 0) minScale = 1;
+        maxScale = minScale * 3;
+        cropScale = minScale;
+        cropOffsetX = 0; cropOffsetY = 0;
+        showCropper = true;
+        document.body.style.overflow = 'hidden';
+      };
+      img.src = cropImageSrc;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function onCropMouseDown(event) {
+    isDragging = true;
+    dragStartX = event.clientX - cropOffsetX;
+    dragStartY = event.clientY - cropOffsetY;
+  }
+  function onCropMouseMove(event) {
+    if (!isDragging) return;
+    cropOffsetX = event.clientX - dragStartX;
+    cropOffsetY = event.clientY - dragStartY;
+  }
+  function onCropMouseUp() { isDragging = false; }
+  function onCropTouchStart(event) {
+    event.preventDefault();
+    const t = event.touches[0];
+    isDragging = true;
+    dragStartX = t.clientX - cropOffsetX;
+    dragStartY = t.clientY - cropOffsetY;
+  }
+  function onCropTouchMove(event) {
+    if (!isDragging) return; event.preventDefault();
+    const t = event.touches[0];
+    cropOffsetX = t.clientX - dragStartX;
+    cropOffsetY = t.clientY - dragStartY;
+  }
+  function onCropTouchEnd() { isDragging = false; }
+
+  async function confirmCrop() {
+    try {
+      const canvasSize = 600;
+      const canvas = document.createElement('canvas');
+      canvas.width = canvasSize; canvas.height = canvasSize;
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
+      await new Promise((resolve) => { img.onload = resolve; img.src = cropImageSrc; });
+
+      const scaledW = imageNaturalWidth * cropScale;
+      const scaledH = imageNaturalHeight * cropScale;
+      const imageLeftInView = (cropContainerSize / 2) - (scaledW / 2) + cropOffsetX;
+      const imageTopInView = (cropContainerSize / 2) - (scaledH / 2) + cropOffsetY;
+      const srcX = Math.max(0, -imageLeftInView / cropScale);
+      const srcY = Math.max(0, -imageTopInView / cropScale);
+      const srcSize = Math.min(
+        imageNaturalWidth - srcX,
+        imageNaturalHeight - srcY,
+        cropContainerSize / cropScale
+      );
+
+      ctx.drawImage(img, srcX, srcY, srcSize, srcSize, 0, 0, canvasSize, canvasSize);
+      const blob = await new Promise((resolve) => canvas.toBlob((b) => resolve(b || new Blob()), 'image/jpeg', 0.9));
+      const baseFile = new File([blob], 'crop.jpg', { type: 'image/jpeg' });
+      const processedMaybe = await compressImage(baseFile);
+      const finalFile = processedMaybe instanceof File ? processedMaybe : new File([processedMaybe || blob], 'crop.jpg', { type: 'image/jpeg' });
+
+      saving = true;
+      const publicUrl = await uploadToBucket(finalFile);
+      if (!publicUrl) throw new Error('Falha ao obter URL pública');
+      await updateJovem(jovem.id, { foto: publicUrl });
+      formData.foto = publicUrl;
+      success = 'Foto atualizada com sucesso!';
+      showCropper = false; document.body.style.overflow = '';
+    } catch (e) {
+      error = e?.message || 'Falha ao recortar/enviar imagem';
+      showCropper = false; document.body.style.overflow = '';
+    } finally {
+      saving = false;
+    }
+  }
+  function cancelCrop() { showCropper = false; document.body.style.overflow = ''; }
 </script>
 
 <svelte:head>
@@ -387,6 +523,41 @@
     <!-- Formulário -->
     <form on:submit|preventDefault={handleSave}>
       <div class="space-y-6">
+        <!-- Foto do Perfil -->
+        <Card>
+          <div class="px-6 py-4 border-b border-gray-200">
+            <h3 class="text-lg font-medium text-gray-900">Foto do Perfil</h3>
+          </div>
+          <div class="p-6">
+            <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+              <div class="relative group">
+                {#if formData.foto}
+                  <img src={formData.foto} alt="Foto do jovem" class="w-28 h-28 rounded-2xl object-cover border-4 border-white shadow-md ring-2 ring-blue-100" />
+                  <button type="button" class="absolute inset-0 rounded-2xl bg-black/0 group-hover:bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition" on:click={() => document.getElementById('fotoInput')?.click()} aria-label="Alterar foto">
+                    <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                  </button>
+                {:else}
+                  <div class="w-28 h-28 rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-100 border-4 border-white shadow-md ring-2 ring-blue-100 flex items-center justify-center text-blue-500">
+                    <svg class="w-9 h-9" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                  </div>
+                {/if}
+              </div>
+              <div class="flex-1 min-w-0">
+                <input id="fotoInput" class="sr-only" type="file" accept="image/*" on:change={onFotoChange} />
+                <div class="flex flex-wrap items-center gap-2">
+                  <label for="fotoInput" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold shadow hover:bg-blue-700 cursor-pointer">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    Escolher foto
+                  </label>
+                  {#if formData.foto}
+                    <button type="button" class="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 text-sm hover:bg-gray-50" on:click={() => document.getElementById('fotoInput')?.click()}>Alterar</button>
+                  {/if}
+                </div>
+                <p class="mt-2 text-xs text-gray-500">Formatos aceitos: JPG, PNG ou WebP. Tamanho máximo 5MB. Saída 600x600 (recorte).</p>
+              </div>
+            </div>
+          </div>
+        </Card>
         <!-- Dados Pessoais -->
         <Card>
           <div class="px-6 py-4 border-b border-gray-200">
@@ -1166,5 +1337,41 @@
         </Button>
       </div>
     </form>
+  </div>
+{/if}
+
+{#if showCropper}
+  <div class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-2" role="presentation" on:mouseup={onCropMouseUp} on:mouseleave={onCropMouseUp} on:touchend={onCropTouchEnd}>
+    <div class="bg-white rounded-2xl p-4 sm:p-6 shadow-2xl w-full max-w-xs sm:max-w-md md:max-w-2xl max-h-[95vh] overflow-y-auto">
+      <h3 class="text-lg font-semibold text-gray-900 mb-4">Ajustar foto</h3>
+      <div class="flex flex-col space-y-4">
+        <div class="flex justify-center">
+          <div class="relative rounded-xl border-2 border-blue-200 bg-gray-100 overflow-hidden" style={`width:${cropContainerSize}px;height:${cropContainerSize}px`}>
+            {#if cropImageSrc}
+              <img src={cropImageSrc}
+                   alt="crop"
+                   class="absolute top-1/2 left-1/2 select-none max-w-none"
+                   style={`transform: translate(calc(-50% + ${cropOffsetX}px), calc(-50% + ${cropOffsetY}px)) scale(${cropScale});`}
+                   draggable={false}
+                   on:mousedown={onCropMouseDown}
+                   on:mousemove={onCropMouseMove}
+                   on:touchstart={onCropTouchStart}
+                   on:touchmove={onCropTouchMove}
+                   on:touchend={onCropTouchEnd}
+              />
+            {/if}
+          </div>
+        </div>
+        <div class="space-y-2">
+          <label class="block text-sm font-medium text-gray-700">Zoom: {Math.round(cropScale * 100)}%</label>
+          <input type="range" min={minScale} max={maxScale} step="0.01" bind:value={cropScale} class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" />
+          <div class="text-xs text-gray-500">Arraste a imagem para posicionar</div>
+        </div>
+      </div>
+      <div class="flex gap-2 mt-4">
+        <button class="flex-1 px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50" on:click={cancelCrop}>Cancelar</button>
+        <button class="flex-1 px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700" on:click={confirmCrop}>Confirmar</button>
+      </div>
+    </div>
   </div>
 {/if}

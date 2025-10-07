@@ -79,22 +79,74 @@ export async function loadJovens(page = 1, limit = 20, userId = null, userLevel 
         edicao:edicoes!edicao_id(id, nome, numero)
       `, { count: 'exact' });
     
-    // Escopo por nível (alinha com can_access_jovem)
+    // Escopo por nível (inclui jovens associados via tabela associativa)
     if (userLevel && userId) {
       if (userLevel === 'colaborador') {
         query = query.eq('usuario_id', userId);
       } else if (userLevel === 'lider_estadual_iurd' || userLevel === 'lider_estadual_fju') {
         const estadoId = options?.scope?.estadoId;
-        if (estadoId) query = query.eq('estado_id', estadoId);
+        if (estadoId) {
+          // Buscar IDs de jovens associados ao usuário
+          const { data: associados } = await supabase
+            .from('jovens_usuarios_associacoes')
+            .select('jovem_id')
+            .eq('usuario_id', userId);
+          
+          const associadosIds = associados?.map(a => a.jovem_id) || [];
+          if (associadosIds.length > 0) {
+            query = query.or(`estado_id.eq.${estadoId},id.in.(${associadosIds.join(',')})`);
+          } else {
+            query = query.eq('estado_id', estadoId);
+          }
+        }
       } else if (userLevel === 'lider_bloco_iurd' || userLevel === 'lider_bloco_fju') {
         const blocoId = options?.scope?.blocoId;
-        if (blocoId) query = query.eq('bloco_id', blocoId);
+        if (blocoId) {
+          // Buscar IDs de jovens associados ao usuário
+          const { data: associados } = await supabase
+            .from('jovens_usuarios_associacoes')
+            .select('jovem_id')
+            .eq('usuario_id', userId);
+          
+          const associadosIds = associados?.map(a => a.jovem_id) || [];
+          if (associadosIds.length > 0) {
+            query = query.or(`bloco_id.eq.${blocoId},id.in.(${associadosIds.join(',')})`);
+          } else {
+            query = query.eq('bloco_id', blocoId);
+          }
+        }
       } else if (userLevel === 'lider_regional_iurd') {
         const regiaoId = options?.scope?.regiaoId;
-        if (regiaoId) query = query.eq('regiao_id', regiaoId);
+        if (regiaoId) {
+          // Buscar IDs de jovens associados ao usuário
+          const { data: associados } = await supabase
+            .from('jovens_usuarios_associacoes')
+            .select('jovem_id')
+            .eq('usuario_id', userId);
+          
+          const associadosIds = associados?.map(a => a.jovem_id) || [];
+          if (associadosIds.length > 0) {
+            query = query.or(`regiao_id.eq.${regiaoId},id.in.(${associadosIds.join(',')})`);
+          } else {
+            query = query.eq('regiao_id', regiaoId);
+          }
+        }
       } else if (userLevel === 'lider_igreja_iurd') {
         const igrejaId = options?.scope?.igrejaId;
-        if (igrejaId) query = query.eq('igreja_id', igrejaId);
+        if (igrejaId) {
+          // Buscar IDs de jovens associados ao usuário
+          const { data: associados } = await supabase
+            .from('jovens_usuarios_associacoes')
+            .select('jovem_id')
+            .eq('usuario_id', userId);
+          
+          const associadosIds = associados?.map(a => a.jovem_id) || [];
+          if (associadosIds.length > 0) {
+            query = query.or(`igreja_id.eq.${igrejaId},id.in.(${associadosIds.join(',')})`);
+          } else {
+            query = query.eq('igreja_id', igrejaId);
+          }
+        }
       }
     }
     

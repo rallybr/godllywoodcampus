@@ -77,23 +77,51 @@
         console.log('🔍 DEBUG - Visão nacional (admin/nacional)');
       } else if (nivel === 'lider_estadual_iurd' || nivel === 'lider_estadual_fju') {
         if ($userProfile?.estado_id) {
-          console.log('🔍 DEBUG - Filtrando por estado:', $userProfile.estado_id);
-          query = query.eq('estado_id', $userProfile.estado_id);
+          console.log('🔍 DEBUG - Filtrando por estado/associados:', $userProfile.estado_id);
+          const { data: assoc } = await supabase
+            .from('jovens_usuarios_associacoes')
+            .select('jovem_id')
+            .eq('usuario_id', $userProfile.id);
+          const ids = (assoc || []).map(a => a.jovem_id);
+          query = ids.length > 0
+            ? query.or(`estado_id.eq.${$userProfile.estado_id},id.in.(${ids.join(',')})`)
+            : query.eq('estado_id', $userProfile.estado_id);
         }
       } else if (nivel === 'lider_bloco_iurd' || nivel === 'lider_bloco_fju') {
         if ($userProfile?.bloco_id) {
-          console.log('🔍 DEBUG - Filtrando por bloco:', $userProfile.bloco_id);
-          query = query.eq('bloco_id', $userProfile.bloco_id);
+          console.log('🔍 DEBUG - Filtrando por bloco/associados:', $userProfile.bloco_id);
+          const { data: assoc } = await supabase
+            .from('jovens_usuarios_associacoes')
+            .select('jovem_id')
+            .eq('usuario_id', $userProfile.id);
+          const ids = (assoc || []).map(a => a.jovem_id);
+          query = ids.length > 0
+            ? query.or(`bloco_id.eq.${$userProfile.bloco_id},id.in.(${ids.join(',')})`)
+            : query.eq('bloco_id', $userProfile.bloco_id);
         }
       } else if (nivel === 'lider_regional_iurd') {
         if ($userProfile?.regiao_id) {
-          console.log('🔍 DEBUG - Filtrando por região:', $userProfile.regiao_id);
-          query = query.eq('regiao_id', $userProfile.regiao_id);
+          console.log('🔍 DEBUG - Filtrando por região/associados:', $userProfile.regiao_id);
+          const { data: assoc } = await supabase
+            .from('jovens_usuarios_associacoes')
+            .select('jovem_id')
+            .eq('usuario_id', $userProfile.id);
+          const ids = (assoc || []).map(a => a.jovem_id);
+          query = ids.length > 0
+            ? query.or(`regiao_id.eq.${$userProfile.regiao_id},id.in.(${ids.join(',')})`)
+            : query.eq('regiao_id', $userProfile.regiao_id);
         }
       } else if (nivel === 'lider_igreja_iurd') {
         if ($userProfile?.igreja_id) {
-          console.log('🔍 DEBUG - Filtrando por igreja:', $userProfile.igreja_id);
-          query = query.eq('igreja_id', $userProfile.igreja_id);
+          console.log('🔍 DEBUG - Filtrando por igreja/associados:', $userProfile.igreja_id);
+          const { data: assoc } = await supabase
+            .from('jovens_usuarios_associacoes')
+            .select('jovem_id')
+            .eq('usuario_id', $userProfile.id);
+          const ids = (assoc || []).map(a => a.jovem_id);
+          query = ids.length > 0
+            ? query.or(`igreja_id.eq.${$userProfile.igreja_id},id.in.(${ids.join(',')})`)
+            : query.eq('igreja_id', $userProfile.igreja_id);
         }
       } else if ((nivel === 'colaborador' || nivel === 'jovem') && $userProfile?.id) {
         console.log('🔍 DEBUG - Filtrando por usuário (colaborador/jovem):', $userProfile.id);

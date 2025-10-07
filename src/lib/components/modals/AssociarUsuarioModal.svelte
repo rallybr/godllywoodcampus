@@ -57,10 +57,24 @@
     error = '';
     try {
       const { error: err } = await supabase
-        .from('jovens')
-        .update({ usuario_id: selecionado.id })
-        .eq('id', jovemId);
+        .from('jovens_usuarios_associacoes')
+        .upsert([
+          { jovem_id: jovemId, usuario_id: selecionado.id }
+        ], { onConflict: 'jovem_id,usuario_id', ignoreDuplicates: true });
       if (err) throw err;
+
+      // Notificar associação (opcional: substituir por RPC específica se existir)
+      try {
+        await supabase.rpc('notificar_evento_jovem', {
+          p_jovem_id: jovemId,
+          p_tipo: 'sistema',
+          p_titulo: 'Jovem associado a usuário',
+          p_mensagem: 'Uma nova associação foi criada para este jovem.',
+          p_acao_url: `/jovens/${jovemId}`
+        });
+      } catch (notifyErr) {
+        console.warn('Falha ao notificar associação via RPC:', notifyErr);
+      }
       dispatch('success', { usuarioId: selecionado.id });
       fechar();
     } catch (e) {

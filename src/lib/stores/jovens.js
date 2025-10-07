@@ -83,7 +83,7 @@ export async function loadJovens(page = 1, limit = 20, userId = null, userLevel 
         edicao:edicoes(id, nome, numero)
       `, { count: 'exact' });
     
-    // Escopo por nível de acesso (inclui jovens associados)
+    // Escopo por nível de acesso (inclui jovens associados via tabela associativa)
     if (userLevel && userId) {
       if (userLevel === 'colaborador') {
         // Colaborador: jovens que cadastrou OU jovens associados a ele
@@ -92,25 +92,69 @@ export async function loadJovens(page = 1, limit = 20, userId = null, userLevel 
         // Líder estadual: jovens do estado OU jovens associados a ele
         const estadoId = options?.scope?.estadoId;
         if (estadoId) {
-          query = query.or(`estado_id.eq.${estadoId},usuario_id.eq.${userId}`);
+          // Buscar IDs de jovens associados ao usuário
+          const { data: associados } = await supabase
+            .from('jovens_usuarios_associacoes')
+            .select('jovem_id')
+            .eq('usuario_id', userId);
+          
+          const associadosIds = associados?.map(a => a.jovem_id) || [];
+          if (associadosIds.length > 0) {
+            query = query.or(`estado_id.eq.${estadoId},id.in.(${associadosIds.join(',')})`);
+          } else {
+            query = query.eq('estado_id', estadoId);
+          }
         }
       } else if (userLevel === 'lider_bloco_iurd' || userLevel === 'lider_bloco_fju') {
         // Líder de bloco: jovens do bloco OU jovens associados a ele
         const blocoId = options?.scope?.blocoId;
         if (blocoId) {
-          query = query.or(`bloco_id.eq.${blocoId},usuario_id.eq.${userId}`);
+          // Buscar IDs de jovens associados ao usuário
+          const { data: associados } = await supabase
+            .from('jovens_usuarios_associacoes')
+            .select('jovem_id')
+            .eq('usuario_id', userId);
+          
+          const associadosIds = associados?.map(a => a.jovem_id) || [];
+          if (associadosIds.length > 0) {
+            query = query.or(`bloco_id.eq.${blocoId},id.in.(${associadosIds.join(',')})`);
+          } else {
+            query = query.eq('bloco_id', blocoId);
+          }
         }
       } else if (userLevel === 'lider_regional_iurd') {
         // Líder regional: jovens da região OU jovens associados a ele
         const regiaoId = options?.scope?.regiaoId;
         if (regiaoId) {
-          query = query.or(`regiao_id.eq.${regiaoId},usuario_id.eq.${userId}`);
+          // Buscar IDs de jovens associados ao usuário
+          const { data: associados } = await supabase
+            .from('jovens_usuarios_associacoes')
+            .select('jovem_id')
+            .eq('usuario_id', userId);
+          
+          const associadosIds = associados?.map(a => a.jovem_id) || [];
+          if (associadosIds.length > 0) {
+            query = query.or(`regiao_id.eq.${regiaoId},id.in.(${associadosIds.join(',')})`);
+          } else {
+            query = query.eq('regiao_id', regiaoId);
+          }
         }
       } else if (userLevel === 'lider_igreja_iurd') {
         // Líder de igreja: jovens da igreja OU jovens associados a ele
         const igrejaId = options?.scope?.igrejaId;
         if (igrejaId) {
-          query = query.or(`igreja_id.eq.${igrejaId},usuario_id.eq.${userId}`);
+          // Buscar IDs de jovens associados ao usuário
+          const { data: associados } = await supabase
+            .from('jovens_usuarios_associacoes')
+            .select('jovem_id')
+            .eq('usuario_id', userId);
+          
+          const associadosIds = associados?.map(a => a.jovem_id) || [];
+          if (associadosIds.length > 0) {
+            query = query.or(`igreja_id.eq.${igrejaId},id.in.(${associadosIds.join(',')})`);
+          } else {
+            query = query.eq('igreja_id', igrejaId);
+          }
         }
       }
       // admin/líder nacional → sem escopo adicional (veem todos)

@@ -921,9 +921,7 @@
   jovemId={jovemId}
   on:close={closeAssociarModal}
   on:success={async (e) => {
-    if (jovem) {
-      jovem.usuario_id = e.detail?.usuarioId;
-    }
+    // Após associar, apenas recarregar dados/associações
     await loadJovemData();
   }}
 />

@@ -328,7 +328,7 @@ export async function loadEstatisticasUsuario(usuarioId) {
       .from('jovens')
       .select('id, usuario_id');
     
-    // 🔧 APLICAR FILTROS BASEADOS NO NÍVEL DE ACESSO (inclui jovens associados)
+    // 🔧 APLICAR FILTROS BASEADOS NO NÍVEL DE ACESSO (inclui jovens associados via tabela associativa)
     if (userLevel === 'colaborador') {
       // Colaborador: jovens que cadastrou OU jovens associados a ele
       console.log('🔍 DEBUG - Filtrando jovens para colaborador:', usuarioId);
@@ -337,25 +337,69 @@ export async function loadEstatisticasUsuario(usuarioId) {
       // Líder estadual: jovens do estado OU jovens associados a ele
       if (userData?.estado_id) {
         console.log('🔍 DEBUG - Filtrando jovens por estado OU associados:', userData.estado_id, usuarioId);
-        jovensQuery = jovensQuery.or(`estado_id.eq.${userData.estado_id},usuario_id.eq.${usuarioId}`);
+        // Buscar IDs de jovens associados ao usuário
+        const { data: associados } = await supabase
+          .from('jovens_usuarios_associacoes')
+          .select('jovem_id')
+          .eq('usuario_id', usuarioId);
+        
+        const associadosIds = associados?.map(a => a.jovem_id) || [];
+        if (associadosIds.length > 0) {
+          jovensQuery = jovensQuery.or(`estado_id.eq.${userData.estado_id},id.in.(${associadosIds.join(',')})`);
+        } else {
+          jovensQuery = jovensQuery.eq('estado_id', userData.estado_id);
+        }
       }
     } else if (userLevel === 'lider_bloco_iurd' || userLevel === 'lider_bloco_fju') {
       // Líder de bloco: jovens do bloco OU jovens associados a ele
       if (userData?.bloco_id) {
         console.log('🔍 DEBUG - Filtrando jovens por bloco OU associados:', userData.bloco_id, usuarioId);
-        jovensQuery = jovensQuery.or(`bloco_id.eq.${userData.bloco_id},usuario_id.eq.${usuarioId}`);
+        // Buscar IDs de jovens associados ao usuário
+        const { data: associados } = await supabase
+          .from('jovens_usuarios_associacoes')
+          .select('jovem_id')
+          .eq('usuario_id', usuarioId);
+        
+        const associadosIds = associados?.map(a => a.jovem_id) || [];
+        if (associadosIds.length > 0) {
+          jovensQuery = jovensQuery.or(`bloco_id.eq.${userData.bloco_id},id.in.(${associadosIds.join(',')})`);
+        } else {
+          jovensQuery = jovensQuery.eq('bloco_id', userData.bloco_id);
+        }
       }
     } else if (userLevel === 'lider_regional_iurd') {
       // Líder regional: jovens da região OU jovens associados a ele
       if (userData?.regiao_id) {
         console.log('🔍 DEBUG - Filtrando jovens por região OU associados:', userData.regiao_id, usuarioId);
-        jovensQuery = jovensQuery.or(`regiao_id.eq.${userData.regiao_id},usuario_id.eq.${usuarioId}`);
+        // Buscar IDs de jovens associados ao usuário
+        const { data: associados } = await supabase
+          .from('jovens_usuarios_associacoes')
+          .select('jovem_id')
+          .eq('usuario_id', usuarioId);
+        
+        const associadosIds = associados?.map(a => a.jovem_id) || [];
+        if (associadosIds.length > 0) {
+          jovensQuery = jovensQuery.or(`regiao_id.eq.${userData.regiao_id},id.in.(${associadosIds.join(',')})`);
+        } else {
+          jovensQuery = jovensQuery.eq('regiao_id', userData.regiao_id);
+        }
       }
     } else if (userLevel === 'lider_igreja_iurd') {
       // Líder de igreja: jovens da igreja OU jovens associados a ele
       if (userData?.igreja_id) {
         console.log('🔍 DEBUG - Filtrando jovens por igreja OU associados:', userData.igreja_id, usuarioId);
-        jovensQuery = jovensQuery.or(`igreja_id.eq.${userData.igreja_id},usuario_id.eq.${usuarioId}`);
+        // Buscar IDs de jovens associados ao usuário
+        const { data: associados } = await supabase
+          .from('jovens_usuarios_associacoes')
+          .select('jovem_id')
+          .eq('usuario_id', usuarioId);
+        
+        const associadosIds = associados?.map(a => a.jovem_id) || [];
+        if (associadosIds.length > 0) {
+          jovensQuery = jovensQuery.or(`igreja_id.eq.${userData.igreja_id},id.in.(${associadosIds.join(',')})`);
+        } else {
+          jovensQuery = jovensQuery.eq('igreja_id', userData.igreja_id);
+        }
       }
     }
     // Administrador e líderes nacionais: sem filtros adicionais (veem todos)
@@ -561,14 +605,26 @@ export async function loadEstatisticasJovensAssociados(usuarioId) {
   try {
     console.log('🔍 DEBUG - Carregando estatísticas de jovens associados para usuário:', usuarioId);
     
-    // Buscar apenas jovens associados ao usuário
-    const { data: jovensAssociados, error: jovensError } = await supabase
-      .from('jovens')
-      .select(`
-        id,
-        aprovado
-      `)
+    // Buscar jovens associados ao usuário via tabela associativa
+    const { data: associacoes, error: associacoesError } = await supabase
+      .from('jovens_usuarios_associacoes')
+      .select('jovem_id')
       .eq('usuario_id', usuarioId);
+    
+    let jovensAssociados = [];
+    if (associacoes && associacoes.length > 0) {
+      const jovensIds = associacoes.map(a => a.jovem_id);
+      const { data: jovensData, error: jovensError } = await supabase
+        .from('jovens')
+        .select(`
+          id,
+          aprovado
+        `)
+        .in('id', jovensIds);
+      
+      if (jovensError) throw jovensError;
+      jovensAssociados = jovensData || [];
+    }
     
     if (jovensError) {
       console.error('Erro ao buscar jovens associados:', jovensError);
@@ -643,19 +699,31 @@ export async function loadCondicoesAssociadosStats(usuarioId) {
   try {
     console.log('🔍 DEBUG - Carregando condições dos jovens associados para usuário:', usuarioId);
     
-    // Buscar apenas jovens associados ao usuário
-    const { data: jovensAssociados, error: jovensError } = await supabase
-      .from('jovens')
-      .select(`
-        id,
-        condicao,
-        condicao_campus,
-        responsabilidade_igreja,
-        ja_obreiro,
-        ja_colaborador,
-        batizado_es
-      `)
+    // Buscar jovens associados ao usuário via tabela associativa
+    const { data: associacoes, error: associacoesError } = await supabase
+      .from('jovens_usuarios_associacoes')
+      .select('jovem_id')
       .eq('usuario_id', usuarioId);
+    
+    let jovensAssociados = [];
+    if (associacoes && associacoes.length > 0) {
+      const jovensIds = associacoes.map(a => a.jovem_id);
+      const { data: jovensData, error: jovensError } = await supabase
+        .from('jovens')
+        .select(`
+          id,
+          condicao,
+          condicao_campus,
+          responsabilidade_igreja,
+          ja_obreiro,
+          ja_colaborador,
+          batizado_es
+        `)
+        .in('id', jovensIds);
+      
+      if (jovensError) throw jovensError;
+      jovensAssociados = jovensData || [];
+    }
     
     if (jovensError) {
       console.error('Erro ao buscar jovens associados:', jovensError);
@@ -720,12 +788,11 @@ export async function loadUsuariosAssociadosJovem(jovemId) {
   try {
     console.log('🔍 DEBUG - Carregando usuários associados ao jovem:', jovemId);
     
-    // Buscar usuários associados ao jovem
+    // Buscar usuários associados ao jovem na tabela associativa
     const { data: associacoes, error: associacoesError } = await supabase
-      .from('jovens')
+      .from('jovens_usuarios_associacoes')
       .select(`
-        usuario_id,
-        usuario:usuarios(
+        usuario:usuarios!jovens_usuarios_associacoes_usuario_id_fkey(
           id,
           nome,
           email,
@@ -736,8 +803,7 @@ export async function loadUsuariosAssociadosJovem(jovemId) {
           igreja:igrejas(nome)
         )
       `)
-      .eq('id', jovemId)
-      .not('usuario_id', 'is', null);
+      .eq('jovem_id', jovemId);
     
     if (associacoesError) {
       console.error('Erro ao buscar associações do jovem:', associacoesError);
@@ -765,11 +831,11 @@ export async function desassociarJovemUsuario(jovemId, usuarioId) {
   try {
     console.log('🔍 DEBUG - Desassociando jovem:', jovemId, 'do usuário:', usuarioId);
     
-    // Atualizar o jovem para remover a associação
+    // Remover a linha de associação
     const { error: updateError } = await supabase
-      .from('jovens')
-      .update({ usuario_id: null })
-      .eq('id', jovemId)
+      .from('jovens_usuarios_associacoes')
+      .delete()
+      .eq('jovem_id', jovemId)
       .eq('usuario_id', usuarioId);
     
     if (updateError) {
