@@ -952,7 +952,7 @@
         {/each}
       </div>
     {:else if estadosStats.length > 0}
-      <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-6 gap-2 sm:gap-3">
+      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-6 gap-2 sm:gap-3">
         {#each estadosStats as estado}
           {#if canClickEstado(estado.id)}
             <a href="/estados/{estado.sigla}" class="group cursor-pointer hover:scale-105 transition-all duration-300">

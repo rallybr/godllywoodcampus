@@ -10,12 +10,12 @@
 
 <!-- Relatório de Avaliações (não mostrar para jovens) -->
 {#if getUserLevelName($userProfile) !== 'Jovem'}
-<div class="max-w-7xl mx-auto py-8">
+<div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 overflow-x-hidden">
   <RelatorioAvaliacoes />
 </div>
 {:else}
 <!-- Mensagem para usuários jovens -->
-<div class="max-w-7xl mx-auto py-8">
+<div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 overflow-x-hidden">
   <div class="text-center">
     <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
       <svg class="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">

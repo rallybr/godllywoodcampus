@@ -147,7 +147,7 @@
 </script>
 
 <!-- Background com gradiente sutil -->
-<div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+<div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 overflow-x-hidden">
 	<div class="max-w-6xl mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6 lg:py-8">
 		<!-- Header com título estilizado -->
 		<div class="text-center mb-6 sm:mb-8">

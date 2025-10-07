@@ -110,7 +110,7 @@
     </div>
   {:else if estatisticas}
     <!-- Estatísticas Principais -->
-    <div class="grid grid-cols-2 gap-3 sm:gap-4 lg:gap-6">
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 lg:gap-6">
       <!-- Card Total de Jovens -->
       <Card padding="p-3 sm:p-4 lg:p-6" class="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 hover:shadow-lg transition-all duration-300">
         <div class="flex items-center space-x-3 mb-4">

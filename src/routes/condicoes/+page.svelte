@@ -240,7 +240,7 @@
               </div>
             </div>
             <div class="p-4 sm:p-6">
-              <div class="grid grid-cols-3 gap-3 sm:gap-4">
+              <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
                 {#each Array(3) as _}
                   <div class="h-12 sm:h-16 bg-gray-200 rounded-xl"></div>
                 {/each}

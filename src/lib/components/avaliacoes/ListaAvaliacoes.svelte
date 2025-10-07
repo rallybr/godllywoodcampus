@@ -278,10 +278,10 @@
                       {/if}
                       
                       <div>
-                        <h4 class="text-lg font-semibold text-gray-900">
+                        <h4 class="text-lg font-semibold text-gray-900 break-words">
                           {avaliacao.jovem?.nome_completo || 'Jovem não encontrado'}
                         </h4>
-                        <p class="text-sm text-gray-600">
+                        <p class="text-sm text-gray-600 break-words">
                           Avaliado por: {avaliacao.avaliador?.nome || avaliacao.avaliador?.email || 'Usuário'}
                         </p>
                         <p class="text-xs text-gray-500 flex items-center mt-1">

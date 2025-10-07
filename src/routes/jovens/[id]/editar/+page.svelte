@@ -348,12 +348,12 @@
     </Button>
   </div>
 {:else if jovem}
-  <div class="max-w-4xl mx-auto">
+  <div class="max-w-4xl mx-auto overflow-x-hidden">
     <!-- Header -->
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-6">
       <div class="bg-blue-600 px-6 py-4">
         <h1 class="text-2xl font-bold text-white">Editar Jovem</h1>
-        <p class="text-blue-100">{jovem.nome_completo}</p>
+        <p class="text-blue-100 break-words">{jovem.nome_completo}</p>
       </div>
     </div>
     

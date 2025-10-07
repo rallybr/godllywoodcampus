@@ -196,7 +196,7 @@
   <title>Status de Viagem</title>
 </svelte:head>
 
-<div class="p-3 sm:p-6 space-y-4 sm:space-y-6">
+<div class="p-3 sm:p-6 space-y-4 sm:space-y-6 overflow-x-hidden">
   <!-- Cabeçalho estilizado -->
   <div class="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 rounded-2xl p-6 sm:p-8 shadow-2xl border border-white/10 relative overflow-hidden">
     <!-- Elementos decorativos de fundo -->
