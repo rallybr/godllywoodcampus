@@ -347,6 +347,12 @@ export async function aprovarJovem(id, status) {
   error.set(null);
   
   try {
+    // Verificar se o usuário pode aprovar este jovem (incluindo associações)
+    const canApprove = await verificarPermissaoAprovarJovem(id);
+    if (!canApprove) {
+      throw new Error('Sem permissão para aprovar este jovem');
+    }
+
     // Usar a nova função de aprovação múltipla
     const { data, error: rpcError } = await supabase.rpc('aprovar_jovem_multiplo', {
       p_jovem_id: id,
@@ -406,6 +412,105 @@ export async function buscarAprovacoesJovem(jovemId) {
   } catch (err) {
     console.error('Error fetching approvals:', err);
     throw err;
+  }
+}
+
+// Função para verificar se o usuário pode aprovar um jovem específico (incluindo associações)
+export async function verificarPermissaoAprovarJovem(jovemId) {
+  try {
+    console.log('🔍 DEBUG - verificarPermissaoAprovarJovem - jovemId:', jovemId);
+    
+    // Obter usuário atual
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      console.log('❌ DEBUG - Usuário não autenticado');
+      return false;
+    }
+
+    // Buscar dados do usuário
+    const { data: usuarioData } = await supabase
+      .from('usuarios')
+      .select('id, nivel, estado_id, bloco_id, regiao_id, igreja_id')
+      .eq('id_auth', user.id)
+      .single();
+
+    if (!usuarioData) {
+      console.log('❌ DEBUG - Dados do usuário não encontrados');
+      return false;
+    }
+
+    console.log('✅ DEBUG - Dados do usuário:', usuarioData);
+
+    // Buscar dados do jovem
+    const { data: jovemData } = await supabase
+      .from('jovens')
+      .select('id, estado_id, bloco_id, regiao_id, igreja_id')
+      .eq('id', jovemId)
+      .single();
+
+    if (!jovemData) {
+      console.log('❌ DEBUG - Dados do jovem não encontrados');
+      return false;
+    }
+
+    console.log('✅ DEBUG - Dados do jovem:', jovemData);
+
+    const { nivel, estado_id, bloco_id, regiao_id, igreja_id } = usuarioData;
+
+    // Administrador e líderes nacionais podem aprovar qualquer jovem
+    if (nivel === 'administrador' || nivel === 'lider_nacional_iurd' || nivel === 'lider_nacional_fju') {
+      console.log('✅ DEBUG - Acesso por nível nacional/administrador');
+      return true;
+    }
+
+    // Verificar acesso geográfico
+    if (nivel === 'lider_estadual_iurd' || nivel === 'lider_estadual_fju') {
+      console.log('🔍 DEBUG - Verificando acesso estadual:', { estado_id, jovem_estado: jovemData.estado_id });
+      if (estado_id && jovemData.estado_id === estado_id) {
+        console.log('✅ DEBUG - Acesso por escopo estadual');
+        return true;
+      }
+    } else if (nivel === 'lider_bloco_iurd' || nivel === 'lider_bloco_fju') {
+      console.log('🔍 DEBUG - Verificando acesso bloco:', { bloco_id, jovem_bloco: jovemData.bloco_id });
+      if (bloco_id && jovemData.bloco_id === bloco_id) {
+        console.log('✅ DEBUG - Acesso por escopo bloco');
+        return true;
+      }
+    } else if (nivel === 'lider_regional_iurd') {
+      console.log('🔍 DEBUG - Verificando acesso regional:', { regiao_id, jovem_regiao: jovemData.regiao_id });
+      if (regiao_id && jovemData.regiao_id === regiao_id) {
+        console.log('✅ DEBUG - Acesso por escopo regional');
+        return true;
+      }
+    } else if (nivel === 'lider_igreja_iurd') {
+      console.log('🔍 DEBUG - Verificando acesso igreja:', { igreja_id, jovem_igreja: jovemData.igreja_id });
+      if (igreja_id && jovemData.igreja_id === igreja_id) {
+        console.log('✅ DEBUG - Acesso por escopo igreja');
+        return true;
+      }
+    }
+
+    // Verificar se o jovem está associado ao usuário
+    console.log('🔍 DEBUG - Verificando associação:', { jovemId, usuarioId: usuarioData.id });
+    const { data: associacao, error: associacaoError } = await supabase
+      .from('jovens_usuarios_associacoes')
+      .select('id')
+      .eq('jovem_id', jovemId)
+      .eq('usuario_id', usuarioData.id)
+      .single();
+
+    console.log('🔍 DEBUG - Resultado associação:', { associacao, associacaoError });
+
+    if (associacao) {
+      console.log('✅ DEBUG - Acesso por associação');
+      return true;
+    }
+
+    console.log('❌ DEBUG - Nenhuma permissão encontrada');
+    return false;
+  } catch (err) {
+    console.error('❌ DEBUG - Error checking approval permission:', err);
+    return false;
   }
 }
 
