@@ -79,14 +79,23 @@
 			loading = true;
 			error = '';
 
-			// Busca o jovem vinculado ao usuário logado (via usuario_id)
-			if (!$userProfile?.id) return;
-			const { data: jovemData, error: jErr } = await supabase
-				.from('jovens')
-				.select('*')
-				.eq('usuario_id', $userProfile.id)
-				.limit(1)
-				.maybeSingle();
+            // Busca o jovem vinculado ao usuário logado (via usuario_id OU id_usuario_jovem)
+            if (!$userProfile?.id) return;
+            const { data: jovemData, error: jErr } = await supabase
+                .from('jovens')
+                .select(`
+                    id,
+                    nome_completo,
+                    foto,
+                    idade,
+                    igreja_id,
+                    edicao_id,
+                    igreja:igrejas(nome),
+                    edicao:edicoes(id, nome, numero)
+                `)
+                .or(`usuario_id.eq.${$userProfile.id},id_usuario_jovem.eq.${$userProfile.id}`)
+                .limit(1)
+                .maybeSingle();
 			if (jErr) throw jErr;
 			jovem = jovemData;
 
@@ -278,7 +287,7 @@
 								</svg>
 							</div>
 							<p class="text-xs sm:text-sm font-medium text-blue-600 mb-1">Edição</p>
-							<p class="text-sm sm:text-base lg:text-lg font-bold text-gray-900 truncate">{jovem?.edicao || '-'}</p>
+                            <p class="text-sm sm:text-base lg:text-lg font-bold text-gray-900 truncate">{jovem?.edicao ? (jovem.edicao.numero ? `Edição ${jovem.edicao.numero}` : (jovem.edicao.nome || '-')) : '-'}</p>
 						</div>
 						
 						<div class="text-center p-3 sm:p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg sm:rounded-xl">
@@ -288,7 +297,7 @@
 								</svg>
 							</div>
 							<p class="text-xs sm:text-sm font-medium text-purple-600 mb-1">Idade</p>
-							<p class="text-sm sm:text-base lg:text-lg font-bold text-gray-900">{jovem?.idade || '-'} anos</p>
+                            <p class="text-sm sm:text-base lg:text-lg font-bold text-gray-900">{jovem?.idade ?? '-'} anos</p>
 						</div>
 						
 						<div class="text-center p-3 sm:p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-lg sm:rounded-xl">
@@ -298,7 +307,7 @@
 								</svg>
 							</div>
 							<p class="text-xs sm:text-sm font-medium text-green-600 mb-1">Igreja</p>
-							<p class="text-sm sm:text-base lg:text-lg font-bold text-gray-900">{jovem?.igreja_id ? 'Vinculada' : '-'}</p>
+                            <p class="text-sm sm:text-base lg:text-lg font-bold text-gray-900">{jovem?.igreja?.nome || '-'}</p>
 						</div>
 						
 						<div class="text-center p-3 sm:p-4 bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg sm:rounded-xl">
