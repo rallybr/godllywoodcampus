@@ -792,6 +792,7 @@ export async function loadUsuariosAssociadosJovem(jovemId) {
     const { data: associacoes, error: associacoesError } = await supabase
       .from('jovens_usuarios_associacoes')
       .select(`
+        usuario_id,
         usuario:usuarios!jovens_usuarios_associacoes_usuario_id_fkey(
           id,
           nome,
