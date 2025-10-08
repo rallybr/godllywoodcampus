@@ -446,10 +446,10 @@ export async function upsertDadosViagem(jovemId, edicaoId, dadosViagem) {
       throw new Error('Usuário não autenticado');
     }
     
-    // Buscar ID do usuário na tabela usuarios
+    // Buscar usuário atual na tabela usuarios (id e nível)
     const { data: usuario, error: usuarioError } = await supabase
       .from('usuarios')
-      .select('id')
+      .select('id, nivel')
       .eq('id_auth', user.id)
       .single();
     
@@ -542,8 +542,12 @@ export async function upsertDadosViagem(jovemId, edicaoId, dadosViagem) {
       }
     }
     
-    // Recarregar lista
-    await loadViagensCards();
+    // Recarregar lista respeitando o nível do usuário
+    if (usuario?.nivel === 'jovem') {
+      await loadViagensCardsForJovem();
+    } else {
+      await loadViagensCards();
+    }
     
     // Notificações conforme campos alterados (via RPC com fallback)
     try {
