@@ -2,6 +2,7 @@
   import { createEventDispatcher } from 'svelte';
   import { formatDataViagem } from '$lib/stores/viagem';
   import ModalComprovante from './ModalComprovante.svelte';
+  import ModalDadosViagem from './ModalDadosViagem.svelte';
   
   export let jovem;
   export let viagem = null;
@@ -13,6 +14,7 @@
   let modalOpen = false;
   let modalUrl = '';
   let modalTipo = '';
+  let modalDadosViagemOpen = false;
   
   // Dados do jovem
   $: nome = jovem?.nome_completo || '';
@@ -30,9 +32,19 @@
   $: dataVolta = viagem?.data_passagem_volta;
   $: comprovanteVolta = viagem?.comprovante_passagem_volta;
   
+  // Novos campos
+  $: comoPagouDespesas = viagem?.como_pagou_despesas || '';
+  $: comoPagouPassagens = viagem?.como_pagou_passagens || '';
+  $: comoConseguiuValor = viagem?.como_conseguiu_valor || '';
+  $: alguemAjudou = viagem?.alguem_ajudou_pagar || false;
+  $: quemAjudou = viagem?.quem_ajudou_pagar || '';
+  
   // Formatação das datas
   $: dataIdaFormatada = formatDataViagem(dataIda);
   $: dataVoltaFormatada = formatDataViagem(dataVolta);
+  
+  // Verificar se há dados de pagamento preenchidos
+  $: temDadosPagamento = comoPagouDespesas || comoPagouPassagens || comoConseguiuValor || quemAjudou;
   
   function handleUploadPagamento() {
     dispatch('upload', { tipo: 'pagamento', jovemId: jovem.id, edicaoId });
@@ -60,6 +72,19 @@
     modalOpen = false;
     modalUrl = '';
     modalTipo = '';
+  }
+  
+  function handleEditDadosViagem() {
+    modalDadosViagemOpen = true;
+  }
+  
+  function handleCloseDadosViagem() {
+    modalDadosViagemOpen = false;
+  }
+  
+  function handleDadosViagemSaved() {
+    dispatch('refresh');
+    handleCloseDadosViagem();
   }
 </script>
 
@@ -162,6 +187,103 @@
   </div>
   
   
+  <!-- Botão de editar dados de pagamento -->
+  <div class="mt-4 mb-3">
+    <button
+      class="w-full inline-flex items-center justify-center gap-2 text-xs font-medium text-purple-300 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-400/30 px-3 py-2 rounded-lg transition-colors"
+      on:click={handleEditDadosViagem}
+    >
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+      </svg>
+      <span>Editar Dados de Pagamento</span>
+    </button>
+  </div>
+  
+    <!-- Informações de pagamento (se preenchidas) -->
+    {#if temDadosPagamento}
+      <div class="mt-4 mb-4 bg-gradient-to-br from-white/8 to-white/5 rounded-xl border border-white/20 shadow-lg p-4 sm:p-5">
+        <h4 class="text-white text-base sm:text-lg font-bold mb-4 flex items-center gap-2">
+          <div class="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center shadow-md">
+            <svg class="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <span>Informações de Pagamento</span>
+        </h4>
+        <div class="space-y-3 sm:space-y-4">
+          {#if comoPagouDespesas}
+            <div class="bg-white/5 rounded-lg border border-white/10 p-3 sm:p-4 hover:bg-white/10 transition-colors">
+              <div class="flex items-start gap-3">
+                <div class="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <svg class="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 1.343-3 3 0 1.306.835 2.418 2 2.83V18m0 0h2m-2 0H9m5-6c1.657 0 3-1.343 3-3 0-1.306-.835-2.418-2-2.83V6m0 0h-2m2 0h3" />
+                  </svg>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="text-sm sm:text-base font-semibold text-orange-400 mb-1">Despesas</div>
+                  <div class="text-sm sm:text-base text-gray-200 leading-relaxed">{comoPagouDespesas}</div>
+                </div>
+              </div>
+            </div>
+          {/if}
+          {#if comoPagouPassagens}
+            <div class="bg-white/5 rounded-lg border border-white/10 p-3 sm:p-4 hover:bg-white/10 transition-colors">
+              <div class="flex items-start gap-3">
+                <div class="w-8 h-8 bg-orange-500/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <svg class="w-5 h-5 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5a2 2 0 012-2h4a2 2 0 012 2v2H8V5z" />
+                  </svg>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="text-sm sm:text-base font-semibold text-orange-400 mb-1">Passagens</div>
+                  <div class="text-sm sm:text-base text-gray-200 leading-relaxed">{comoPagouPassagens}</div>
+                </div>
+              </div>
+            </div>
+          {/if}
+          {#if comoConseguiuValor}
+            <div class="bg-white/5 rounded-lg border border-white/10 p-3 sm:p-4 hover:bg-white/10 transition-colors">
+              <div class="flex items-start gap-3">
+                <div class="w-8 h-8 bg-green-500/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <svg class="w-5 h-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="text-sm sm:text-base font-semibold text-orange-400 mb-1">Como conseguiu</div>
+                  <div class="text-sm sm:text-base text-gray-200 leading-relaxed">{comoConseguiuValor}</div>
+                </div>
+              </div>
+            </div>
+          {/if}
+          {#if alguemAjudou}
+            <div class="bg-white/5 rounded-lg border border-white/10 p-3 sm:p-4 hover:bg-white/10 transition-colors">
+              <div class="flex items-start gap-3">
+                <div class="w-8 h-8 bg-emerald-500/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <svg class="w-5 h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="text-sm sm:text-base font-semibold text-orange-400 mb-1">Ajuda</div>
+                  <div class="text-sm sm:text-base text-gray-200 leading-relaxed">
+                    <span class="inline-flex items-center px-2 py-1 rounded-md bg-emerald-500/20 text-emerald-300 font-medium mr-2">Sim</span>
+                    {#if quemAjudou}
+                      <span class="text-gray-300">{quemAjudou}</span>
+                    {:else}
+                      <span class="text-gray-400 italic">Não especificado</span>
+                    {/if}
+                  </div>
+                </div>
+              </div>
+            </div>
+          {/if}
+        </div>
+      </div>
+    {/if}
+  
   <!-- Informações e comprovantes -->
   <div class="mt-4">
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
@@ -262,4 +384,14 @@
   tipo={modalTipo}
   nomeJovem={nome}
   on:close={closeModal}
+/>
+
+<!-- Modal de Dados de Viagem -->
+<ModalDadosViagem
+  bind:isOpen={modalDadosViagemOpen}
+  jovemId={jovem.id}
+  edicaoId={edicaoId}
+  dadosViagem={viagem}
+  on:close={handleCloseDadosViagem}
+  on:saved={handleDadosViagemSaved}
 />

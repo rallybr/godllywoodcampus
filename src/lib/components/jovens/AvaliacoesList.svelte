@@ -1,10 +1,76 @@
 <script>
   import { onMount } from 'svelte';
+  import { browser } from '$app/environment';
   import { loadAvaliacoesByJovem, calculateAvaliacaoStats, updateAvaliacao } from '$lib/stores/avaliacoes';
   import { user, userProfile } from '$lib/stores/auth';
   import Button from '$lib/components/ui/Button.svelte';
   import Card from '$lib/components/ui/Card.svelte';
   import AvaliacaoModal from '$lib/components/modals/AvaliacaoModal.svelte';
+  
+  let DOMPurify = null;
+  let isDOMPurifyReady = false;
+  
+  // Carregar DOMPurify assim que o componente for montado
+  onMount(async () => {
+    if (browser) {
+      try {
+        const module = await import('dompurify');
+        DOMPurify = module.default;
+        isDOMPurifyReady = true;
+      } catch (err) {
+        console.error('Erro ao carregar DOMPurify:', err);
+        isDOMPurifyReady = true; // Permite renderizar mesmo sem DOMPurify
+      }
+    } else {
+      isDOMPurifyReady = true; // SSR não precisa de DOMPurify
+    }
+  });
+  
+  function sanitizeHtml(html) {
+    if (!html || html.trim() === '') return '';
+    
+    // Se não estiver no browser, retorna o HTML sem sanitização
+    // (o SSR não precisa sanitizar, pois não executa código)
+    if (!browser) {
+      return html;
+    }
+    
+    // Se DOMPurify estiver disponível, usa para sanitizar
+    if (DOMPurify) {
+      try {
+        const sanitized = DOMPurify.sanitize(html, {
+          ALLOWED_TAGS: ['p', 'br', 'strong', 'b', 'em', 'i', 'u', 'ul', 'ol', 'li', 'span', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'font'],
+          ALLOWED_ATTR: ['style', 'class', 'align', 'color', 'size'],
+          ALLOWED_STYLES: {
+            '*': {
+              // Cores em vários formatos: hex, rgb, rgba, nomes de cores
+              'color': /^(#[0-9a-fA-F]{3,6}|rgb\([^)]+\)|rgba\([^)]+\)|[a-zA-Z]+)$/,
+              'background-color': /^(#[0-9a-fA-F]{3,6}|rgb\([^)]+\)|rgba\([^)]+\)|[a-zA-Z]+)$/,
+              'text-align': /^(left|right|center|justify)$/,
+              // Tamanho de fonte em vários formatos: px, em, rem, pt, %, ou valores absolutos
+              'font-size': /^[\d.]+(px|em|rem|pt|%)?$/,
+              'font-weight': /^(normal|bold|bolder|lighter|100|200|300|400|500|600|700|800|900)$/,
+              'font-style': /^(normal|italic|oblique)$/,
+              'text-decoration': /^(none|underline|line-through|overline)$/,
+              'font-family': /^[a-zA-Z0-9\s,"-]+$/
+            }
+          }
+        });
+        return sanitized || html; // Fallback para HTML original se sanitização retornar vazio
+      } catch (err) {
+        console.error('Erro ao sanitizar HTML:', err);
+        return html; // Retorna HTML original em caso de erro
+      }
+    }
+    
+    // Fallback básico: remove apenas scripts e eventos inline perigosos
+    // Isso permite que o HTML seja exibido mesmo se DOMPurify não estiver carregado ainda
+    return html
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+      .replace(/on\w+="[^"]*"/gi, '')
+      .replace(/on\w+='[^']*'/gi, '')
+      .replace(/javascript:/gi, '');
+  }
   
   export let jovemId;
   export let jovem = null;
@@ -388,7 +454,7 @@
                 </div>
                 
                 <!-- Observações -->
-                {#if avaliacao.avaliacao_texto}
+                {#if avaliacao.avaliacao_texto && String(avaliacao.avaliacao_texto).trim() !== ''}
                   <div class="mt-6">
                     <div class="bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl p-5 border border-amber-200 shadow-sm">
                       <div class="flex items-center space-x-3 mb-4">
@@ -400,9 +466,9 @@
                         <h4 class="text-lg font-semibold text-gray-800">Observações</h4>
                       </div>
                       <div class="bg-white rounded-lg p-4 border border-amber-100">
-                        <p class="text-base text-gray-700 leading-relaxed">
-                          {avaliacao.avaliacao_texto}
-                        </p>
+                        <div class="text-base text-gray-700 leading-relaxed prose prose-sm max-w-none rich-text-content">
+                          {@html sanitizeHtml(avaliacao.avaliacao_texto)}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -427,4 +493,66 @@
     on:success={handleEditSuccess}
   />
 {/if}
+
+<style>
+  :global(.rich-text-content) {
+    line-height: 1.6;
+  }
+  
+  :global(.rich-text-content p) {
+    margin-bottom: 0.75rem;
+  }
+  
+  :global(.rich-text-content p:last-child) {
+    margin-bottom: 0;
+  }
+  
+  :global(.rich-text-content ul),
+  :global(.rich-text-content ol) {
+    margin-left: 1.5rem;
+    margin-bottom: 0.75rem;
+    margin-top: 0.5rem;
+  }
+  
+  :global(.rich-text-content li) {
+    margin-bottom: 0.25rem;
+  }
+  
+  :global(.rich-text-content strong),
+  :global(.rich-text-content b) {
+    font-weight: 600;
+  }
+  
+  :global(.rich-text-content em),
+  :global(.rich-text-content i) {
+    font-style: italic;
+  }
+  
+  :global(.rich-text-content u) {
+    text-decoration: underline;
+  }
+  
+  /* Converter tags font[size] para tamanhos reais */
+  :global(.rich-text-content font[size="1"]) {
+    font-size: 0.625rem; /* 10px */
+  }
+  :global(.rich-text-content font[size="2"]) {
+    font-size: 0.75rem; /* 12px */
+  }
+  :global(.rich-text-content font[size="3"]) {
+    font-size: 0.875rem; /* 14px */
+  }
+  :global(.rich-text-content font[size="4"]) {
+    font-size: 1rem; /* 16px */
+  }
+  :global(.rich-text-content font[size="5"]) {
+    font-size: 1.125rem; /* 18px */
+  }
+  :global(.rich-text-content font[size="6"]) {
+    font-size: 1.25rem; /* 20px */
+  }
+  :global(.rich-text-content font[size="7"]) {
+    font-size: 1.5rem; /* 24px */
+  }
+</style>
 

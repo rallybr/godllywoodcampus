@@ -174,6 +174,13 @@
     uploadModal.isOpen = false;
     uploadModal.loading = false;
   }
+  
+  async function handleRefresh() {
+    // Recarregar dados de viagem
+    const userId = $userProfile?.id;
+    const userLevel = $userProfile?.nivel;
+    await applyControls($pagination.page);
+  }
 
   async function applyControls(page = 1) {
     const userId = $userProfile?.id;
@@ -359,6 +366,7 @@
           on:upload={handleUpload}
           on:remove={handleRemove}
           on:delete={handleDelete}
+          on:refresh={handleRefresh}
         />
       {/each}
       <!-- Paginação -->

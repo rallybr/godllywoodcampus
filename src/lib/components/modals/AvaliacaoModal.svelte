@@ -5,6 +5,7 @@
   import Button from '$lib/components/ui/Button.svelte';
   import Input from '$lib/components/ui/Input.svelte';
   import Select from '$lib/components/ui/Select.svelte';
+  import RichTextEditor from '$lib/components/ui/RichTextEditor.svelte';
   
   const dispatch = createEventDispatcher();
   
@@ -33,7 +34,7 @@
   // Opções dos selects
   const opcoesEspirito = [
     { value: 'ruim', label: 'Ruim' },
-    { value: 'ser_observar', label: 'Ser Observar' },
+    { value: 'ser_observar', label: 'Ser Observado' },
     { value: 'bom', label: 'Bom' },
     { value: 'excelente', label: 'Excelente' }
   ];
@@ -41,12 +42,12 @@
   const opcoesCaractere = [
     { value: 'excelente', label: 'Excelente' },
     { value: 'bom', label: 'Bom' },
-    { value: 'ser_observar', label: 'Ser Observar' },
+    { value: 'ser_observar', label: 'Ser Observado' },
     { value: 'ruim', label: 'Ruim' }
   ];
   
   const opcoesDisposicao = [
-    { value: 'muito_disposto', label: 'Muito Disposto' },
+    { value: 'muito_disposto', label: 'Disposto' },
     { value: 'normal', label: 'Normal' },
     { value: 'pacato', label: 'Pacato' },
     { value: 'desanimado', label: 'Desanimado' }
@@ -353,12 +354,11 @@
             <label class="block text-sm font-medium text-gray-700 mb-2">
               Comentários
             </label>
-            <textarea
+            <RichTextEditor
               bind:value={formData.avaliacao_texto}
-              rows="4"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Comentários sobre a avaliação..."
-            ></textarea>
+              placeholder="Digite seus comentários sobre a avaliação..."
+              rows={6}
+            />
           </div>
           
           <!-- Error Message -->
