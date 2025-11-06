@@ -221,7 +221,7 @@
                   </svg>
                 </div>
                 <div class="flex-1 min-w-0">
-                  <div class="text-sm sm:text-base font-semibold text-orange-400 mb-1">Despesas</div>
+                  <div class="text-sm sm:text-base font-semibold text-orange-400 mb-1">COMO CONSEGUIU O VALOR DAS DESPESAS?</div>
                   <div class="text-sm sm:text-base text-gray-200 leading-relaxed">{comoPagouDespesas}</div>
                 </div>
               </div>
@@ -237,7 +237,7 @@
                   </svg>
                 </div>
                 <div class="flex-1 min-w-0">
-                  <div class="text-sm sm:text-base font-semibold text-orange-400 mb-1">Passagens</div>
+                  <div class="text-sm sm:text-base font-semibold text-orange-400 mb-1">COMO CONSEGUIU O VALOR DAS PASSAGENS?</div>
                   <div class="text-sm sm:text-base text-gray-200 leading-relaxed">{comoPagouPassagens}</div>
                 </div>
               </div>
@@ -252,7 +252,7 @@
                   </svg>
                 </div>
                 <div class="flex-1 min-w-0">
-                  <div class="text-sm sm:text-base font-semibold text-orange-400 mb-1">Como conseguiu</div>
+                  <div class="text-sm sm:text-base font-semibold text-orange-400 mb-1">OBSERVAÇÃO DE PAGAMENTO</div>
                   <div class="text-sm sm:text-base text-gray-200 leading-relaxed">{comoConseguiuValor}</div>
                 </div>
               </div>
@@ -267,7 +267,7 @@
                   </svg>
                 </div>
                 <div class="flex-1 min-w-0">
-                  <div class="text-sm sm:text-base font-semibold text-orange-400 mb-1">Ajuda</div>
+                  <div class="text-sm sm:text-base font-semibold text-orange-400 mb-1">QUEM TE AJUDOU A PAGAR?</div>
                   <div class="text-sm sm:text-base text-gray-200 leading-relaxed">
                     <span class="inline-flex items-center px-2 py-1 rounded-md bg-emerald-500/20 text-emerald-300 font-medium mr-2">Sim</span>
                     {#if quemAjudou}
