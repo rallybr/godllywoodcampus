@@ -972,6 +972,9 @@
                     <option value="auxiliar_pastor">Auxiliar de Pastor</option>
                     <option value="namorada">Namorada</option>
                     <option value="noiva">Noiva</option>
+                    <option value="desertou">Desertou</option>
+                    <option value="saiu_por_erro">Saiu por erro</option>
+                    <option value="reiniciando">Reiniciando</option>
                   </select>
                   <!-- Ícone de dropdown customizado -->
                   <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
