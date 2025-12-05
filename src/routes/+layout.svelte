@@ -99,6 +99,9 @@
   
   // Verificar se é a página da ficha do jovem
   $: isFichaPage = $page?.url?.pathname?.includes('/ficha');
+  
+  // Verificar se é a página de relatório por condição
+  $: isRelatorioCondicaoPage = $page?.url?.pathname === '/relatorio-condicao';
 </script>
 
 <svelte:head>
@@ -145,6 +148,25 @@
         <main class="w-full">
           <slot />
         </main>
+      </div>
+    {:else if isRelatorioCondicaoPage}
+      <!-- Layout especial para relatório por condição - sem sidebar direita -->
+      <div class="flex min-h-screen">
+        <!-- Left Sidebar -->
+        <Sidebar bind:showSidebar on:linkClick={handleSidebarLink} />
+        
+        <!-- Main content area -->
+        <div class="flex-1 flex flex-col">
+          <!-- Top Header -->
+          <Header on:toggleSidebar={toggleSidebar} />
+          
+          <!-- Main content sem sidebar direita -->
+          <main class="flex-1 overflow-x-hidden overflow-y-auto content-mobile" style="background-color: var(--fb-gray-light);">
+            <div class="max-w-7xl mx-auto px-4 py-6">
+              <slot />
+            </div>
+          </main>
+        </div>
       </div>
     {:else}
       <!-- Main app layout - Facebook/Instagram style -->
