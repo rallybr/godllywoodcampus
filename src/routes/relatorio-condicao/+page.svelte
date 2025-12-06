@@ -5,6 +5,7 @@
   import { supabase } from '$lib/utils/supabase';
   import CardCondicao from '$lib/components/relatorios/CardCondicao.svelte';
   import Button from '$lib/components/ui/Button.svelte';
+  import { slide } from 'svelte/transition';
 
   let jovens = [];
   let loading = true;
@@ -18,6 +19,11 @@
   let edicoesDisponiveis = [];
   let edicoesSelecionadas = [];
   
+  // Estados do accordion
+  let condicaoAberta = false;
+  let estadoAberto = false;
+  let edicaoAberta = false;
+  
   // Mapear códigos para nomes
   const condicoesMap = {
     'auxiliar_pastor': 'Auxiliar de Pastor',
@@ -25,7 +31,8 @@
     'obreiro': 'Obreiro',
     'colaborador': 'Colaborador',
     'cpo': 'CPO',
-    'jovem_batizado_es': 'Jovem'
+    'jovem_batizado_es': 'Jovem',
+    'desertou': 'Desertou'
   };
 
   onMount(async () => {
@@ -649,64 +656,131 @@
         </div>
       </div>
 
-      <!-- Filtro por Condição -->
+      <!-- Tabs de Filtros -->
       <div class="mb-4">
-        <div class="mb-2">
-          <span class="text-sm font-medium text-gray-700">Condição:</span>
-        </div>
+        <!-- Tabs Header -->
         <div class="flex flex-wrap gap-2">
-          {#each condicoesDisponiveis as condicao}
-            <button
-              on:click={() => toggleCondicao(condicao.codigo)}
-              class="px-4 py-2 text-sm font-medium rounded-lg border-2 transition-colors
-                {condicoesSelecionadas.includes(condicao.codigo)
-                  ? 'bg-blue-600 text-white border-blue-600'
-                  : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400 hover:bg-blue-50'}"
-            >
-              {condicao.nome}
-            </button>
-          {/each}
+          <button
+            on:click={() => {
+              condicaoAberta = !condicaoAberta;
+              if (condicaoAberta) {
+                estadoAberto = false;
+                edicaoAberta = false;
+              }
+            }}
+            class="px-6 py-3 text-sm font-semibold rounded-lg border-2 transition-all duration-200 shadow-sm
+              {condicaoAberta
+                ? 'bg-blue-600 text-white border-blue-600 shadow-md transform scale-105'
+                : 'bg-white text-gray-700 border-gray-300 hover:bg-blue-50 hover:border-blue-400 hover:text-blue-700 hover:shadow-md'}"
+          >
+            <span class="flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Filtro por Condição
+            </span>
+          </button>
+          <button
+            on:click={() => {
+              estadoAberto = !estadoAberto;
+              if (estadoAberto) {
+                condicaoAberta = false;
+                edicaoAberta = false;
+              }
+            }}
+            class="px-6 py-3 text-sm font-semibold rounded-lg border-2 transition-all duration-200 shadow-sm
+              {estadoAberto
+                ? 'bg-green-600 text-white border-green-600 shadow-md transform scale-105'
+                : 'bg-white text-gray-700 border-gray-300 hover:bg-green-50 hover:border-green-400 hover:text-green-700 hover:shadow-md'}"
+          >
+            <span class="flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Filtro por Estado
+            </span>
+          </button>
+          <button
+            on:click={() => {
+              edicaoAberta = !edicaoAberta;
+              if (edicaoAberta) {
+                condicaoAberta = false;
+                estadoAberto = false;
+              }
+            }}
+            class="px-6 py-3 text-sm font-semibold rounded-lg border-2 transition-all duration-200 shadow-sm
+              {edicaoAberta
+                ? 'bg-purple-600 text-white border-purple-600 shadow-md transform scale-105'
+                : 'bg-white text-gray-700 border-gray-300 hover:bg-purple-50 hover:border-purple-400 hover:text-purple-700 hover:shadow-md'}"
+          >
+            <span class="flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+              </svg>
+              Filtro por Edição
+            </span>
+          </button>
         </div>
       </div>
 
-      <!-- Filtro por Estado -->
-      <div class="mb-4">
-        <div class="mb-2">
-          <span class="text-sm font-medium text-gray-700">Estado:</span>
-        </div>
-        <div class="flex flex-wrap gap-2">
-          {#each estadosDisponiveis as estado}
-            <button
-              on:click={() => toggleEstado(estado.id)}
-              class="px-4 py-2 text-sm font-medium rounded-lg border-2 transition-colors
-                {estadosSelecionados.includes(estado.id)
-                  ? 'bg-green-600 text-white border-green-600'
-                  : 'bg-white text-gray-700 border-gray-300 hover:border-green-400 hover:bg-green-50'}"
-            >
-              {estado.nome} ({estado.sigla})
-            </button>
-          {/each}
-        </div>
-      </div>
+      <!-- Conteúdo dos Filtros (Accordion) -->
+      <div class="mt-4">
+        <!-- Filtro por Condição -->
+        {#if condicaoAberta}
+          <div transition:slide={{ duration: 300 }}>
+            <div class="flex flex-wrap gap-2">
+              {#each condicoesDisponiveis as condicao}
+                <button
+                  on:click={() => toggleCondicao(condicao.codigo)}
+                  class="px-4 py-2 text-sm font-medium rounded-lg border-2 transition-colors
+                    {condicoesSelecionadas.includes(condicao.codigo)
+                      ? 'bg-blue-600 text-white border-blue-600'
+                      : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400 hover:bg-blue-50'}"
+                >
+                  {condicao.nome}
+                </button>
+              {/each}
+            </div>
+          </div>
+        {/if}
 
-      <!-- Filtro por Edição -->
-      <div>
-        <div class="mb-2">
-          <span class="text-sm font-medium text-gray-700">Edição:</span>
-        </div>
-        <div class="flex flex-wrap gap-2">
-          {#each edicoesDisponiveis as edicao}
-            <button
-              on:click={() => toggleEdicao(edicao.id)}
-              class="px-4 py-2 text-sm font-medium rounded-lg border-2 transition-colors
-                {edicoesSelecionadas.includes(edicao.id)
-                  ? 'bg-purple-600 text-white border-purple-600'
-                  : 'bg-white text-gray-700 border-gray-300 hover:border-purple-400 hover:bg-purple-50'}"
-            >
-              {edicao.nome}
-            </button>
-          {/each}
-        </div>
+        <!-- Filtro por Estado -->
+        {#if estadoAberto}
+          <div transition:slide={{ duration: 300 }}>
+            <div class="flex flex-wrap gap-2">
+              {#each estadosDisponiveis as estado}
+                <button
+                  on:click={() => toggleEstado(estado.id)}
+                  class="px-4 py-2 text-sm font-medium rounded-lg border-2 transition-colors
+                    {estadosSelecionados.includes(estado.id)
+                      ? 'bg-green-600 text-white border-green-600'
+                      : 'bg-white text-gray-700 border-gray-300 hover:border-green-400 hover:bg-green-50'}"
+                >
+                  {estado.nome} ({estado.sigla})
+                </button>
+              {/each}
+            </div>
+          </div>
+        {/if}
+
+        <!-- Filtro por Edição -->
+        {#if edicaoAberta}
+          <div transition:slide={{ duration: 300 }}>
+            <div class="flex flex-wrap gap-2">
+              {#each edicoesDisponiveis as edicao}
+                <button
+                  on:click={() => toggleEdicao(edicao.id)}
+                  class="px-4 py-2 text-sm font-medium rounded-lg border-2 transition-colors
+                    {edicoesSelecionadas.includes(edicao.id)
+                      ? 'bg-purple-600 text-white border-purple-600'
+                      : 'bg-white text-gray-700 border-gray-300 hover:border-purple-400 hover:bg-purple-50'}"
+                >
+                  {edicao.nome}
+                </button>
+              {/each}
+            </div>
+          </div>
+        {/if}
       </div>
     </div>
   </div>
