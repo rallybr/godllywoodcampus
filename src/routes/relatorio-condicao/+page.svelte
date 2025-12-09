@@ -16,12 +16,15 @@
   let condicoesSelecionadas = [];
   let estadosDisponiveis = [];
   let estadosSelecionados = [];
+  let blocosDisponiveis = [];
+  let blocosSelecionados = [];
   let edicoesDisponiveis = [];
   let edicoesSelecionadas = [];
   
   // Estados do accordion
   let condicaoAberta = false;
   let estadoAberto = false;
+  let blocoAberto = false;
   let edicaoAberta = false;
   
   // Mapear códigos para nomes
@@ -173,6 +176,100 @@
     }
   }
 
+  async function carregarBlocosDisponiveis() {
+    try {
+      // Só carrega blocos se houver estados selecionados
+      if (estadosSelecionados.length === 0) {
+        blocosDisponiveis = [];
+        blocosSelecionados = []; // Limpa seleções quando não há estados
+        return;
+      }
+
+      const userLevel = $userProfile?.nivel;
+      const userId = $userProfile?.id;
+      let query = supabase
+        .from('blocos')
+        .select('id, nome, estado_id')
+        .in('estado_id', estadosSelecionados)
+        .order('nome', { ascending: true });
+
+      // Aplicar filtros baseados no nível de acesso
+      if (userLevel === 'colaborador' && userId) {
+        // Colaborador: apenas blocos dos jovens que ele cadastrou
+        const { data: jovensData } = await supabase
+          .from('jovens')
+          .select('bloco_id')
+          .eq('usuario_id', userId)
+          .not('bloco_id', 'is', null)
+          .in('estado_id', estadosSelecionados);
+        
+        if (jovensData && jovensData.length > 0) {
+          const blocoIds = [...new Set(jovensData.map(j => j.bloco_id).filter(Boolean))];
+          query = query.in('id', blocoIds);
+        } else {
+          blocosDisponiveis = [];
+          return;
+        }
+      } else if (userLevel === 'lider_bloco_iurd' || userLevel === 'lider_bloco_fju') {
+        // Líder de bloco: apenas seu bloco
+        if ($userProfile?.bloco_id) {
+          query = query.eq('id', $userProfile.bloco_id);
+        } else {
+          blocosDisponiveis = [];
+          return;
+        }
+      } else if (userLevel === 'lider_regional_iurd') {
+        // Líder regional: bloco da sua região
+        if ($userProfile?.regiao_id) {
+          const { data: regiaoData } = await supabase
+            .from('regioes')
+            .select('bloco_id')
+            .eq('id', $userProfile.regiao_id)
+            .single();
+          
+          if (regiaoData?.bloco_id) {
+            query = query.eq('id', regiaoData.bloco_id);
+          } else {
+            blocosDisponiveis = [];
+            return;
+          }
+        } else {
+          blocosDisponiveis = [];
+          return;
+        }
+      } else if (userLevel === 'lider_igreja_iurd') {
+        // Líder de igreja: bloco da sua igreja
+        if ($userProfile?.igreja_id) {
+          const { data: igrejaData } = await supabase
+            .from('igrejas')
+            .select('regiao:regioes(bloco_id)')
+            .eq('id', $userProfile.igreja_id)
+            .single();
+          
+          if (igrejaData?.regiao?.bloco_id) {
+            query = query.eq('id', igrejaData.regiao.bloco_id);
+          } else {
+            blocosDisponiveis = [];
+            return;
+          }
+        } else {
+          blocosDisponiveis = [];
+          return;
+        }
+      }
+      // Administrador e líderes nacionais: veem todos os blocos dos estados selecionados
+
+      const { data, error: fetchError } = await query;
+
+      if (fetchError) throw fetchError;
+
+      blocosDisponiveis = data || [];
+    } catch (err) {
+      console.error('Erro ao carregar blocos:', err);
+      blocosDisponiveis = [];
+    }
+  }
+
   async function carregarEdicoesDisponiveis() {
     try {
       const userLevel = $userProfile?.nivel;
@@ -245,6 +342,11 @@
         query = query.in('estado_id', estadosSelecionados);
       }
 
+      // Aplicar filtro por bloco se houver seleções
+      if (blocosSelecionados.length > 0) {
+        query = query.in('bloco_id', blocosSelecionados);
+      }
+
       // Aplicar filtro por edição se houver seleções
       if (edicoesSelecionadas.length > 0) {
         query = query.in('edicao_id', edicoesSelecionadas);
@@ -296,11 +398,22 @@
     carregarJovens();
   }
 
-  function toggleEstado(estadoId) {
+  async function toggleEstado(estadoId) {
     if (estadosSelecionados.includes(estadoId)) {
       estadosSelecionados = estadosSelecionados.filter(e => e !== estadoId);
     } else {
       estadosSelecionados = [...estadosSelecionados, estadoId];
+    }
+    // Recarregar blocos quando estados mudarem
+    await carregarBlocosDisponiveis();
+    carregarJovens();
+  }
+
+  function toggleBloco(blocoId) {
+    if (blocosSelecionados.includes(blocoId)) {
+      blocosSelecionados = blocosSelecionados.filter(b => b !== blocoId);
+    } else {
+      blocosSelecionados = [...blocosSelecionados, blocoId];
     }
     carregarJovens();
   }
@@ -314,9 +427,11 @@
     carregarJovens();
   }
 
-  function selecionarTodas() {
+  async function selecionarTodas() {
     condicoesSelecionadas = condicoesDisponiveis.map(c => c.codigo);
     estadosSelecionados = estadosDisponiveis.map(e => e.id);
+    await carregarBlocosDisponiveis();
+    blocosSelecionados = blocosDisponiveis.map(b => b.id);
     edicoesSelecionadas = edicoesDisponiveis.map(e => e.id);
     carregarJovens();
   }
@@ -324,7 +439,9 @@
   function limparFiltros() {
     condicoesSelecionadas = [];
     estadosSelecionados = [];
+    blocosSelecionados = [];
     edicoesSelecionadas = [];
+    blocosDisponiveis = [];
     carregarJovens();
   }
 
@@ -685,6 +802,7 @@
               estadoAberto = !estadoAberto;
               if (estadoAberto) {
                 condicaoAberta = false;
+                blocoAberto = false;
                 edicaoAberta = false;
               }
             }}
@@ -701,11 +819,40 @@
             </span>
           </button>
           <button
+            on:click={async () => {
+              blocoAberto = !blocoAberto;
+              if (blocoAberto) {
+                condicaoAberta = false;
+                estadoAberto = false;
+                edicaoAberta = false;
+                // Carregar blocos se ainda não foram carregados
+                if (estadosSelecionados.length > 0 && blocosDisponiveis.length === 0) {
+                  await carregarBlocosDisponiveis();
+                }
+              }
+            }}
+            disabled={estadosSelecionados.length === 0}
+            class="px-6 py-3 text-sm font-semibold rounded-lg border-2 transition-all duration-200 shadow-sm
+              {blocoAberto
+                ? 'bg-orange-600 text-white border-orange-600 shadow-md transform scale-105'
+                : estadosSelecionados.length === 0
+                ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                : 'bg-white text-gray-700 border-gray-300 hover:bg-orange-50 hover:border-orange-400 hover:text-orange-700 hover:shadow-md'}"
+          >
+            <span class="flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+              </svg>
+              Filtro por Bloco
+            </span>
+          </button>
+          <button
             on:click={() => {
               edicaoAberta = !edicaoAberta;
               if (edicaoAberta) {
                 condicaoAberta = false;
                 estadoAberto = false;
+                blocoAberto = false;
               }
             }}
             class="px-6 py-3 text-sm font-semibold rounded-lg border-2 transition-all duration-200 shadow-sm
@@ -760,6 +907,39 @@
                 </button>
               {/each}
             </div>
+          </div>
+        {/if}
+
+        <!-- Filtro por Bloco -->
+        {#if blocoAberto}
+          <div transition:slide={{ duration: 300 }}>
+            {#if estadosSelecionados.length === 0}
+              <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <p class="text-sm text-yellow-800">
+                  Selecione pelo menos um estado para filtrar por bloco.
+                </p>
+              </div>
+            {:else if blocosDisponiveis.length === 0}
+              <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <p class="text-sm text-gray-600">
+                  Nenhum bloco encontrado para os estados selecionados.
+                </p>
+              </div>
+            {:else}
+              <div class="flex flex-wrap gap-2">
+                {#each blocosDisponiveis as bloco}
+                  <button
+                    on:click={() => toggleBloco(bloco.id)}
+                    class="px-4 py-2 text-sm font-medium rounded-lg border-2 transition-colors
+                      {blocosSelecionados.includes(bloco.id)
+                        ? 'bg-orange-600 text-white border-orange-600'
+                        : 'bg-white text-gray-700 border-gray-300 hover:border-orange-400 hover:bg-orange-50'}"
+                  >
+                    {bloco.nome}
+                  </button>
+                {/each}
+              </div>
+            {/if}
           </div>
         {/if}
 

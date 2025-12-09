@@ -820,7 +820,14 @@ export async function getJovemStats() {
       total: data.length,
       aprovados: data.filter(j => j.aprovado === 'aprovado').length,
       preAprovados: data.filter(j => j.aprovado === 'pre_aprovado').length,
-      pendentes: data.filter(j => j.aprovado === 'null').length,
+      // Pendentes inclui tanto null quanto pre_aprovado (ambos estão pendentes de aprovação final)
+      pendentes: data.filter(j => {
+        const aprovado = j.aprovado;
+        return aprovado === null || 
+               aprovado === 'null' ||
+               aprovado === undefined ||
+               aprovado === 'pre_aprovado';
+      }).length,
       porEdicao: {},
       porEstado: {}
     };

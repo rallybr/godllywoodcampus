@@ -181,11 +181,14 @@ export async function loadEstatisticas(userId = null, userLevel = null, userProf
       j.aprovado === 'pre_aprovado'
     ).length;
     
-    const pendentes = jovensData.filter(j => 
-      j.aprovado === null || 
-      j.aprovado === 'null' ||
-      j.aprovado === undefined
-    ).length;
+    // Pendentes inclui tanto null quanto pre_aprovado (ambos estão pendentes de aprovação final)
+    const pendentes = jovensData.filter(j => {
+      const aprovado = j.aprovado;
+      return aprovado === null || 
+             aprovado === 'null' ||
+             aprovado === undefined ||
+             aprovado === 'pre_aprovado';
+    }).length;
     
     console.log('🔍 DEBUG - Estatísticas calculadas:', {
       totalJovens,
@@ -450,11 +453,14 @@ export const estatisticasFiltradas = derived(
       j.aprovado === 'pre_aprovado'
     ).length;
     
-    const pendentes = $filteredJovens.filter(j => 
-      j.aprovado === null || 
-      j.aprovado === 'null' ||
-      j.aprovado === undefined
-    ).length;
+    // Pendentes inclui tanto null quanto pre_aprovado (ambos estão pendentes de aprovação final)
+    const pendentes = $filteredJovens.filter(j => {
+      const aprovado = j.aprovado;
+      return aprovado === null || 
+             aprovado === 'null' ||
+             aprovado === undefined ||
+             aprovado === 'pre_aprovado';
+    }).length;
     
     return {
       total,
