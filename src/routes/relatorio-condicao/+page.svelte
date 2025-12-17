@@ -35,7 +35,8 @@
     'colaborador': 'Colaborador',
     'cpo': 'CPO',
     'jovem_batizado_es': 'Jovem',
-    'desertou': 'Desertou'
+    'desertou': 'Desertou',
+    'romovido': 'Removido'
   };
 
   onMount(async () => {

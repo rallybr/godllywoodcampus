@@ -972,7 +972,10 @@
                     <option value="auxiliar_pastor">Auxiliar de Pastor</option>
                     <option value="namorada">Namorada</option>
                     <option value="noiva">Noiva</option>
-                    <option value="desertou">Desertou</option>
+                    {#if !hasRole('jovem')($userProfile)}
+                      <option value="desertou">Desertou</option>
+                      <option value="romovido">Removido</option>
+                    {/if}
                   </select>
                   <!-- Ícone de dropdown customizado -->
                   <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
