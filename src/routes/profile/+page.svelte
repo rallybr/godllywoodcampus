@@ -324,46 +324,48 @@
 			</div>
 
 			<!-- Cards de estatísticas -->
-			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
-				<div class="bg-white rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 hover:shadow-2xl transition-all duration-300">
-					<div class="flex items-center justify-between mb-3 sm:mb-4">
-						<div class="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg sm:rounded-xl flex items-center justify-center">
-							<svg class="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-							</svg>
+			{#if $userProfile?.nivel !== 'jovem'}
+				<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
+					<div class="bg-white rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 hover:shadow-2xl transition-all duration-300">
+						<div class="flex items-center justify-between mb-3 sm:mb-4">
+							<div class="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg sm:rounded-xl flex items-center justify-center">
+								<svg class="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+								</svg>
+							</div>
+							<span class="text-xl sm:text-2xl font-bold text-blue-600">{totalAval}</span>
 						</div>
-						<span class="text-xl sm:text-2xl font-bold text-blue-600">{totalAval}</span>
+						<h3 class="text-base sm:text-lg font-semibold text-gray-900 mb-1">Total de Avaliações</h3>
+						<p class="text-gray-600 text-xs sm:text-sm">Avaliações recebidas</p>
 					</div>
-					<h3 class="text-base sm:text-lg font-semibold text-gray-900 mb-1">Total de Avaliações</h3>
-					<p class="text-gray-600 text-xs sm:text-sm">Avaliações recebidas</p>
-				</div>
 
-				<div class="bg-white rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 hover:shadow-2xl transition-all duration-300">
-					<div class="flex items-center justify-between mb-3 sm:mb-4">
-						<div class="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-lg sm:rounded-xl flex items-center justify-center">
-							<svg class="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-							</svg>
+					<div class="bg-white rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 hover:shadow-2xl transition-all duration-300">
+						<div class="flex items-center justify-between mb-3 sm:mb-4">
+							<div class="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-lg sm:rounded-xl flex items-center justify-center">
+								<svg class="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+								</svg>
+							</div>
+							<span class="text-xl sm:text-2xl font-bold text-green-600">{mediaNota ? mediaNota.toFixed(1) : '-'}</span>
 						</div>
-						<span class="text-xl sm:text-2xl font-bold text-green-600">{mediaNota ? mediaNota.toFixed(1) : '-'}</span>
+						<h3 class="text-base sm:text-lg font-semibold text-gray-900 mb-1">Média Geral</h3>
+						<p class="text-gray-600 text-xs sm:text-sm">Nota média das avaliações</p>
 					</div>
-					<h3 class="text-base sm:text-lg font-semibold text-gray-900 mb-1">Média Geral</h3>
-					<p class="text-gray-600 text-xs sm:text-sm">Nota média das avaliações</p>
-				</div>
 
-				<div class="bg-white rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 hover:shadow-2xl transition-all duration-300 sm:col-span-2 lg:col-span-1">
-					<div class="flex items-center justify-between mb-3 sm:mb-4">
-						<div class="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg sm:rounded-xl flex items-center justify-center">
-							<svg class="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-							</svg>
+					<div class="bg-white rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 hover:shadow-2xl transition-all duration-300 sm:col-span-2 lg:col-span-1">
+						<div class="flex items-center justify-between mb-3 sm:mb-4">
+							<div class="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg sm:rounded-xl flex items-center justify-center">
+								<svg class="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+								</svg>
+							</div>
+							<span class="text-lg sm:text-xl lg:text-2xl font-bold text-purple-600">{ultimaData ? ultimaData.toLocaleDateString() : '-'}</span>
 						</div>
-						<span class="text-lg sm:text-xl lg:text-2xl font-bold text-purple-600">{ultimaData ? ultimaData.toLocaleDateString() : '-'}</span>
+						<h3 class="text-base sm:text-lg font-semibold text-gray-900 mb-1">Última Avaliação</h3>
+						<p class="text-gray-600 text-xs sm:text-sm">Data da última avaliação</p>
 					</div>
-					<h3 class="text-base sm:text-lg font-semibold text-gray-900 mb-1">Última Avaliação</h3>
-					<p class="text-gray-600 text-xs sm:text-sm">Data da última avaliação</p>
 				</div>
-			</div>
+			{/if}
 
 			<!-- Timeline de Progresso -->
 			{#if jovem?.id}
