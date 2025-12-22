@@ -388,76 +388,78 @@
 			{/if}
 
 			<!-- Timeline de Avaliações -->
-			<div class="bg-white rounded-xl sm:rounded-2xl shadow-xl overflow-hidden">
-				<div class="bg-gradient-to-r from-gray-700 to-gray-800 px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
-					<div class="flex items-center space-x-3">
-						<div class="w-8 h-8 sm:w-10 sm:h-10 bg-white/20 rounded-lg sm:rounded-xl flex items-center justify-center">
-							<svg class="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-							</svg>
-				</div>
-						<div>
-							<h3 class="text-lg sm:text-xl font-bold text-white">Histórico de Avaliações</h3>
-							<p class="text-gray-300 text-sm sm:text-base">Todas as suas avaliações</p>
-				</div>
-				</div>
-			</div>
-				<div class="p-4 sm:p-6 lg:p-8">
-			{#if !avaliacoes?.length}
-						<div class="text-center py-8 sm:py-12">
-							<div class="w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
-								<svg class="w-6 h-6 sm:w-8 sm:h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+			{#if $userProfile?.nivel !== 'jovem'}
+				<div class="bg-white rounded-xl sm:rounded-2xl shadow-xl overflow-hidden">
+					<div class="bg-gradient-to-r from-gray-700 to-gray-800 px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+						<div class="flex items-center space-x-3">
+							<div class="w-8 h-8 sm:w-10 sm:h-10 bg-white/20 rounded-lg sm:rounded-xl flex items-center justify-center">
+								<svg class="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
 								</svg>
-							</div>
-							<h3 class="text-base sm:text-lg font-semibold text-gray-900 mb-2">Nenhuma avaliação registrada</h3>
-							<p class="text-sm sm:text-base text-gray-600 px-4">Suas avaliações aparecerão aqui quando forem realizadas.</p>
-						</div>
-			{:else}
-						<div class="space-y-3 sm:space-y-4">
-					{#each avaliacoes as a}
-								<div class="bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg sm:rounded-xl p-4 sm:p-6 hover:shadow-md transition-all duration-300">
-									<div class="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-3 sm:space-y-0">
-										<div class="flex items-center space-x-3 sm:space-x-4">
-											<div class="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-												<span class="text-white font-bold text-base sm:text-lg">{a.nota ?? '-'}</span>
-											</div>
-											<div>
-												<p class="font-semibold text-gray-900 text-sm sm:text-base">
-													{new Date(a.criado_em).toLocaleDateString('pt-BR', { 
-														day: '2-digit', 
-														month: 'long', 
-														year: 'numeric' 
-													})}
-												</p>
-												<p class="text-xs sm:text-sm text-gray-600">Avaliação realizada</p>
-											</div>
-										</div>
-										<div class="w-full sm:w-auto">
-											<div class="flex flex-wrap gap-1 sm:gap-2 text-xs">
-												<span class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full">Espírito: {a.espirito ?? '-'}</span>
-												<span class="px-2 py-1 bg-green-100 text-green-800 rounded-full">Caráter: {a.caractere ?? '-'}</span>
-												<span class="px-2 py-1 bg-purple-100 text-purple-800 rounded-full">Disposição: {a.disposicao ?? '-'}</span>
-											</div>
-										</div>
-							</div>
-						</div>
-					{/each}
-				</div>
-				{#if hasMore}
-							<div class="mt-4 sm:mt-6 text-center">
-								<Button 
-									on:click={loadMore} 
-									disabled={loadingMore}
-									class="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 sm:px-8 py-2 sm:py-3 rounded-lg sm:rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all duration-300 disabled:opacity-50 text-sm sm:text-base w-full sm:w-auto"
-								>
-									{loadingMore ? 'Carregando...' : 'Carregar mais'}
-								</Button>
 					</div>
-				{/if}
-			{/if}
+							<div>
+								<h3 class="text-lg sm:text-xl font-bold text-white">Histórico de Avaliações</h3>
+								<p class="text-gray-300 text-sm sm:text-base">Todas as suas avaliações</p>
+					</div>
+					</div>
 				</div>
-			</div>
+					<div class="p-4 sm:p-6 lg:p-8">
+				{#if !avaliacoes?.length}
+							<div class="text-center py-8 sm:py-12">
+								<div class="w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
+									<svg class="w-6 h-6 sm:w-8 sm:h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+									</svg>
+								</div>
+								<h3 class="text-base sm:text-lg font-semibold text-gray-900 mb-2">Nenhuma avaliação registrada</h3>
+								<p class="text-sm sm:text-base text-gray-600 px-4">Suas avaliações aparecerão aqui quando forem realizadas.</p>
+							</div>
+				{:else}
+							<div class="space-y-3 sm:space-y-4">
+						{#each avaliacoes as a}
+									<div class="bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg sm:rounded-xl p-4 sm:p-6 hover:shadow-md transition-all duration-300">
+										<div class="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-3 sm:space-y-0">
+											<div class="flex items-center space-x-3 sm:space-x-4">
+												<div class="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+													<span class="text-white font-bold text-base sm:text-lg">{a.nota ?? '-'}</span>
+												</div>
+												<div>
+													<p class="font-semibold text-gray-900 text-sm sm:text-base">
+														{new Date(a.criado_em).toLocaleDateString('pt-BR', { 
+															day: '2-digit', 
+															month: 'long', 
+															year: 'numeric' 
+														})}
+													</p>
+													<p class="text-xs sm:text-sm text-gray-600">Avaliação realizada</p>
+												</div>
+											</div>
+											<div class="w-full sm:w-auto">
+												<div class="flex flex-wrap gap-1 sm:gap-2 text-xs">
+													<span class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full">Espírito: {a.espirito ?? '-'}</span>
+													<span class="px-2 py-1 bg-green-100 text-green-800 rounded-full">Caráter: {a.caractere ?? '-'}</span>
+													<span class="px-2 py-1 bg-purple-100 text-purple-800 rounded-full">Disposição: {a.disposicao ?? '-'}</span>
+												</div>
+											</div>
+								</div>
+							</div>
+						{/each}
+					</div>
+					{#if hasMore}
+								<div class="mt-4 sm:mt-6 text-center">
+									<Button 
+										on:click={loadMore} 
+										disabled={loadingMore}
+										class="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 sm:px-8 py-2 sm:py-3 rounded-lg sm:rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all duration-300 disabled:opacity-50 text-sm sm:text-base w-full sm:w-auto"
+									>
+										{loadingMore ? 'Carregando...' : 'Carregar mais'}
+									</Button>
+						</div>
+					{/if}
+				{/if}
+					</div>
+				</div>
+			{/if}
 	{/if}
 </div>
 </div>
