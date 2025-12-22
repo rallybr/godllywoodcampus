@@ -21,9 +21,7 @@
     'obreiro': 'Obreiro',
     'colaborador': 'Colaborador',
     'cpo': 'CPO',
-    'jovem_batizado_es': 'Jovem',
-    'desertou': 'Desertou',
-    'romovido': 'Removido'
+    'jovem_batizado_es': 'Jovem'
   };
   
   let mostrarAssociados = false;

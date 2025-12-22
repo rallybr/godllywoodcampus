@@ -7,7 +7,6 @@
   import { uploadJovemPhoto, compressImage } from '$lib/stores/upload';
   import { generateUUID } from '$lib/utils/uuid';
   import { verificarUsuarioLogado } from '$lib/VERIFICAR_USUARIO_LOGADO.js';
-  import { userProfile } from '$lib/stores/auth';
   import Button from '$lib/components/ui/Button.svelte';
   import Input from '$lib/components/ui/Input.svelte';
   import Select from '$lib/components/ui/Select.svelte';
@@ -1363,10 +1362,6 @@
                       <option value="auxiliar_pastor">Auxiliar de Pastor</option>
                       <option value="namorada">Namorada</option>
                       <option value="noiva">Noiva</option>
-                      {#if $userProfile?.nivel !== 'jovem'}
-                        <option value="desertou">Desertou</option>
-                        <option value="romovido">Removido</option>
-                      {/if}
                     </select>
                     <!-- Ícone de dropdown customizado -->
                     <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">

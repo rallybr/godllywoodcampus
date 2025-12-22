@@ -41,15 +41,6 @@
   let selectedEdicao = '';
   let selectedCondicao = '';
 
-  // Filtrar condições baseado no nível do usuário
-  // Jovens não devem ver "desertou" e "romovido"
-  $: condicoesFiltradas = $condicoesCache.filter(c => {
-    if (hasRole('jovem')($userProfile)) {
-      return c !== 'desertou' && c !== 'romovido';
-    }
-    return true;
-  });
-
   // Flags de controle de carregamento
   let readyToLoad = false;
   let initialLoaded = false;
@@ -266,7 +257,7 @@
             </select>
             <select class="bg-white/80 rounded px-2 py-1 text-sm" bind:value={selectedCondicao} on:change={() => applyControls(1)}>
               <option value="">Todas condições</option>
-              {#each condicoesFiltradas as c}
+              {#each $condicoesCache as c}
                 <option value={c}>{c}</option>
               {/each}
             </select>

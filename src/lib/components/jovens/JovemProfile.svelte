@@ -34,25 +34,6 @@
   let aprovacoesTab = 'pre_aprovado';
   let removendoAprovacao = false; // Aba ativa por padrão
   
-  // Condições que não devem ser exibidas para o próprio jovem
-  const condicoesRestritasParaJovem = new Set(['desertou', 'romovido']);
-
-  // Texto da condição considerando o nível do usuário logado
-  $: condicaoVisivel = (() => {
-    const condicao = jovem?.condicao;
-    if (!condicao) return 'Não informado';
-
-    const nivel = $userProfile?.nivel;
-
-    // Se for o próprio jovem (nível jovem) e estiver em uma condição de regressão,
-    // não exibir a condição explicitamente para evitar frustração.
-    if (nivel === 'jovem' && condicoesRestritasParaJovem.has(condicao)) {
-      return '---';
-    }
-
-    return condicao;
-  })();
-
   const tabs = [
     { id: 'dados-pessoais', label: 'Dados Pessoais', icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z' },
     { id: 'espirituais', label: 'Espirituais', icon: 'M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z' },
@@ -769,7 +750,7 @@
                 </div>
                 <div class="flex justify-between items-center py-2 border-b border-gray-100">
                   <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Condição</dt>
-                  <dd class="text-sm font-semibold text-gray-900 bg-blue-50 px-3 py-1 rounded">{condicaoVisivel}</dd>
+                  <dd class="text-sm font-semibold text-gray-900 bg-blue-50 px-3 py-1 rounded">{jovem.condicao || 'Não informado'}</dd>
                 </div>
                 <div class="flex justify-between items-center py-2 border-b border-gray-100">
                   <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Tempo de Condição</dt>
