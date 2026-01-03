@@ -229,6 +229,7 @@
           foto,
           condicao,
           condicao_campus,
+          descricao_curta,
           estado:estados(
             id,
             nome,
@@ -492,6 +493,11 @@
         // Pontos da timeline - usar os mesmos valores percentuais da tela
         const etapas = ['JOVEM', 'CPO', 'COL', 'OBR', 'IBURD', 'AUX'];
         
+        // Calcular a posição Y da última label (para usar na descrição)
+        const pointY = barraY + timelineBarHeight / 2;
+        const triangleY = pointY + 2.5 + 3; // 3px de espaçamento da barra
+        const labelY = triangleY + 3 + 3; // 3px de espaçamento após o triângulo
+        
         etapas.forEach((etapa, index) => {
           const etapaId = index + 1;
           // Calcular posição do círculo usando os valores percentuais sobre a área útil
@@ -508,27 +514,48 @@
           }
 
           // Ponto (sobre a barra, centralizado verticalmente na barra)
-          const pointY = barraY + timelineBarHeight / 2;
+          const pointYLocal = barraY + timelineBarHeight / 2;
           doc.setFillColor(...cor);
-          doc.circle(pointX, pointY, 2.5, 'F');
+          doc.circle(pointX, pointYLocal, 2.5, 'F');
           // Borda branca do círculo (border-2 border-white)
           doc.setDrawColor(255, 255, 255);
           doc.setLineWidth(0.8);
-          doc.circle(pointX, pointY, 2.5, 'S');
+          doc.circle(pointX, pointYLocal, 2.5, 'S');
           
           // Triângulo azul acima da label (apontando para cima, apenas 3px acima da barra)
-          const triangleY = pointY + 2.5 + 3; // 3px de espaçamento da barra
+          const triangleYLocal = pointYLocal + 2.5 + 3; // 3px de espaçamento da barra
           doc.setFillColor(59, 130, 246); // Azul #3b82f6
           // Triângulo apontando para cima (coordenadas invertidas)
-          doc.triangle(pointX - 2.5, triangleY + 3, pointX + 2.5, triangleY + 3, pointX, triangleY, 'F');
+          doc.triangle(pointX - 2.5, triangleYLocal + 3, pointX + 2.5, triangleYLocal + 3, pointX, triangleYLocal, 'F');
           
           // Label abaixo do triângulo (apenas 3px de espaçamento)
-          const labelY = triangleY + 3 + 3; // 3px de espaçamento após o triângulo
+          const labelYLocal = triangleYLocal + 3 + 3; // 3px de espaçamento após o triângulo
           doc.setFontSize(5.5);
           doc.setFont('helvetica', 'bold');
           doc.setTextColor(0, 0, 0);
-          doc.text(etapa, pointX, labelY, { align: 'center' });
+          doc.text(etapa, pointX, labelYLocal, { align: 'center' });
         });
+        
+        // Descrição curta (se existir)
+        if (jovem.descricao_curta) {
+          currentYCard = labelY + 3; // Espaçamento após a timeline (3mm)
+          // Linha divisória acima da descrição (borda superior)
+          doc.setDrawColor(229, 231, 235); // border-gray-200
+          doc.setLineWidth(0.2);
+          doc.line(x + 2, currentYCard - 1, x + cardWidth - 2, currentYCard - 1);
+          
+          doc.setFontSize(11); // Aumentado para 11 para corresponder melhor ao text-base (mais próximo de 16px)
+          doc.setFont('helvetica', 'bold'); // Alterado de 'normal' para 'bold' para corresponder à página
+          doc.setTextColor(75, 85, 99); // text-gray-600 em RGB (mais escuro que 100,100,100)
+          const descricaoLines = doc.splitTextToSize(jovem.descricao_curta, cardWidth - 6);
+          // Alinhar à esquerda como na página
+          let descY = currentYCard + 1.5; // Pequeno espaçamento após a linha divisória
+          descricaoLines.forEach((line) => {
+            doc.text(line, x + 3, descY, { align: 'left' }); // x + 3 para margem esquerda
+            descY += 4.5; // Espaçamento entre linhas (leading-relaxed)
+          });
+          // Não adicionar espaço extra no final - deixar o conteúdo próximo da borda inferior
+        }
       }
 
       // Funções auxiliares

@@ -73,6 +73,7 @@
     deseja_altar: false,
     observacao: '',
     testemunho: '',
+    descricao_curta: '',
     
     // Redes sociais
     instagram: '',
@@ -1867,6 +1868,23 @@
                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors resize-none"
                   placeholder="Testemunho pessoal do jovem"
                 ></textarea>
+              </div>
+              
+              <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">
+                  Descrição Curta (para cards do relatório)
+                  <span class="text-xs text-gray-500 font-normal ml-1">(máximo 144 caracteres)</span>
+                </label>
+                <textarea
+                  bind:value={formData.descricao_curta}
+                  maxlength="144"
+                  rows="2"
+                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors resize-none"
+                  placeholder="Digite uma descrição curta que aparecerá no card do relatório..."
+                ></textarea>
+                <p class="mt-1 text-xs text-gray-500">
+                  {formData.descricao_curta?.length || 0}/144 caracteres
+                </p>
               </div>
             </div>
           </div>

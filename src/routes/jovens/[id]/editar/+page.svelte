@@ -100,6 +100,7 @@
     fazendo_desafios: false,
     qual_desafio: '',
     observacao_redes: '',
+    descricao_curta: '',
     // Campos de localização
     estado_id: '',
     bloco_id: '',
@@ -255,6 +256,7 @@
         fazendo_desafios: jovem.fazendo_desafios || false,
         qual_desafio: jovem.qual_desafio || '',
         observacao_redes: jovem.observacao_redes || '',
+        descricao_curta: jovem.descricao_curta || '',
         // Campos de localização
         estado_id: jovem.estado_id || '',
         bloco_id: jovem.bloco_id || '',
@@ -1199,6 +1201,24 @@
                 rows="3"
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               ></textarea>
+            </div>
+            
+            <div>
+              <label for="descricao_curta" class="block text-sm font-medium text-gray-700 mb-1">
+                Descrição Curta (para cards do relatório)
+                <span class="text-xs text-gray-500 font-normal ml-1">(máximo 144 caracteres)</span>
+              </label>
+              <textarea
+                id="descricao_curta"
+                bind:value={formData.descricao_curta}
+                maxlength="144"
+                rows="2"
+                placeholder="Digite uma descrição curta que aparecerá no card do relatório..."
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              ></textarea>
+              <p class="mt-1 text-xs text-gray-500">
+                {formData.descricao_curta?.length || 0}/144 caracteres
+              </p>
             </div>
             
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">

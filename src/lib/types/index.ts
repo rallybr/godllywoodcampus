@@ -124,6 +124,7 @@ export interface Jovem {
   deseja_altar?: boolean;
   observacao?: string;
   testemunho?: string;
+  descricao_curta?: string;
   instagram?: string;
   facebook?: string;
   tiktok?: string;
@@ -272,6 +273,7 @@ export interface JovemFormData {
   deseja_altar?: boolean;
   observacao?: string;
   testemunho?: string;
+  descricao_curta?: string;
   instagram?: string;
   facebook?: string;
   tiktok?: string;

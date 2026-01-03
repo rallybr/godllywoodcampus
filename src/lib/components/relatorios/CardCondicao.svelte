@@ -174,6 +174,15 @@
         </div>
       </div>
     </div>
+
+    <!-- Descrição curta -->
+    {#if jovem.descricao_curta}
+      <div class="mt-4 pt-4 border-t border-gray-200">
+        <p class="text-base font-bold text-gray-600 leading-relaxed text-left">
+          {jovem.descricao_curta}
+        </p>
+      </div>
+    {/if}
   </div>
 </div>
 
