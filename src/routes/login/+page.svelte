@@ -4,8 +4,7 @@
   import { user, signIn, loading } from '$lib/stores/auth';
   import Button from '$lib/components/ui/Button.svelte';
   import Input from '$lib/components/ui/Input.svelte';
-  import logo from '../../logos/logo.png';
-  
+
   let email = '';
   let password = '';
   let error = '';
@@ -69,7 +68,7 @@
   <div class="w-full max-w-sm sm:max-w-md lg:max-w-xl space-y-6 sm:space-y-8 relative z-10">
     <!-- Logo and title -->
     <div class="text-center">
-      <img src={logo} alt="Godllywood Campus" class="mx-auto h-16 w-16 sm:h-20 sm:w-20 rounded-2xl shadow-lg ring-1 ring-white/40 object-contain bg-white/70 p-2" />
+      <img src="/logo.png" alt="Godllywood Campus" class="mx-auto h-16 w-16 sm:h-20 sm:w-20 rounded-2xl shadow-lg ring-1 ring-white/40 object-contain bg-white/70 p-2" />
       <h2 class="mt-4 sm:mt-6 text-2xl sm:text-3xl lg:text-4xl font-bold gc-gradient">
         Godllywood Campus
       </h2>
