@@ -29,8 +29,10 @@
   
   // Mapear códigos para nomes
   const condicoesMap = {
-    'auxiliar_pastor': 'Auxiliar de Pastor',
-    'iburd': 'IBURD',
+    'auxiliar_pastor': 'Esposa de Pastor',
+    'iburd': 'Candidata do Altar',
+    'namorada': 'Namorada de Pastor',
+    'noiva': 'Noiva de Pastor',
     'obreiro': 'Obreiro',
     'colaborador': 'Colaborador',
     'cpo': 'CPO',
@@ -491,7 +493,7 @@
         doc.roundedRect(timelineX, barraY, larguraBarraFinal, timelineBarHeight, 2, 2, 'F');
 
         // Pontos da timeline - usar os mesmos valores percentuais da tela
-        const etapas = ['JOVEM', 'CPO', 'COL', 'OBR', 'IBURD', 'AUX'];
+        const etapas = ['JOVEM', 'CPO', 'COL', 'OBR', 'CAND', 'ESP'];
         
         // Calcular a posição Y da última label (para usar na descrição)
         const pointY = barraY + timelineBarHeight / 2;
@@ -619,7 +621,7 @@
 </script>
 
 <svelte:head>
-  <title>Relatório por Condição | IntelliMen Campus</title>
+  <title>Relatório por Condição | Godllywood Campus</title>
 </svelte:head>
 
 <div class="min-h-screen bg-gray-50">

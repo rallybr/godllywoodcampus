@@ -164,7 +164,7 @@
 </script>
 
 <svelte:head>
-  <title>Jovens Pendentes | IntelliMen Campus</title>
+  <title>Jovens Pendentes | Godllywood Campus</title>
 </svelte:head>
 
 <div class="min-h-screen bg-gray-50">

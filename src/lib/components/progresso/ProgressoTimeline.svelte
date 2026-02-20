@@ -77,7 +77,9 @@
     [normalize('Colaborador'), 3],
     [normalize('Obreiro'), 4],
     [normalize('IBURD'), 5],
+    [normalize('Candidata do Altar'), 5],
     [normalize('Auxiliar de Pastor'), 6],
+    [normalize('Esposa de Pastor'), 6],
     // Sinônimos/etapas por nome
     [normalize('Oleo'), 1],
     [normalize('Sal'), 2],
@@ -102,13 +104,13 @@
   $: etapas = [
     { 
       id: 'diamante', 
-      nome: 'Auxiliar de Pastor', 
+      nome: 'Esposa de Pastor', 
       cor: estagioCampus === 6 ? 'orange' : (estagioAtual >= 6 ? 'teal' : 'gray'), 
       ordem: 6 
     },
     { 
       id: 'ouro', 
-      nome: 'IBURD', 
+      nome: 'Candidata do Altar', 
       cor: estagioCampus === 5 ? 'orange' : (estagioAtual >= 5 ? 'teal' : 'gray'), 
       ordem: 5 
     },

@@ -3,17 +3,17 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Banner vidro com bordas neon azul/lilás para o módulo de filtros */
+/* Banner vidro com bordas suaves rosa/lavanda (toque feminino) */
 .neon-glass {
-	background: linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+	background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
 	backdrop-filter: blur(14px) saturate(140%);
 	-webkit-backdrop-filter: blur(14px) saturate(140%);
-	border: 1px solid rgba(255,255,255,0.18);
+	border: 1px solid rgba(255,255,255,0.2);
 	box-shadow:
-		0 0 0 1px rgba(99,102,241,0.35),
-		0 0 12px 2px rgba(99,102,241,0.55),
-		0 0 28px 8px rgba(168,85,247,0.45),
-		inset 0 0 40px rgba(59,130,246,0.12);
+		0 0 0 1px rgba(232,160,191,0.25),
+		0 0 12px 2px rgba(232,160,191,0.2),
+		0 0 24px 6px rgba(192,132,252,0.2),
+		inset 0 0 40px rgba(255,255,255,0.06);
 	position: relative;
 }
 
@@ -22,8 +22,8 @@
 	position: absolute;
 	inset: -2px;
 	border-radius: inherit;
-	background: linear-gradient(135deg, rgba(59,130,246,0.55), rgba(168,85,247,0.55));
-	opacity: 0.55;
+	background: linear-gradient(135deg, rgba(232,160,191,0.35), rgba(192,132,252,0.35));
+	opacity: 0.5;
 	filter: blur(12px);
 	z-index: -1;
 }
@@ -67,6 +67,11 @@
   
   /* Instagram Colors */
   --ig-gradient: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+  /* Toque feminino: gradiente suave rosa/lavanda para títulos (mantém branco predominante) */
+  --gc-gradient: linear-gradient(135deg, #e8a0bf 0%, #d973a3 35%, #c084fc 70%, #a78bfa 100%);
+  --gc-rose: #e8a0bf;
+  --gc-rose-soft: #fce7f3;
+  --gc-lavender: #c084fc;
   --ig-pink: #e1306c;
   --ig-purple: #833ab4;
   --ig-orange: #fd1d1d;
@@ -209,7 +214,7 @@ body {
 /* Facebook-like components */
 .fb-card {
   background: var(--fb-white);
-  border-radius: 8px;
+  border-radius: 12px;
   box-shadow: var(--shadow);
   border: 1px solid var(--fb-border);
 }
@@ -244,6 +249,14 @@ body {
 /* Instagram gradient text */
 .ig-gradient {
   background: var(--ig-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Godllywood Campus: gradiente feminino suave para títulos (rosa/lavanda) */
+.gc-gradient {
+  background: var(--gc-gradient);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -318,9 +331,9 @@ body {
   padding: 2px;
 }
 
-/* Notification badge */
+/* Notification badge (toque feminino: rosa suave) */
 .notification-badge {
-  background: var(--ig-pink);
+  background: var(--gc-rose);
   color: var(--fb-white);
   border-radius: 50%;
   font-size: 12px;
@@ -350,7 +363,7 @@ body {
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--fb-blue);
+  background: var(--gc-rose);
 }
 
 /* Loading skeleton */

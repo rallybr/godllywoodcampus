@@ -85,7 +85,7 @@
 </script>
 
 <svelte:head>
-  <title>{targetUser?.nome || 'Perfil'} - IntelliMen Campus</title>
+  <title>{targetUser?.nome || 'Perfil'} - Godllywood Campus</title>
 </svelte:head>
 
 <div class="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8">

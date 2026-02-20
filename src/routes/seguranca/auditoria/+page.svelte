@@ -5,7 +5,7 @@
 </script>
 
 <svelte:head>
-  <title>Logs de Auditoria - IntelliMen Campus</title>
+  <title>Logs de Auditoria - Godllywood Campus</title>
 </svelte:head>
 
 <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 overflow-x-hidden">

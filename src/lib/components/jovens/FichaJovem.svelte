@@ -13,6 +13,17 @@
   let avaliacoes = [];
   let loadingAvaliacoes = false;
 
+  const condicoesMap = {
+    auxiliar_pastor: 'Esposa de Pastor',
+    iburd: 'Candidata do Altar',
+    namorada: 'Namorada de Pastor',
+    noiva: 'Noiva de Pastor',
+    obreiro: 'Obreiro',
+    colaborador: 'Colaborador',
+    cpo: 'CPO',
+    jovem_batizado_es: 'Jovem'
+  };
+
   // Função para formatar data
   function formatarData(data) {
     if (!data) return 'Não informado';
@@ -265,7 +276,7 @@
             {/if}
             <div class="flex justify-between">
               <span class="text-sm font-medium text-gray-600">Condição:</span>
-              <span class="text-sm font-semibold text-gray-900">{jovem.condicao || 'Não informado'}</span>
+              <span class="text-sm font-semibold text-gray-900">{condicoesMap[jovem.condicao] || jovem.condicao || 'Não informado'}</span>
             </div>
             {#if jovem.tempo_condicao}
               <div class="flex justify-between">
@@ -339,9 +350,9 @@
         </div>
       </div>
 
-      <!-- Coluna direita - IntelliMen e Redes Sociais -->
+      <!-- Coluna direita - Godllywood e Redes Sociais -->
       <div class="space-y-6">
-        <!-- IntelliMen -->
+        <!-- Godllywood -->
         <div class="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl p-6 border border-blue-200">
           <h3 class="text-lg font-bold text-gray-900 mb-4 flex items-center">
             <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">

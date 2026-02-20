@@ -65,6 +65,21 @@ export default {
           700: '#ec4899',
           800: '#db2777',
           900: '#be185d'
+        },
+        // Toque feminino: rosa e lavanda suaves (branco continua predominante)
+        rose: {
+          soft: '#fce7f3',
+          light: '#fbcfe8',
+          DEFAULT: '#e8a0bf',
+          medium: '#d973a3',
+          dark: '#be185d'
+        },
+        lavender: {
+          soft: '#f5f3ff',
+          light: '#ede9fe',
+          DEFAULT: '#c084fc',
+          medium: '#a78bfa',
+          dark: '#7c3aed'
         }
       },
       fontFamily: {

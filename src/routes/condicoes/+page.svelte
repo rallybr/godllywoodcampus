@@ -16,8 +16,10 @@
   
   // Mapear códigos para nomes
   const condicoesMap = {
-    'auxiliar_pastor': 'Auxiliar de Pastor',
-    'iburd': 'IBURD',
+    'auxiliar_pastor': 'Esposa de Pastor',
+    'iburd': 'Candidata do Altar',
+    'namorada': 'Namorada de Pastor',
+    'noiva': 'Noiva de Pastor',
     'obreiro': 'Obreiro',
     'colaborador': 'Colaborador',
     'cpo': 'CPO',
@@ -163,7 +165,7 @@
 </script>
 
 <svelte:head>
-  <title>Jovens - {condicaoNome} | IntelliMen Campus</title>
+  <title>Jovens - {condicaoNome} | Godllywood Campus</title>
 </svelte:head>
 
 <div class="min-h-screen bg-gray-50">

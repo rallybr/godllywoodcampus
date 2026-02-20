@@ -76,7 +76,7 @@
             Instalar App
           </h3>
           <p class="text-xs text-gray-600 mt-1">
-            Instale o IntelliMen Campus para acesso rápido e melhor experiência.
+            Instale o Godllywood Campus para acesso rápido e melhor experiência.
           </p>
         </div>
         

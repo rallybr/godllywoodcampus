@@ -13,6 +13,17 @@
   import DadosNucleoView from './DadosNucleoView.svelte';
   import { format, parseISO } from 'date-fns';
   import { ptBR } from 'date-fns/locale';
+
+  const condicoesMap = {
+    auxiliar_pastor: 'Esposa de Pastor',
+    iburd: 'Candidata do Altar',
+    namorada: 'Namorada de Pastor',
+    noiva: 'Noiva de Pastor',
+    obreiro: 'Obreiro',
+    colaborador: 'Colaborador',
+    cpo: 'CPO',
+    jovem_batizado_es: 'Jovem'
+  };
   
   // @ts-ignore
   export let jovemId;
@@ -676,16 +687,16 @@
             </div>
           </div>
           
-          <!-- Seção IntelliMen -->
+          <!-- Seção Godllywood -->
           <div class="bg-white rounded-lg shadow-sm border border-blue-200 overflow-hidden">
             <div class="bg-blue-600 px-4 sm:px-6 py-2 sm:py-3 relative">
               <div class="absolute left-0 top-0 bottom-0 w-1 sm:w-2 bg-blue-800 rounded-r"></div>
-              <h3 class="text-base sm:text-lg font-semibold text-white ml-2 sm:ml-3">Sobre o IntelliMen</h3>
+              <h3 class="text-base sm:text-lg font-semibold text-white ml-2 sm:ml-3">Sobre o Godllywood</h3>
             </div>
             <div class="p-4 sm:p-6">
               <dl class="space-y-3 sm:space-y-4">
                 <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 border-b border-gray-100 space-y-1 sm:space-y-0">
-                  <dt class="text-xs sm:text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Formado no IntelliMen</dt>
+                  <dt class="text-xs sm:text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Formada no Godllywood</dt>
                   <dd class="text-sm font-semibold text-gray-900 bg-blue-50 px-3 py-1 rounded">
                     {jovem.formado_intellimen ? 'Sim' : 'Não'}
                   </dd>
@@ -750,7 +761,7 @@
                 </div>
                 <div class="flex justify-between items-center py-2 border-b border-gray-100">
                   <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Condição</dt>
-                  <dd class="text-sm font-semibold text-gray-900 bg-blue-50 px-3 py-1 rounded">{jovem.condicao || 'Não informado'}</dd>
+                  <dd class="text-sm font-semibold text-gray-900 bg-blue-50 px-3 py-1 rounded">{condicoesMap[jovem.condicao] || jovem.condicao || 'Não informado'}</dd>
                 </div>
                 <div class="flex justify-between items-center py-2 border-b border-gray-100">
                   <dt class="text-sm font-medium text-blue-600 uppercase tracking-wide font-bold">Tempo de Condição</dt>

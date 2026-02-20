@@ -13,7 +13,7 @@
 </script>
 
 <svelte:head>
-  <title>Avaliações - IntelliMen Campus</title>
+  <title>Avaliações - Godllywood Campus</title>
 </svelte:head>
 
 <!-- Página de Avaliações (não mostrar para jovens) -->

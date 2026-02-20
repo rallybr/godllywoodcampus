@@ -180,7 +180,7 @@
 </script>
 
 <svelte:head>
-  <title>Jovens Avaliados | IntelliMen Campus</title>
+  <title>Jovens Avaliados | Godllywood Campus</title>
 </svelte:head>
 
 <div class="min-h-screen bg-gray-50">

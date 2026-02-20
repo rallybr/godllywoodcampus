@@ -465,7 +465,7 @@
 </script>
 
 <svelte:head>
-  <title>Editar Jovem - IntelliMen Campus</title>
+  <title>Editar Jovem - Godllywood Campus</title>
 </svelte:head>
 
 {#if loading}
@@ -970,10 +970,10 @@
                     <option value="cpo">CPO</option>
                     <option value="colaborador">Colaborador(a)</option>
                     <option value="obreiro">Obreiro(a)</option>
-                    <option value="iburd">IBURD</option>
-                    <option value="auxiliar_pastor">Auxiliar de Pastor</option>
-                    <option value="namorada">Namorada</option>
-                    <option value="noiva">Noiva</option>
+                    <option value="iburd">Candidata do Altar</option>
+                    <option value="auxiliar_pastor">Esposa de Pastor</option>
+                    <option value="namorada">Namorada de Pastor</option>
+                    <option value="noiva">Noiva de Pastor</option>
                   </select>
                   <!-- Ícone de dropdown customizado -->
                   <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
@@ -998,10 +998,10 @@
                     <option value="cpo">CPO</option>
                     <option value="colaborador">Colaborador(a)</option>
                     <option value="obreiro">Obreiro(a)</option>
-                    <option value="iburd">IBURD</option>
-                    <option value="auxiliar_pastor">Auxiliar de Pastor</option>
-                    <option value="namorada">Namorada</option>
-                    <option value="noiva">Noiva</option>
+                    <option value="iburd">Candidata do Altar</option>
+                    <option value="auxiliar_pastor">Esposa de Pastor</option>
+                    <option value="namorada">Namorada de Pastor</option>
+                    <option value="noiva">Noiva de Pastor</option>
                   </select>
                   <!-- Ícone de dropdown customizado -->
                   <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
@@ -1271,10 +1271,10 @@
           </div>
         </Card>
         
-        <!-- IntelliMen -->
+        <!-- Godllywood -->
         <Card>
           <div class="px-6 py-4 border-b border-gray-200">
-            <h3 class="text-lg font-medium text-gray-900">IntelliMen</h3>
+            <h3 class="text-lg font-medium text-gray-900">Godllywood</h3>
           </div>
           <div class="p-6 space-y-4">
             <div>
@@ -1306,7 +1306,7 @@
                   bind:checked={formData.formado_intellimen}
                   class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                 />
-                <label for="formado_intellimen" class="ml-2 text-sm text-gray-700">Formado no IntelliMen</label>
+                <label for="formado_intellimen" class="ml-2 text-sm text-gray-700">Formada no Godllywood</label>
               </div>
             </div>
             

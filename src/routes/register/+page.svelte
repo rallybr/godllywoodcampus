@@ -70,7 +70,7 @@
 </script>
 
 <svelte:head>
-  <title>Cadastrar - IntelliMen Campus</title>
+  <title>Cadastrar - Godllywood Campus</title>
 </svelte:head>
 
 <div class="min-h-screen flex items-center justify-center py-4 sm:py-8 lg:py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden" style="background-color: var(--fb-gray-light);">
@@ -89,12 +89,12 @@
   <div class="w-full max-w-sm sm:max-w-md lg:max-w-xl space-y-6 sm:space-y-8 relative z-10">
     <!-- Logo and title -->
     <div class="text-center">
-      <img src={logo} alt="IntelliMen Campus" class="mx-auto h-16 w-16 sm:h-20 sm:w-20 rounded-2xl shadow-lg ring-1 ring-white/40 object-contain bg-white/70 p-2" />
+      <img src={logo} alt="Godllywood Campus" class="mx-auto h-16 w-16 sm:h-20 sm:w-20 rounded-2xl shadow-lg ring-1 ring-white/40 object-contain bg-white/70 p-2" />
       <h2 class="mt-4 sm:mt-6 text-2xl sm:text-3xl lg:text-4xl font-bold ig-gradient">
-        IntelliMen Campus
+        Godllywood Campus
       </h2>
       <p class="mt-2 text-sm sm:text-base lg:text-lg text-gray-600">
-        Sistema de Acompanhamento IntelliMen Campus
+        Sistema de Acompanhamento Godllywood Campus
       </p>
     </div>
     
@@ -295,7 +295,7 @@
     
     <!-- Footer -->
     <div class="text-center text-sm text-gray-500">
-      <p>© 2024 IntelliMen Campus. Todos os direitos reservados.</p>
+      <p>© 2024 Godllywood Campus. Todos os direitos reservados.</p>
     </div>
   </div>
 </div>

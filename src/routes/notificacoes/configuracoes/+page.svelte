@@ -5,7 +5,7 @@
 </script>
 
 <svelte:head>
-  <title>Configurações de Notificação - IntelliMen Campus</title>
+  <title>Configurações de Notificação - Godllywood Campus</title>
 </svelte:head>
 
 <!-- Página de Configurações de Notificações (não mostrar para jovens) -->

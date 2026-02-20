@@ -1,7 +1,7 @@
 {
-  "name": "IntelliMen Campus",
+  "name": "Godllywood Campus",
   "short_name": "Campus",
-  "description": "Sistema de gestão de jovens da IntelliMen - Campus de Oração",
+  "description": "Sistema de gestão de moças da Godllywood - Campus de Oração",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

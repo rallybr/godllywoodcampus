@@ -50,7 +50,7 @@
 </script>
 
 <svelte:head>
-  <title>Login - IntelliMen Campus</title>
+  <title>Login - Godllywood Campus</title>
 </svelte:head>
 
 <div class="min-h-screen flex items-center justify-center py-4 sm:py-8 lg:py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden" style="background-color: var(--fb-gray-light);">
@@ -69,17 +69,17 @@
   <div class="w-full max-w-sm sm:max-w-md lg:max-w-xl space-y-6 sm:space-y-8 relative z-10">
     <!-- Logo and title -->
     <div class="text-center">
-      <img src={logo} alt="IntelliMen Campus" class="mx-auto h-16 w-16 sm:h-20 sm:w-20 rounded-2xl shadow-lg ring-1 ring-white/40 object-contain bg-white/70 p-2" />
-      <h2 class="mt-4 sm:mt-6 text-2xl sm:text-3xl lg:text-4xl font-bold ig-gradient">
-        IntelliMen Campus
+      <img src={logo} alt="Godllywood Campus" class="mx-auto h-16 w-16 sm:h-20 sm:w-20 rounded-2xl shadow-lg ring-1 ring-white/40 object-contain bg-white/70 p-2" />
+      <h2 class="mt-4 sm:mt-6 text-2xl sm:text-3xl lg:text-4xl font-bold gc-gradient">
+        Godllywood Campus
       </h2>
       <p class="mt-2 text-sm sm:text-base lg:text-lg text-gray-600">
-        Sistema de Acompanhamento IntelliMen Campus
+        Sistema de Acompanhamento Godllywood Campus
       </p>
     </div>
     
     <!-- Login form -->
-    <div class="p-8 rounded-2xl bg-white/70 backdrop-blur-xl shadow-xl ring-1 ring-white/60 border border-white/60">
+    <div class="p-8 rounded-2xl bg-white/90 backdrop-blur-xl shadow-xl ring-1 ring-rose-soft/30 border border-white/80">
       <div class="text-center mb-6">
         <h3 class="text-xl sm:text-2xl font-bold text-gray-900">
           Acesse sua conta
@@ -102,7 +102,7 @@
             required
             on:input={(e) => email = e.target.value}
             on:keydown={handleKeydown}
-            class="w-full px-4 py-3 rounded-xl bg-white/80 border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none shadow-sm"
+            class="w-full px-4 py-3 rounded-xl bg-white/90 border border-gray-200 focus:ring-2 focus:ring-rose focus:border-rose-light outline-none shadow-sm transition-colors"
           />
         </div>
         
@@ -119,7 +119,7 @@
               required
               on:input={(e) => password = e.target.value}
               on:keydown={handleKeydown}
-              class="w-full px-4 py-3 pr-12 rounded-xl bg-white/80 border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none shadow-sm"
+              class="w-full px-4 py-3 pr-12 rounded-xl bg-white/90 border border-gray-200 focus:ring-2 focus:ring-rose focus:border-rose-light outline-none shadow-sm transition-colors"
             />
             <button
               type="button"
@@ -160,7 +160,7 @@
             type="submit"
             variant="primary"
             size="lg"
-            class="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 shadow-lg hover:shadow-xl transition-all"
+            class="flex-1 bg-gradient-to-r from-rose to-lavender hover:from-rose-medium hover:to-lavender-medium shadow-lg hover:shadow-xl transition-all"
             loading={isLoading}
             disabled={isLoading}
           >
@@ -189,7 +189,7 @@
     
     <!-- Footer -->
     <div class="text-center text-sm text-gray-500">
-      <p>© 2024 IntelliMen Campus. Todos os direitos reservados.</p>
+      <p>© 2024 Godllywood Campus. Todos os direitos reservados.</p>
     </div>
   </div>
 </div>

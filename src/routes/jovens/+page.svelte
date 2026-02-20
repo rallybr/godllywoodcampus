@@ -69,7 +69,7 @@
 </script>
 
 <svelte:head>
-  <title>Jovens - IntelliMen Campus</title>
+  <title>Jovens - Godllywood Campus</title>
 </svelte:head>
 
 <div class="space-y-6 px-4 sm:px-6">
@@ -77,7 +77,7 @@
   <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
     <div>
       <h1 class="text-2xl font-bold text-gray-900">Jovens</h1>
-      <p class="text-gray-600">IntelliMen Campus</p>
+      <p class="text-gray-600">Godllywood Campus</p>
     </div>
     <div class="mt-4 sm:mt-0 flex items-center space-x-3">
       <!-- View mode toggle -->

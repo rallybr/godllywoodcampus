@@ -718,7 +718,7 @@ export async function exportarParaExcel(dados, nomeArquivo = 'relatorio.xlsx') {
   const infoWs = XLSX.utils.aoa_to_sheet([
     ['Relatório Gerado em:', new Date().toLocaleString('pt-BR')],
     ['Total de Registros:', dados.length],
-    ['Gerado por:', 'Sistema IntelliMen Campus']
+    ['Gerado por:', 'Sistema Godllywood Campus']
   ]);
   
   XLSX.utils.book_append_sheet(wb, infoWs, 'Informações');
@@ -793,7 +793,7 @@ export async function exportarParaPDF(dados, titulo = 'Relatório', nomeArquivo 
   doc.setFont('helvetica', 'normal');
   doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, 14, 35);
   doc.text(`Total de registros: ${dados.length}`, 14, 42);
-  doc.text(`Sistema IntelliMen Campus`, 200, 35);
+  doc.text(`Sistema Godllywood Campus`, 200, 35);
   
   // Resetar cor do texto
   doc.setTextColor(0, 0, 0);
@@ -892,7 +892,7 @@ export async function exportarParaPDF(dados, titulo = 'Relatório', nomeArquivo 
     doc.setFontSize(8);
     doc.setTextColor(128, 128, 128);
     doc.text(`Página ${i} de ${pageCount}`, 14, doc.internal.pageSize.height - 10);
-    doc.text('Sistema IntelliMen Campus', doc.internal.pageSize.width - 60, doc.internal.pageSize.height - 10);
+    doc.text('Sistema Godllywood Campus', doc.internal.pageSize.width - 60, doc.internal.pageSize.height - 10);
   }
   
   // Download

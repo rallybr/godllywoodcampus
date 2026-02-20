@@ -282,7 +282,7 @@
 </script>
 
 <svelte:head>
-  <title>Jovens - {nomeEstado} | IntelliMen Campus</title>
+  <title>Jovens - {nomeEstado} | Godllywood Campus</title>
 </svelte:head>
 
 <div class="min-h-screen bg-gray-50">

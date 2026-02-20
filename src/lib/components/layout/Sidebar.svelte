@@ -85,8 +85,8 @@
     <!-- Logo -->
     <div class="flex items-center justify-center h-16 px-4 border-b" style="border-color: var(--fb-border);">
       <div class="flex items-center space-x-2">
-        <img src="/logo.png" alt="IntelliMen" class="w-8 h-8 rounded-lg object-contain bg-white/70 p-1 ring-1 ring-white/40" />
-        <span class="font-bold text-gray-900">IntelliMen</span>
+        <img src="/logo.png" alt="Godllywood" class="w-8 h-8 rounded-lg object-contain bg-white/70 p-1 ring-1 ring-white/40" />
+        <span class="font-bold text-gray-900">Godllywood</span>
       </div>
     </div>
     
@@ -96,7 +96,7 @@
       {#each filteredMenuItems as item}
         <a
           href={item.href}
-          class="flex items-center space-x-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors {isActive(item.href) ? 'bg-blue-50 text-blue-600' : 'text-gray-700 hover:bg-gray-100'}"
+          class="flex items-center space-x-3 px-3 py-2 text-sm font-medium rounded-xl transition-colors {isActive(item.href) ? 'bg-rose-soft text-rose-medium' : 'text-gray-700 hover:bg-rose-soft/50'}"
           on:click={handleLinkClick}
         >
           <svg class="h-5 w-5 {isActive(item.href) ? item.color : 'text-gray-500'}" fill="none" viewBox="0 0 24 24" stroke="currentColor">

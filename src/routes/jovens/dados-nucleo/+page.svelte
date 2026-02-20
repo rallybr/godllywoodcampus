@@ -68,7 +68,7 @@
 </script>
 
 <svelte:head>
-  <title>Dados de Núcleo - IntelliMen Campus</title>
+  <title>Dados de Núcleo - Godllywood Campus</title>
 </svelte:head>
 
 <div class="min-h-screen bg-gray-50">

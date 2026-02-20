@@ -707,7 +707,7 @@
 </script>
 
 <svelte:head>
-  <title>Feed - IntelliMen Campus</title>
+  <title>Feed - Godllywood Campus</title>
 </svelte:head>
 
 <div class="space-y-6 px-4 sm:px-6">
@@ -729,12 +729,12 @@
       {/if}
       <div class="flex-1">
         <h3 class="font-semibold text-gray-900">{$userProfile?.nome || 'Usuário'}</h3>
-        <p class="text-sm text-gray-500">Bem-vindo ao IntelliMen Campus</p>
+        <p class="text-sm text-gray-500">Bem-vindo ao Godllywood Campus</p>
       </div>
     </div>
     <div class="bg-gray-50 rounded-lg p-4">
       <p class="text-gray-700">
-        Evolução dos jovens que estiveram no IntelliMen Campus.
+        Evolução das moças que estiveram no Godllywood Campus.
       </p>
     </div>
   </div>
@@ -859,7 +859,7 @@
             </svg>
           </div>
           <p class="text-xl sm:text-2xl font-bold text-gray-900 group-hover:text-purple-600 transition-colors">{$condicoesStats.auxPastor}</p>
-          <p class="text-xs sm:text-sm text-gray-500 group-hover:text-gray-700 transition-colors">Aux. de Pastor</p>
+          <p class="text-xs sm:text-sm text-gray-500 group-hover:text-gray-700 transition-colors">Esp. de Pastor</p>
         </a>
         <a href="/condicoes?condicao=iburd" class="text-center group cursor-pointer hover:bg-gray-50 rounded-lg p-3 sm:p-4 transition-colors">
           <div class="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2 group-hover:bg-blue-200 transition-colors">
@@ -868,7 +868,7 @@
             </svg>
           </div>
           <p class="text-xl sm:text-2xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">{$condicoesStats.iburd}</p>
-          <p class="text-xs sm:text-sm text-gray-500 group-hover:text-gray-700 transition-colors">IBURD</p>
+          <p class="text-xs sm:text-sm text-gray-500 group-hover:text-gray-700 transition-colors">Cand. do Altar</p>
         </a>
         <a href="/condicoes?condicao=obreiro" class="text-center group cursor-pointer hover:bg-gray-50 rounded-lg p-3 sm:p-4 transition-colors">
           <div class="w-10 h-10 sm:w-12 sm:h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2 group-hover:bg-green-200 transition-colors">

@@ -1,4 +1,4 @@
-// Service Worker para IntelliMen Campus PWA
+// Service Worker para Godllywood Campus PWA
 const CACHE_NAME = 'campus-v1.0.0';
 const STATIC_CACHE = 'campus-static-v1.0.0';
 const DYNAMIC_CACHE = 'campus-dynamic-v1.0.0';

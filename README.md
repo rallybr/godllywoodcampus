@@ -1,6 +1,6 @@
-# IntelliMen Campus
+# Godllywood Campus
 
-Sistema de avaliação de jovens para acampamentos IntelliMen Campus.
+Sistema de avaliação de moças para acampamentos Godllywood Campus.
 
 ## 🚀 Tecnologias
 
@@ -35,7 +35,7 @@ Controle por edição do acampamento. Nova tabela `public.dados_viagem` armazena
 1. **Clone o repositório**
    ```bash
    git clone <repository-url>
-   cd intellimen-campus
+   cd godllywood-campus
    ```
 
 2. **Instale as dependências**
@@ -55,7 +55,7 @@ Controle por edição do acampamento. Nova tabela `public.dados_viagem` armazena
    ```
 
 4. **Execute o banco de dados**
-   - Execute o script `MIGRACAO_FINAL_INTELLIMEN_CAMPUS.sql` no Supabase
+   - Execute o script `backup_completo.sql` no Supabase
    - Execute o script `CORRECAO_CAMPO_IDADE.sql` se necessário
 
 5. **Inicie o servidor de desenvolvimento**
@@ -142,7 +142,7 @@ O sistema implementa RBAC (Role-Based Access Control) com os seguintes níveis:
 
 ## 📄 Licença
 
-Este projeto é privado e pertence ao IntelliMen Campus.
+Este projeto é privado e pertence ao Godllywood Campus.
 
 ## 📞 Suporte
 

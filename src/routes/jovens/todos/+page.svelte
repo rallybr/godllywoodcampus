@@ -163,7 +163,7 @@
 </script>
 
 <svelte:head>
-  <title>Todos os Jovens | IntelliMen Campus</title>
+  <title>Todos os Jovens | Godllywood Campus</title>
 </svelte:head>
 
 <div class="min-h-screen bg-gray-50">

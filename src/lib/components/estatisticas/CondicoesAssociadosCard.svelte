@@ -57,10 +57,10 @@
             </svg>
           </div>
           <p class="text-xl sm:text-2xl font-bold text-gray-900 group-hover:text-purple-600 transition-colors">{$condicoesAssociadosStats.auxPastor}</p>
-          <p class="text-xs sm:text-sm text-gray-500 group-hover:text-gray-700 transition-colors">Aux. de Pastor</p>
+          <p class="text-xs sm:text-sm text-gray-500 group-hover:text-gray-700 transition-colors">Esp. de Pastor</p>
         </a>
         
-        <!-- IBURD -->
+        <!-- Candidata do Altar -->
         <a href="/condicoes?condicao=iburd&associados=true" class="text-center group cursor-pointer hover:bg-gray-50 rounded-lg p-3 sm:p-4 transition-colors">
           <div class="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2 group-hover:bg-blue-200 transition-colors">
             <svg class="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -68,7 +68,7 @@
             </svg>
           </div>
           <p class="text-xl sm:text-2xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">{$condicoesAssociadosStats.iburd}</p>
-          <p class="text-xs sm:text-sm text-gray-500 group-hover:text-gray-700 transition-colors">IBURD</p>
+          <p class="text-xs sm:text-sm text-gray-500 group-hover:text-gray-700 transition-colors">Cand. do Altar</p>
         </a>
         
         <!-- Obreiro -->

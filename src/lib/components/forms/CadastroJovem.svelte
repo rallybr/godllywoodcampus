@@ -1359,10 +1359,10 @@
                       <option value="cpo">CPO</option>
                       <option value="colaborador">Colaborador(a)</option>
                       <option value="obreiro">Obreiro(a)</option>
-                      <option value="iburd">IBURD</option>
-                      <option value="auxiliar_pastor">Auxiliar de Pastor</option>
-                      <option value="namorada">Namorada</option>
-                      <option value="noiva">Noiva</option>
+                      <option value="iburd">Candidata do Altar</option>
+                      <option value="auxiliar_pastor">Esposa de Pastor</option>
+                      <option value="namorada">Namorada de Pastor</option>
+                      <option value="noiva">Noiva de Pastor</option>
                     </select>
                     <!-- Ícone de dropdown customizado -->
                     <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
@@ -1388,10 +1388,10 @@
                       <option value="cpo">CPO</option>
                       <option value="colaborador">Colaborador(a)</option>
                       <option value="obreiro">Obreiro(a)</option>
-                      <option value="iburd">IBURD</option>
-                      <option value="auxiliar_pastor">Auxiliar de Pastor</option>
-                      <option value="namorada">Namorada</option>
-                      <option value="noiva">Noiva</option>
+                      <option value="iburd">Candidata do Altar</option>
+                      <option value="auxiliar_pastor">Esposa de Pastor</option>
+                      <option value="namorada">Namorada de Pastor</option>
+                      <option value="noiva">Noiva de Pastor</option>
                     </select>
                     <!-- Ícone de dropdown customizado -->
                     <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
@@ -1890,19 +1890,19 @@
           </div>
         </div>
         
-        <!-- Seção IntelliMen -->
+        <!-- Seção Godllywood -->
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h3 class="text-lg font-semibold text-gray-900 mb-6 flex items-center">
             <svg class="w-6 h-6 text-blue-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
             </svg>
-            Projeto IntelliMen
+            Projeto Godllywood
           </h3>
           
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <!-- Formado no IntelliMen -->
+            <!-- Formada no Godllywood -->
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-3">Formado no IntelliMen</label>
+              <label class="block text-sm font-medium text-gray-700 mb-3">Formada no Godllywood</label>
               <div class="flex space-x-4">
                 <label class="flex items-center">
                   <input

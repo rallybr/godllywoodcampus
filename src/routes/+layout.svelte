@@ -105,8 +105,8 @@
 </script>
 
 <svelte:head>
-  <title>IntelliMen Campus</title>
-  <meta name="description" content="Sistema de Gerenciamento de Jovens doIntelliMen Campus" />
+  <title>Godllywood Campus</title>
+  <meta name="description" content="Sistema de Gerenciamento de Moças do Godllywood Campus" />
 </svelte:head>
 
 <div class="min-h-screen" style="background-color: var(--fb-gray-light);">

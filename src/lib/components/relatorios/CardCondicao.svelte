@@ -26,7 +26,9 @@
     [normalize('Colaborador'), 3],
     [normalize('Obreiro'), 4],
     [normalize('IBURD'), 5],
-    [normalize('Auxiliar de Pastor'), 6]
+    [normalize('Candidata do Altar'), 5],
+    [normalize('Auxiliar de Pastor'), 6],
+    [normalize('Esposa de Pastor'), 6]
   ]);
 
   // Estágio atual de acordo com a condição
@@ -61,8 +63,8 @@
     { id: 2, label: 'CPO', nome: 'CPO' },
     { id: 3, label: 'COL', nome: 'Colaborador' },
     { id: 4, label: 'OBR', nome: 'Obreiro' },
-    { id: 5, label: 'IBURD', nome: 'IBURD' },
-    { id: 6, label: 'AUX', nome: 'Auxiliar de Pastor' }
+    { id: 5, label: 'CAND', nome: 'Candidata do Altar' },
+    { id: 6, label: 'ESP', nome: 'Esposa de Pastor' }
   ];
 
   // Função para determinar a cor de cada ponto

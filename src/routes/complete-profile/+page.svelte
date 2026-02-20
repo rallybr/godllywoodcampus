@@ -59,10 +59,10 @@
     { value: 'cpo', label: 'CPO' },
     { value: 'colaborador', label: 'Colaborador(a)' },
     { value: 'obreiro', label: 'Obreiro(a)' },
-    { value: 'iburd', label: 'IBURD' },
-    { value: 'auxiliar_pastor', label: 'Auxiliar de Pastor' },
-    { value: 'namorada', label: 'Namorada' },
-    { value: 'noiva', label: 'Noiva' }
+    { value: 'iburd', label: 'Candidata do Altar' },
+    { value: 'auxiliar_pastor', label: 'Esposa de Pastor' },
+    { value: 'namorada', label: 'Namorada de Pastor' },
+    { value: 'noiva', label: 'Noiva de Pastor' }
   ];
   
   onMount(() => {

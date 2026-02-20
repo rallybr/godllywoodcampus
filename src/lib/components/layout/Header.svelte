@@ -63,11 +63,11 @@
         <img src="/logo.png" alt="IM" class="w-10 h-10 rounded-xl object-contain bg-white/70 p-1 ring-1 ring-white/40" />
         {#if isPWA}
           <!-- PWA: Apenas "IM" -->
-          <h1 class="text-xl font-bold ig-gradient">IM</h1>
+          <h1 class="text-xl font-bold gc-gradient">IM</h1>
         {:else}
-          <!-- Web: Título completo -->
-          <h1 class="text-xl font-bold ig-gradient hidden sm:block">IntelliMen Campus</h1>
-          <h1 class="text-lg font-bold ig-gradient sm:hidden">IM Campus</h1>
+          <!-- Web: Título completo (gradiente feminino suave) -->
+          <h1 class="text-xl font-bold gc-gradient hidden sm:block">Godllywood Campus</h1>
+          <h1 class="text-lg font-bold gc-gradient sm:hidden">GC Campus</h1>
         {/if}
       </div>
     </div>

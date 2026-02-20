@@ -5,7 +5,7 @@
 </script>
 
 <svelte:head>
-  <title>Relatórios Personalizados - IntelliMen Campus</title>
+  <title>Relatórios Personalizados - Godllywood Campus</title>
 </svelte:head>
 
 <!-- Página de Relatórios Personalizados (não mostrar para jovens) -->

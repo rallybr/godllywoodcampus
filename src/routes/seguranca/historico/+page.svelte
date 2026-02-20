@@ -3,7 +3,7 @@
 </script>
 
 <svelte:head>
-  <title>Logs de Histórico - IntelliMen Campus</title>
+  <title>Logs de Histórico - Godllywood Campus</title>
 </svelte:head>
 
 <div class="max-w-7xl mx-auto px-4 sm:px-6 overflow-x-hidden">

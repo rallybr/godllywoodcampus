@@ -164,7 +164,7 @@
 </script>
 
 <svelte:head>
-  <title>Jovens Aprovados | IntelliMen Campus</title>
+  <title>Jovens Aprovados | Godllywood Campus</title>
 </svelte:head>
 
 <div class="min-h-screen bg-gray-50">

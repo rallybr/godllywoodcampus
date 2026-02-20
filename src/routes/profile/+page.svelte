@@ -163,7 +163,7 @@
 			<h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
 				Meu Perfil
 			</h1>
-			<p class="text-sm sm:text-base text-gray-600 px-4">Acompanhe sua jornada no IntelliMen Campus</p>
+			<p class="text-sm sm:text-base text-gray-600 px-4">Acompanhe sua jornada no Godllywood Campus</p>
 		</div>
 
 	{#if loading}
@@ -239,7 +239,7 @@
 										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
 										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
 									</svg>
-									<span class="text-blue-100 text-sm sm:text-base">IntelliMen Campus</span>
+									<span class="text-blue-100 text-sm sm:text-base">Godllywood Campus</span>
 								</div>
 							</div>
 						</div>

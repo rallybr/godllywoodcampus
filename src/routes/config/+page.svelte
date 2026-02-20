@@ -44,7 +44,7 @@
 </script>
 
 <svelte:head>
-  <title>Configurações - IntelliMen Campus</title>
+  <title>Configurações - Godllywood Campus</title>
 </svelte:head>
 
 <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 overflow-x-hidden">

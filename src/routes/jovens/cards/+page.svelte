@@ -372,7 +372,7 @@
 </script>
 
 <svelte:head>
-  <title>Jovens (Cards) - IntelliMen Campus</title>
+  <title>Jovens (Cards) - Godllywood Campus</title>
 </svelte:head>
 
 <div class="px-4 sm:px-6 py-6 space-y-6">
