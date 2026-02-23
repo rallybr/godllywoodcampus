@@ -114,6 +114,42 @@ export async function uploadJovemPhoto(jovemId, file) {
   }
 }
 
+// Função para fazer upload da foto do namorado (pastor) da jovem
+export async function uploadNamoradoPhoto(jovemId, file) {
+  uploading.set(true);
+  uploadProgress.set(0);
+
+  try {
+    if (!file) throw new Error('Nenhum arquivo selecionado');
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      throw new Error('Tipo de arquivo não suportado. Use JPG, PNG ou WEBP');
+    }
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) throw new Error('Arquivo muito grande. Tamanho máximo: 5MB');
+
+    const fileExt = file.name && file.name.includes('.') ? file.name.split('.').pop() : 'jpg';
+    const fileName = `namorados/${jovemId}/foto.${fileExt}`;
+
+    const { error } = await supabase.storage
+      .from('fotos_jovens')
+      .upload(fileName, file, { cacheControl: '3600', upsert: true });
+
+    if (error) throw error;
+
+    const { data: urlData } = supabase.storage
+      .from('fotos_jovens')
+      .getPublicUrl(fileName);
+    return urlData.publicUrl;
+  } catch (error) {
+    console.error('Erro no upload da foto do namorado:', error);
+    throw error;
+  } finally {
+    uploading.set(false);
+    uploadProgress.set(0);
+  }
+}
+
 // Função para comprimir imagem antes do upload
 export function compressImage(file, maxWidth = 800, quality = 0.8) {
   return new Promise((resolve) => {

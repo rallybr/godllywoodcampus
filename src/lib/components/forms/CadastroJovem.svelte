@@ -6,6 +6,7 @@
   import { loadInitialData, estados, blocos, regioes, igrejas, edicoes, loadBlocos, loadRegioes, loadIgrejas, clearHierarchy } from '$lib/stores/geographic';
   import { uploadJovemPhoto, compressImage } from '$lib/stores/upload';
   import { generateUUID } from '$lib/utils/uuid';
+  import { supabase } from '$lib/utils/supabase';
   import { verificarUsuarioLogado } from '$lib/VERIFICAR_USUARIO_LOGADO.js';
   import Button from '$lib/components/ui/Button.svelte';
   import Input from '$lib/components/ui/Input.svelte';
@@ -26,6 +27,7 @@
     data_nasc: '',
     sexo: 'masculino',
     estado_civil: '',
+    namora: false,
     whatsapp: '',
     
     // Localização
@@ -88,6 +90,19 @@
     
     // Foto
     foto: ''
+  };
+
+  // Dados do namorado (pastor) – opcional no cadastro
+  let namoradoForm = {
+    nome: '',
+    idade: '',
+    tempo_obra: '',
+    tempo_namoro: '',
+    como_se_conheceram: '',
+    quanto_tempo_se_conhece: '',
+    onde_esta_atualmente: '',
+    atribuicao_atual: '',
+    observacao_namoro: ''
   };
   
   // Foto
@@ -640,6 +655,27 @@
       // Criar jovem
       const jovem = await createJovem(dadosLimpos);
       console.log('✅ Jovem criado com sucesso:', jovem);
+
+      // Inserir dados do namorado se preenchidos
+      const temDadosNamorado = namoradoForm.nome?.trim() || namoradoForm.idade || namoradoForm.tempo_obra?.trim() || namoradoForm.tempo_namoro?.trim() || namoradoForm.como_se_conheceram?.trim() || namoradoForm.quanto_tempo_se_conhece?.trim() || namoradoForm.onde_esta_atualmente?.trim() || namoradoForm.atribuicao_atual?.trim() || namoradoForm.observacao_namoro?.trim();
+      if (jovem?.id && temDadosNamorado) {
+        try {
+          await supabase.from('namorados').insert({
+            jovem_id: jovem.id,
+            nome: namoradoForm.nome?.trim() || null,
+            idade: namoradoForm.idade ? parseInt(namoradoForm.idade, 10) : null,
+            tempo_obra: namoradoForm.tempo_obra?.trim() || null,
+            tempo_namoro: namoradoForm.tempo_namoro?.trim() || null,
+            como_se_conheceram: namoradoForm.como_se_conheceram?.trim() || null,
+            quanto_tempo_se_conhece: namoradoForm.quanto_tempo_se_conhece?.trim() || null,
+            onde_esta_atualmente: namoradoForm.onde_esta_atualmente?.trim() || null,
+            atribuicao_atual: namoradoForm.atribuicao_atual?.trim() || null,
+            observacao_namoro: namoradoForm.observacao_namoro?.trim() || null
+          });
+        } catch (namErr) {
+          console.warn('Erro ao salvar dados do namorado (pode preencher na edição):', namErr);
+        }
+      }
       
       success = true;
       
@@ -941,6 +977,68 @@
                 {/if}
               </div>
             </div>
+
+            <!-- Namora? – ao marcar Sim, aparecem os campos do namorado -->
+            <div class="mt-8 p-4 rounded-xl border border-gray-200 bg-gray-50">
+              <p class="text-sm font-medium text-gray-700 mb-3">Namora?</p>
+              <div class="flex gap-6">
+                <label class="inline-flex items-center cursor-pointer">
+                  <input type="checkbox" bind:checked={formData.namora} class="rounded border-gray-300 text-rose-600 focus:ring-rose-500" />
+                  <span class="ml-2 text-gray-700">Sim</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Dados do Namorado – só aparecem quando Namora = Sim -->
+            {#if formData.namora}
+            <div class="mt-6 p-4 sm:p-6 bg-rose-50/60 rounded-xl border border-rose-100">
+              <h3 class="text-lg font-semibold text-gray-800 mb-1 flex items-center">
+                <svg class="w-5 h-5 text-rose-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                </svg>
+                Dados do Namorado (pastor)
+              </h3>
+              <p class="text-sm text-gray-600 mb-4">Preencha os dados do pastor. A foto pode ser adicionada depois na edição da ficha.</p>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Nome do namorado</label>
+                  <input type="text" bind:value={namoradoForm.nome} class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent" placeholder="Nome completo" />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Idade do namorado</label>
+                  <input type="number" bind:value={namoradoForm.idade} min="1" max="120" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent" placeholder="Ex: 28" />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Tempo de obra</label>
+                  <input type="text" bind:value={namoradoForm.tempo_obra} class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent" placeholder="Ex: 5 anos" />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Tempo de namoro</label>
+                  <input type="text" bind:value={namoradoForm.tempo_namoro} class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent" placeholder="Ex: 2 anos" />
+                </div>
+                <div class="sm:col-span-2">
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Como se conheceram</label>
+                  <input type="text" bind:value={namoradoForm.como_se_conheceram} class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent" placeholder="Ex: Na igreja" />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Há quanto tempo se conhecem</label>
+                  <input type="text" bind:value={namoradoForm.quanto_tempo_se_conhece} class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent" placeholder="Ex: 3 anos" />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Onde está atualmente</label>
+                  <input type="text" bind:value={namoradoForm.onde_esta_atualmente} class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent" placeholder="Cidade, igreja" />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Atribuição atual</label>
+                  <input type="text" bind:value={namoradoForm.atribuicao_atual} class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent" placeholder="Ex: Pastor, obreiro" />
+                </div>
+                <div class="sm:col-span-2">
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Observação sobre o namoro</label>
+                  <textarea bind:value={namoradoForm.observacao_namoro} rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent" placeholder="Opcional"></textarea>
+                </div>
+              </div>
+            </div>
+            {/if}
           </div>
         </div>
       {/if}

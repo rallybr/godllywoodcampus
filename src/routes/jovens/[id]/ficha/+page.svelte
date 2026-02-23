@@ -9,6 +9,7 @@
 
   let jovemId;
   let jovem = null;
+  let namorado = null;
   let estado = null;
   let avaliacoes = [];
   let logsAprovacao = [];
@@ -28,6 +29,16 @@
         .eq('id', jovemId)
         .single();
       jovem = jovemData;
+
+      // Carregar dados do namorado (pastor) se existir
+      if (jovem) {
+        const { data: namoradoData } = await supabase
+          .from('namorados')
+          .select('*')
+          .eq('jovem_id', jovemId)
+          .maybeSingle();
+        namorado = namoradoData;
+      }
 
       // Carregar bandeira do estado do jovem
       if (jovem?.estado_id) {
@@ -127,11 +138,24 @@
             <p>Cadastrado em {new Date(jovem.data_cadastro).toLocaleDateString()}</p>
           {/if}
         </div>
-        <div class="foto">
-          {#if jovem.foto}
-            <img src={jovem.foto} alt="Foto do jovem" />
-          {:else}
-            <div class="placeholder"></div>
+        <div class="fotos-header">
+          <div class="foto">
+            <span class="foto-label">Jovem</span>
+            {#if jovem.foto}
+              <img src={jovem.foto} alt="Foto do jovem" />
+            {:else}
+              <div class="placeholder"></div>
+            {/if}
+          </div>
+          {#if namorado}
+            <div class="foto foto-namorado">
+              <span class="foto-label">Namorado (pastor)</span>
+              {#if namorado.foto}
+                <img src={namorado.foto} alt={namorado.nome || 'Namorado'} />
+              {:else}
+                <div class="placeholder placeholder-namorado"></div>
+              {/if}
+            </div>
           {/if}
         </div>
       </div>
@@ -145,10 +169,30 @@
           <div class="campo"><span>DATA DE NASCIMENTO</span><strong>{jovem.data_nasc ? new Date(jovem.data_nasc).toLocaleDateString() : '-'}</strong></div>
           <div class="campo"><span>ESTADO CIVIL</span><strong>{jovem.estado_civil || '-'}</strong></div>
           <div class="campo"><span>NAMORA</span><strong>{jovem.namora ? 'Sim' : 'Não'}</strong></div>
-          <div class="campo"><span>TEMPO DE NAMORO</span><strong>{jovem.tempo_condicao || '-'}</strong></div>
+          <div class="campo"><span>TEMPO DE NAMORO</span><strong>{namorado?.tempo_namoro || jovem.tempo_condicao || '-'}</strong></div>
           <div class="campo"><span>TEM FILHO</span><strong>{jovem.tem_filho ? 'Sim' : 'Não'}</strong></div>
         </div>
       </div>
+
+      <!-- Dados do Namorado (quando existir) -->
+      {#if namorado}
+        <div class="secao bloco">
+          <h2>Dados do Namorado (pastor)</h2>
+          <div class="grid">
+            <div class="campo"><span>NOME</span><strong>{namorado.nome || '-'}</strong></div>
+            <div class="campo"><span>IDADE</span><strong>{namorado.idade != null ? namorado.idade + ' anos' : '-'}</strong></div>
+            <div class="campo"><span>TEMPO DE OBRA</span><strong>{namorado.tempo_obra || '-'}</strong></div>
+            <div class="campo"><span>TEMPO DE NAMORO</span><strong>{namorado.tempo_namoro || '-'}</strong></div>
+            <div class="campo"><span>COMO SE CONHECERAM</span><strong>{namorado.como_se_conheceram || '-'}</strong></div>
+            <div class="campo"><span>HÁ QUANTO TEMPO SE CONHECEM</span><strong>{namorado.quanto_tempo_se_conhece || '-'}</strong></div>
+            <div class="campo"><span>ONDE ESTÁ ATUALMENTE</span><strong>{namorado.onde_esta_atualmente || '-'}</strong></div>
+            <div class="campo"><span>ATRIBUIÇÃO ATUAL</span><strong>{namorado.atribuicao_atual || '-'}</strong></div>
+            {#if namorado.observacao_namoro}
+              <div class="campo col-span-3"><span>OBSERVAÇÃO SOBRE O NAMORO</span><strong>{namorado.observacao_namoro}</strong></div>
+            {/if}
+          </div>
+        </div>
+      {/if}
 
       <!-- Informações espirituais -->
       <div class="secao bloco">
@@ -298,11 +342,15 @@
   .titulo h1 { margin: 0; font-size: 28px; font-weight: 700; }
   .titulo p { margin: 6px 0 0 0; opacity: .95; font-size: 13px; }
   .flag { width: 112px; height: 80px; object-fit: cover; border: 1px solid rgba(255,255,255,.6); border-radius: 2px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-  .foto { width: 110px; height: 140px; background: rgba(255,255,255,.1); border-radius: 6px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-  .foto img { width: 100%; height: 100%; object-fit: cover; }
-  .placeholder { width: 100%; height: 100%; background: #e5e7eb; }
+  .fotos-header { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: center; gap: 16px; }
+  .foto { width: 110px; height: 140px; background: rgba(255,255,255,.1); border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; overflow: hidden; }
+  .foto .foto-label { font-size: 10px; font-weight: 600; color: rgba(255,255,255,.95); text-transform: uppercase; letter-spacing: .04em; padding: 4px 0; }
+  .foto img { width: 100%; flex: 1; object-fit: cover; }
+  .placeholder { width: 100%; flex: 1; background: #e5e7eb; min-height: 80px; }
+  .placeholder-namorado { background: #fce7f3; }
 
   .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 0; }
+  .grid .campo.col-span-3 { grid-column: span 3; }
   .redes { grid-template-columns: repeat(3, 1fr); }
   .campo { background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 6px; padding: 10px 10px 10px 20px; position: relative; }
   .campo::before { content: ''; position: absolute; left: 8px; top: 10px; bottom: 10px; width: 3px; background: #1d4ed8; border-radius: 2px; opacity: .9; }

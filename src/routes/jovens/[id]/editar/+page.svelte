@@ -9,7 +9,7 @@
   import Card from '$lib/components/ui/Card.svelte';
   import Autocomplete from '$lib/components/ui/Autocomplete.svelte';
   import { buscarUsuariosPorNomeOuEmail } from '$lib/stores/usuarios';
-  import { compressImage } from '$lib/stores/upload';
+  import { compressImage, uploadNamoradoPhoto } from '$lib/stores/upload';
   import { 
     estados, blocos, regioes, igrejas, edicoes,
     loadEstados, loadBlocos, loadRegioes, loadIgrejas, loadEdicoes,
@@ -107,6 +107,20 @@
     regiao_id: '',
     igreja_id: '',
     edicao_id: ''
+  };
+
+  // Dados do namorado (pastor) – 1:1 com o jovem
+  let namoradoForm = {
+    nome: '',
+    foto: '',
+    idade: '',
+    tempo_obra: '',
+    tempo_namoro: '',
+    como_se_conheceram: '',
+    quanto_tempo_se_conhece: '',
+    onde_esta_atualmente: '',
+    atribuicao_atual: '',
+    observacao_namoro: ''
   };
   
   onMount(async () => {
@@ -264,6 +278,28 @@
         igreja_id: jovem.igreja_id || '',
         edicao_id: jovem.edicao_id || ''
       };
+
+      // Carregar dados do namorado (pastor) se existir
+      if (jovem.namorado) {
+        namoradoForm = {
+          nome: jovem.namorado.nome || '',
+          foto: jovem.namorado.foto || '',
+          idade: jovem.namorado.idade != null ? String(jovem.namorado.idade) : '',
+          tempo_obra: jovem.namorado.tempo_obra || '',
+          tempo_namoro: jovem.namorado.tempo_namoro || '',
+          como_se_conheceram: jovem.namorado.como_se_conheceram || '',
+          quanto_tempo_se_conhece: jovem.namorado.quanto_tempo_se_conhece || '',
+          onde_esta_atualmente: jovem.namorado.onde_esta_atualmente || '',
+          atribuicao_atual: jovem.namorado.atribuicao_atual || '',
+          observacao_namoro: jovem.namorado.observacao_namoro || ''
+        };
+      } else {
+        namoradoForm = {
+          nome: '', foto: '', idade: '', tempo_obra: '', tempo_namoro: '',
+          como_se_conheceram: '', quanto_tempo_se_conhece: '', onde_esta_atualmente: '',
+          atribuicao_atual: '', observacao_namoro: ''
+        };
+      }
       
       // Carregar dados geográficos baseados na localização atual do jovem
       if (jovem.estado_id) {
@@ -309,13 +345,36 @@
       });
       
       const result = await updateJovem(jovem.id, cleanedData);
-      if (result) {
-        success = 'Jovem atualizado com sucesso!';
-        setTimeout(() => {
-          goto(`/jovens/${jovem.id}`);
-        }, 1500);
-      } else {
+      if (!result) {
         error = 'Erro ao atualizar jovem';
+      } else {
+        // Upsert namorado (só envia se tiver pelo menos nome ou foto para não criar registro vazio)
+        const temDadosNamorado = namoradoForm.nome?.trim() || namoradoForm.foto || namoradoForm.idade || namoradoForm.tempo_obra?.trim() || namoradoForm.tempo_namoro?.trim() || namoradoForm.como_se_conheceram?.trim() || namoradoForm.quanto_tempo_se_conhece?.trim() || namoradoForm.onde_esta_atualmente?.trim() || namoradoForm.atribuicao_atual?.trim() || namoradoForm.observacao_namoro?.trim();
+        if (temDadosNamorado) {
+          const payload = {
+            jovem_id: jovem.id,
+            nome: namoradoForm.nome?.trim() || null,
+            foto: namoradoForm.foto || null,
+            idade: namoradoForm.idade ? parseInt(namoradoForm.idade, 10) : null,
+            tempo_obra: namoradoForm.tempo_obra?.trim() || null,
+            tempo_namoro: namoradoForm.tempo_namoro?.trim() || null,
+            como_se_conheceram: namoradoForm.como_se_conheceram?.trim() || null,
+            quanto_tempo_se_conhece: namoradoForm.quanto_tempo_se_conhece?.trim() || null,
+            onde_esta_atualmente: namoradoForm.onde_esta_atualmente?.trim() || null,
+            atribuicao_atual: namoradoForm.atribuicao_atual?.trim() || null,
+            observacao_namoro: namoradoForm.observacao_namoro?.trim() || null
+          };
+          const { error: namErr } = await supabase.from('namorados').upsert(payload, { onConflict: 'jovem_id' });
+          if (namErr) {
+            error = error || namErr.message || 'Erro ao salvar dados do namorado';
+          }
+        } else if (jovem.namorado?.id) {
+          await supabase.from('namorados').delete().eq('jovem_id', jovem.id);
+        }
+        if (!error) {
+          success = 'Jovem atualizado com sucesso!';
+          setTimeout(() => goto(`/jovens/${jovem.id}`), 1500);
+        }
       }
     } catch (err) {
       error = err.message;
@@ -462,6 +521,28 @@
     }
   }
   function cancelCrop() { showCropper = false; document.body.style.overflow = ''; }
+
+  async function onNamoradoFotoChange(e) {
+    const file = e?.target?.files?.[0];
+    if (!file || !jovem?.id) return;
+    const maxBytes = 5 * 1024 * 1024;
+    if (file.size > maxBytes) {
+      error = 'A imagem do namorado excede 5MB.';
+      return;
+    }
+    try {
+      saving = true;
+      error = '';
+      const url = await uploadNamoradoPhoto(jovem.id, file);
+      namoradoForm.foto = url;
+      success = 'Foto do namorado atualizada!';
+    } catch (err) {
+      error = err?.message || 'Erro ao enviar foto do namorado';
+    } finally {
+      saving = false;
+      e.target.value = '';
+    }
+  }
 </script>
 
 <svelte:head>
@@ -560,6 +641,83 @@
             </div>
           </div>
         </Card>
+
+        <!-- Dados do Namorado (pastor) – só aparece quando "Namora" = Sim -->
+        {#if formData.namora}
+          <Card>
+            <div class="px-6 py-4 border-b border-rose-100 bg-gradient-to-r from-rose-50 to-lavender-soft/50 rounded-t-lg">
+              <h3 class="text-lg font-semibold text-gray-900">Dados do Namorado (pastor)</h3>
+              <p class="text-sm text-gray-600 mt-1">Preencha os dados do pastor. A foto aparecerá ao lado da foto da menina na ficha.</p>
+            </div>
+            <div class="p-6 space-y-4">
+              <div class="flex flex-col sm:flex-row sm:items-start gap-6">
+                <!-- Área de upload da foto do namorado – clicável e sugestiva -->
+                <input id="fotoNamoradoInput" class="sr-only" type="file" accept="image/*" on:change={onNamoradoFotoChange} />
+                <label for="fotoNamoradoInput" class="foto-namorado-upload group flex-shrink-0 cursor-pointer focus-within:ring-2 focus-within:ring-rose-500 focus-within:ring-offset-2 rounded-2xl outline-none transition-all duration-200 block">
+                  <div class="relative w-36 h-36 rounded-2xl border-2 border-dashed border-rose-300 bg-rose-50/80 flex flex-col items-center justify-center gap-2 overflow-hidden transition-all duration-200 group-hover:border-rose-400 group-hover:bg-rose-100/90 group-active:scale-[0.98] {namoradoForm.foto ? 'border-solid border-rose-200' : ''}">
+                    {#if namoradoForm.foto}
+                      <img src={namoradoForm.foto} alt="Foto do namorado" class="absolute inset-0 w-full h-full object-cover rounded-2xl" />
+                      <div class="absolute inset-0 rounded-2xl bg-black/0 group-hover:bg-black/40 flex flex-col items-center justify-center gap-1 transition-colors duration-200">
+                        <span class="opacity-0 group-hover:opacity-100 text-white text-xs font-semibold px-3 py-1.5 bg-white/20 rounded-lg backdrop-blur-sm transition-opacity duration-200">Alterar foto</span>
+                        <svg class="w-8 h-8 opacity-0 group-hover:opacity-100 text-white drop-shadow transition-opacity duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M19 13v7a2 2 0 01-2 2H7a2 2 0 01-2-2v-7" />
+                        </svg>
+                      </div>
+                    {:else}
+                      <svg class="w-10 h-10 text-rose-400 group-hover:text-rose-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 13v7a2 2 0 01-2 2H7a2 2 0 01-2-2v-7" />
+                      </svg>
+                      <span class="text-xs font-medium text-rose-500 group-hover:text-rose-600 text-center px-2 leading-tight">Clique para enviar foto</span>
+                    {/if}
+                  </div>
+                </label>
+                <div class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label for="namorado_nome" class="block text-sm font-medium text-gray-700 mb-1">Nome do namorado</label>
+                    <input type="text" id="namorado_nome" bind:value={namoradoForm.nome} class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-rose-500 focus:border-transparent" placeholder="Nome completo" />
+                  </div>
+                  <div>
+                    <label for="namorado_idade" class="block text-sm font-medium text-gray-700 mb-1">Idade do namorado</label>
+                    <input type="number" id="namorado_idade" bind:value={namoradoForm.idade} min="1" max="120" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-rose-500 focus:border-transparent" placeholder="Ex: 28" />
+                  </div>
+                  <div>
+                    <label for="namorado_tempo_obra" class="block text-sm font-medium text-gray-700 mb-1">Tempo de obra</label>
+                    <input type="text" id="namorado_tempo_obra" bind:value={namoradoForm.tempo_obra} class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-rose-500 focus:border-transparent" placeholder="Ex: 5 anos" />
+                  </div>
+                  <div>
+                    <label for="namorado_tempo_namoro" class="block text-sm font-medium text-gray-700 mb-1">Tempo de namoro</label>
+                    <input type="text" id="namorado_tempo_namoro" bind:value={namoradoForm.tempo_namoro} class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-rose-500 focus:border-transparent" placeholder="Ex: 2 anos" />
+                  </div>
+                  <div class="md:col-span-2">
+                    <label for="namorado_como_se_conheceram" class="block text-sm font-medium text-gray-700 mb-1">Como se conheceram</label>
+                    <input type="text" id="namorado_como_se_conheceram" bind:value={namoradoForm.como_se_conheceram} class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-rose-500 focus:border-transparent" placeholder="Ex: Na igreja, através de amigos" />
+                  </div>
+                  <div>
+                    <label for="namorado_quanto_tempo_se_conhece" class="block text-sm font-medium text-gray-700 mb-1">Há quanto tempo se conhecem</label>
+                    <input type="text" id="namorado_quanto_tempo_se_conhece" bind:value={namoradoForm.quanto_tempo_se_conhece} class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-rose-500 focus:border-transparent" placeholder="Ex: 3 anos" />
+                  </div>
+                  <div>
+                    <label for="namorado_onde_esta_atualmente" class="block text-sm font-medium text-gray-700 mb-1">Onde está atualmente</label>
+                    <input type="text" id="namorado_onde_esta_atualmente" bind:value={namoradoForm.onde_esta_atualmente} class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-rose-500 focus:border-transparent" placeholder="Cidade, igreja" />
+                  </div>
+                  <div>
+                    <label for="namorado_atribuicao_atual" class="block text-sm font-medium text-gray-700 mb-1">Atribuição atual</label>
+                    <input type="text" id="namorado_atribuicao_atual" bind:value={namoradoForm.atribuicao_atual} class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-rose-500 focus:border-transparent" placeholder="Ex: Pastor, obreiro" />
+                  </div>
+                  <div class="md:col-span-2">
+                    <label for="namorado_observacao_namoro" class="block text-sm font-medium text-gray-700 mb-1">Observação sobre o namoro</label>
+                    <textarea id="namorado_observacao_namoro" bind:value={namoradoForm.observacao_namoro} rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-rose-500 focus:border-transparent" placeholder="Observações gerais"></textarea>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Card>
+        {/if}
+
         <!-- Dados Pessoais -->
         <Card>
           <div class="px-6 py-4 border-b border-gray-200">

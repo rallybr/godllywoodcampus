@@ -252,7 +252,15 @@ export async function loadJovemById(id) {
       .single();
     
     if (fetchError) throw fetchError;
-    return data;
+
+    // Carregar namorado (dados do pastor) se existir
+    const { data: namoradoData } = await supabase
+      .from('namorados')
+      .select('*')
+      .eq('jovem_id', id)
+      .maybeSingle();
+
+    return { ...data, namorado: namoradoData || null };
   } catch (err) {
     console.error('Erro ao carregar jovem:', err);
     error.set(err.message);

@@ -284,7 +284,27 @@
 
       if (fetchError) throw fetchError;
 
-      jovens = data || [];
+      const listaJovens = data || [];
+      const jovensIds = listaJovens.map((j) => j.id).filter(Boolean);
+
+      // Buscar namorados em query separada (mais confiável que relação embutida)
+      let namoradosPorJovem = {};
+      if (jovensIds.length > 0) {
+        const { data: namoradosData } = await supabase
+          .from('namorados')
+          .select('jovem_id, nome, foto, idade')
+          .in('jovem_id', jovensIds);
+        if (namoradosData && Array.isArray(namoradosData)) {
+          namoradosData.forEach((n) => {
+            namoradosPorJovem[n.jovem_id] = { nome: n.nome, foto: n.foto, idade: n.idade };
+          });
+        }
+      }
+
+      jovens = listaJovens.map((j) => ({
+        ...j,
+        namorado: namoradosPorJovem[j.id] || null
+      }));
     } catch (err) {
       error = err.message;
       console.error('Erro ao carregar jovens:', err);
@@ -467,33 +487,29 @@
         // Área útil para posicionar os círculos (largura total menos margem direita)
         const areaUtilCirculos = timelineWidth - marginRight;
         
-        // Valores de posição dos círculos (ajustados para considerar a margem de 10px)
-        // Os percentuais são calculados sobre a área útil, não sobre a largura total
+        // Posições proporcionais dos 7 círculos (igual ao CardCondicao)
         const posicoesCirculos = {
-          1: 8, 2: 24.5, 3: 41, 4: 57.5, 5: 74, 6: 100
+          1: 5, 2: 20, 3: 35, 4: 50, 5: 65, 6: 80, 7: 100
         };
 
-        // Barra de progresso verde (dentro do background, alinhada)
+        // Barra de progresso (dentro do background, alinhada)
         const estagioAtual = getEstagioAtual(jovem);
         const barraY = timelineY + 0.5; // Alinhada dentro do background
         doc.setFillColor(0, 168, 255); // #00a8ff
         
-        // Se for a última condição (AUX = 6), a barra vai até o final do background
-        // Caso contrário, para no círculo correspondente usando a área útil
+        // Se for a última condição (ESP = 7), a barra vai até o final; senão para no círculo correspondente
         let larguraBarraFinal;
-        if (estagioAtual === 6) {
-          // Última condição: barra vai até o final do background (100% da timelineWidth)
+        if (estagioAtual === 7) {
           larguraBarraFinal = timelineWidth;
         } else {
-          // Outras condições: barra para no círculo correspondente
           const larguraBarra = estagioAtual > 0 ? (posicoesCirculos[estagioAtual] || 0) : 0;
           larguraBarraFinal = (areaUtilCirculos * larguraBarra) / 100;
         }
         
         doc.roundedRect(timelineX, barraY, larguraBarraFinal, timelineBarHeight, 2, 2, 'F');
 
-        // Pontos da timeline - usar os mesmos valores percentuais da tela
-        const etapas = ['JOVEM', 'CPO', 'COL', 'OBR', 'CAND', 'ESP'];
+        // Pontos da timeline – 7 estágios (inclui NAM entre CAND e ESP)
+        const etapas = ['JOVEM', 'CPO', 'COL', 'OBR', 'CAND', 'NAM', 'ESP'];
         
         // Calcular a posição Y da última label (para usar na descrição)
         const pointY = barraY + timelineBarHeight / 2;
@@ -569,7 +585,7 @@
       function getEstagioAtual(jovem) {
         const condicaoParaEstagioMap = {
           'jovem_batizado_es': 1, 'cpo': 2, 'colaborador': 3,
-          'obreiro': 4, 'iburd': 5, 'auxiliar_pastor': 6
+          'obreiro': 4, 'iburd': 5, 'namorada': 6, 'auxiliar_pastor': 7
         };
         return condicaoParaEstagioMap[normalize(jovem.condicao)] || 0;
       }
@@ -578,7 +594,7 @@
         if (!jovem.condicao_campus) return 0;
         const condicaoParaEstagioMap = {
           'jovem_batizado_es': 1, 'cpo': 2, 'colaborador': 3,
-          'obreiro': 4, 'iburd': 5, 'auxiliar_pastor': 6
+          'obreiro': 4, 'iburd': 5, 'namorada': 6, 'auxiliar_pastor': 7
         };
         return condicaoParaEstagioMap[normalize(jovem.condicao_campus)] || 0;
       }

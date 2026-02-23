@@ -13,22 +13,24 @@
       .replace(/\s+/g, ' ');
   }
 
-  // Mapeamento de condição -> estágio (1 a 6)
+  // Mapeamento de condição -> estágio (1 a 7): JOVEM, CPO, COL, OBR, CAND, NAM, ESP
   const condicaoParaEstagioMap = new Map([
     [normalize('jovem_batizado_es'), 1],
     [normalize('cpo'), 2],
     [normalize('colaborador'), 3],
     [normalize('obreiro'), 4],
     [normalize('iburd'), 5],
-    [normalize('auxiliar_pastor'), 6],
+    [normalize('namorada'), 6],
+    [normalize('auxiliar_pastor'), 7],
     [normalize('Batizado com o Espírito Santo'), 1],
     [normalize('CPO'), 2],
     [normalize('Colaborador'), 3],
     [normalize('Obreiro'), 4],
     [normalize('IBURD'), 5],
     [normalize('Candidata do Altar'), 5],
-    [normalize('Auxiliar de Pastor'), 6],
-    [normalize('Esposa de Pastor'), 6]
+    [normalize('Namorada de Pastor'), 6],
+    [normalize('Auxiliar de Pastor'), 7],
+    [normalize('Esposa de Pastor'), 7]
   ]);
 
   // Estágio atual de acordo com a condição
@@ -39,32 +41,31 @@
     ? condicaoParaEstagioMap.get(normalize(jovem.condicao_campus)) || 0 
     : 0;
   
-  // Calcular a largura da barra de progresso para parar exatamente no centro do círculo da condição atual
-  // Com justify-between e flex-1, os círculos estão distribuídos uniformemente
-  // Valores calibrados visualmente para alinhar perfeitamente a barra com o centro de cada círculo
+  // Posições proporcionais dos 7 círculos (0% a 100% distribuídos uniformemente)
   const posicoesCirculos = {
-    1: 8,      // JOVEM - centro do primeiro círculo (ajustado para início)
-    2: 24.5,   // CPO
-    3: 41,     // COL
-    4: 57.5,   // OBR
-    5: 74,     // IBURD
-    6: 100      // AUX - centro do último círculo (ajustado para fim)
+    1: 5,       // JOVEM
+    2: 20,      // CPO
+    3: 35,      // COL
+    4: 50,      // OBR
+    5: 65,      // CAND
+    6: 80,      // NAM
+    7: 100      // ESP
   };
   
-  // Se for a última condição (AUX = 6), a barra vai até 100% do background
-  // Caso contrário, para no círculo correspondente
+  // Se for a última condição (ESP = 7), a barra vai até 100%; senão para no círculo correspondente
   $: larguraBarraProgresso = estagioAtual > 0 
-    ? (estagioAtual === 6 ? 100 : posicoesCirculos[estagioAtual] || 0)
+    ? (estagioAtual === 7 ? 100 : posicoesCirculos[estagioAtual] || 0)
     : 0;
 
-  // Etapas da timeline
+  // Etapas da timeline (7 estágios, distribuídos com flex)
   const etapas = [
     { id: 1, label: 'JOVEM', nome: 'Jovem' },
     { id: 2, label: 'CPO', nome: 'CPO' },
     { id: 3, label: 'COL', nome: 'Colaborador' },
     { id: 4, label: 'OBR', nome: 'Obreiro' },
     { id: 5, label: 'CAND', nome: 'Candidata do Altar' },
-    { id: 6, label: 'ESP', nome: 'Esposa de Pastor' }
+    { id: 6, label: 'NAM', nome: 'Namorada de Pastor' },
+    { id: 7, label: 'ESP', nome: 'Esposa de Pastor' }
   ];
 
   // Função para determinar a cor de cada ponto
@@ -110,6 +111,29 @@
             alt={jovem.estado?.sigla || 'UF'} 
             class="w-full h-full object-cover"
           />
+        </div>
+      {/if}
+
+      <!-- Miniatura do pastor (namorado) – abaixo da bandeira, à direita, sobre a foto -->
+      {#if jovem.namorado && (jovem.namorado.nome || jovem.namorado.foto || jovem.namorado.idade != null)}
+        <div class="absolute right-2 top-[4.5rem] z-10 w-20 rounded-lg overflow-hidden border border-white/90 shadow-lg bg-white/95 backdrop-blur-sm namorado-mini">
+          {#if jovem.namorado.foto}
+            <img
+              src={jovem.namorado.foto}
+              alt={jovem.namorado.nome || 'Namorado'}
+              class="w-full h-14 object-cover"
+            />
+          {:else}
+            <div class="w-full h-14 bg-gradient-to-br from-rose-300 to-purple-300 flex items-center justify-center">
+              <span class="text-white font-bold text-lg">{jovem.namorado.nome?.charAt(0) || 'N'}</span>
+            </div>
+          {/if}
+          <div class="px-1.5 py-1 bg-white/95 backdrop-blur-sm">
+            <p class="text-[10px] font-bold text-gray-800 truncate leading-tight" title={jovem.namorado.nome}>{jovem.namorado.nome || '–'}</p>
+            {#if jovem.namorado.idade != null}
+              <p class="text-[9px] text-gray-600">{jovem.namorado.idade} anos</p>
+            {/if}
+          </div>
         </div>
       {/if}
     </a>
@@ -192,6 +216,9 @@
   .card-condicao {
     min-height: 360px;
     max-width: 100%;
+  }
+  .namorado-mini {
+    min-width: 5rem;
   }
 </style>
 

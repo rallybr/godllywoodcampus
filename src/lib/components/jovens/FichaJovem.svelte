@@ -143,20 +143,45 @@
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
       <!-- Coluna esquerda - Foto e dados pessoais -->
       <div class="space-y-6">
-        <!-- Foto do jovem -->
-        <div class="text-center">
-          <div class="w-32 h-32 mx-auto rounded-2xl overflow-hidden border-4 border-gray-200 shadow-lg">
-            {#if jovem.foto}
-              <img
-                class="w-full h-full object-cover"
-                src={jovem.foto}
-                alt={jovem.nome_completo}
-              />
-            {:else}
-              <div class="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                <span class="text-white font-bold text-4xl">
-                  {jovem.nome_completo?.charAt(0) || 'J'}
-                </span>
+        <!-- Foto da menina e do namorado (pastor) lado a lado -->
+        <div class="text-center fotos-duo">
+          <div class="fotos-wrapper">
+            <div class="foto-item">
+              <span class="foto-label">Jovem</span>
+              <div class="w-32 h-32 mx-auto rounded-2xl overflow-hidden border-4 border-gray-200 shadow-lg">
+                {#if jovem.foto}
+                  <img
+                    class="w-full h-full object-cover"
+                    src={jovem.foto}
+                    alt={jovem.nome_completo}
+                  />
+                {:else}
+                  <div class="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                    <span class="text-white font-bold text-4xl">
+                      {jovem.nome_completo?.charAt(0) || 'J'}
+                    </span>
+                  </div>
+                {/if}
+              </div>
+            </div>
+            {#if jovem.namorado}
+              <div class="foto-item">
+                <span class="foto-label">Namorado (pastor)</span>
+                <div class="w-32 h-32 mx-auto rounded-2xl overflow-hidden border-4 border-rose-200 shadow-lg">
+                  {#if jovem.namorado.foto}
+                    <img
+                      class="w-full h-full object-cover"
+                      src={jovem.namorado.foto}
+                      alt={jovem.namorado.nome || 'Namorado'}
+                    />
+                  {:else}
+                    <div class="w-full h-full bg-gradient-to-br from-rose-400 to-lavender flex items-center justify-center">
+                      <span class="text-white font-bold text-4xl">
+                        {jovem.namorado.nome?.charAt(0) || 'N'}
+                      </span>
+                    </div>
+                  {/if}
+                </div>
               </div>
             {/if}
           </div>
@@ -197,6 +222,58 @@
             </div>
           </div>
         </div>
+
+        <!-- Dados do Namorado (pastor) -->
+        {#if jovem.namorado}
+          <div class="bg-gradient-to-br from-rose-50 to-lavender-soft rounded-xl p-6 border border-rose-200">
+            <h3 class="text-lg font-bold text-gray-900 mb-4 flex items-center">
+              <svg class="w-5 h-5 mr-2 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+              </svg>
+              Dados do Namorado (pastor)
+            </h3>
+            <div class="space-y-3">
+              <div class="flex justify-between">
+                <span class="text-sm font-medium text-gray-600">Nome:</span>
+                <span class="text-sm font-semibold text-gray-900">{jovem.namorado.nome || '–'}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-sm font-medium text-gray-600">Idade:</span>
+                <span class="text-sm font-semibold text-gray-900">{jovem.namorado.idade != null ? jovem.namorado.idade + ' anos' : '–'}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-sm font-medium text-gray-600">Tempo de obra:</span>
+                <span class="text-sm font-semibold text-gray-900">{jovem.namorado.tempo_obra || '–'}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-sm font-medium text-gray-600">Tempo de namoro:</span>
+                <span class="text-sm font-semibold text-gray-900">{jovem.namorado.tempo_namoro || '–'}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-sm font-medium text-gray-600">Como se conheceram:</span>
+                <span class="text-sm font-semibold text-gray-900">{jovem.namorado.como_se_conheceram || '–'}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-sm font-medium text-gray-600">Há quanto tempo se conhecem:</span>
+                <span class="text-sm font-semibold text-gray-900">{jovem.namorado.quanto_tempo_se_conhece || '–'}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-sm font-medium text-gray-600">Onde está atualmente:</span>
+                <span class="text-sm font-semibold text-gray-900">{jovem.namorado.onde_esta_atualmente || '–'}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-sm font-medium text-gray-600">Atribuição atual:</span>
+                <span class="text-sm font-semibold text-gray-900">{jovem.namorado.atribuicao_atual || '–'}</span>
+              </div>
+              {#if jovem.namorado.observacao_namoro}
+                <div class="pt-2 border-t border-rose-200">
+                  <span class="text-sm font-medium text-gray-600">Observação sobre o namoro:</span>
+                  <p class="text-sm text-gray-700 mt-1">{jovem.namorado.observacao_namoro}</p>
+                </div>
+              {/if}
+            </div>
+          </div>
+        {/if}
 
         <!-- Informações Profissionais -->
         <div class="bg-gray-50 rounded-xl p-6">
@@ -496,5 +573,27 @@
 </div>
 
 <style>
-  /* Estilos adicionais se necessário */
+  .fotos-duo {
+    margin-bottom: 0.5rem;
+  }
+  .fotos-wrapper {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 1.5rem;
+  }
+  .foto-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .foto-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
 </style>
