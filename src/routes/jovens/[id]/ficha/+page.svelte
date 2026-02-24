@@ -3,9 +3,6 @@
   import { page } from '$app/stores';
   import { supabase } from '$lib/utils/supabase';
   import { get } from 'svelte/store';
-  import { userProfile } from '$lib/stores/auth';
-  import { canAccessJovem } from '$lib/stores/niveis-acesso';
-  import { goto } from '$app/navigation';
 
   let jovemId;
   let jovem = null;
@@ -50,15 +47,10 @@
         estado = est;
       }
 
-      // Verificar permissões de acesso
-      if (jovem) {
-        hasAccess = canAccessJovem(jovem);
-        if (!hasAccess) {
-          console.warn('Usuário não tem permissão para acessar esta ficha');
-          goto('/jovens');
-          return;
-        }
-      }
+      // Se o registro do jovem foi carregado com sucesso,
+      // consideramos que o RLS do Supabase já validou o acesso.
+      // Evitamos uma checagem extra no frontend que não considera associações.
+      hasAccess = !!jovem;
 
       // Avaliações com informações do usuário (nome, nivel, estado_bandeira)
       const { data: avData } = await supabase

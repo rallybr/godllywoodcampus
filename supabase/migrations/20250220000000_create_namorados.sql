@@ -65,8 +65,7 @@ USING (
     (SELECT j.estado_id FROM public.jovens j WHERE j.id = namorados.jovem_id),
     (SELECT j.bloco_id FROM public.jovens j WHERE j.id = namorados.jovem_id),
     (SELECT j.regiao_id FROM public.jovens j WHERE j.id = namorados.jovem_id),
-    (SELECT j.igreja_id FROM public.jovens j WHERE j.id = namorados.jovem_id),
-    namorados.jovem_id
+    (SELECT j.igreja_id FROM public.jovens j WHERE j.id = namorados.jovem_id)
   )
 );
 
@@ -79,8 +78,7 @@ WITH CHECK (
     (SELECT j.estado_id FROM public.jovens j WHERE j.id = jovem_id),
     (SELECT j.bloco_id FROM public.jovens j WHERE j.id = jovem_id),
     (SELECT j.regiao_id FROM public.jovens j WHERE j.id = jovem_id),
-    (SELECT j.igreja_id FROM public.jovens j WHERE j.id = jovem_id),
-    jovem_id
+    (SELECT j.igreja_id FROM public.jovens j WHERE j.id = jovem_id)
   )
 );
 
@@ -93,8 +91,7 @@ USING (
     (SELECT j.estado_id FROM public.jovens j WHERE j.id = namorados.jovem_id),
     (SELECT j.bloco_id FROM public.jovens j WHERE j.id = namorados.jovem_id),
     (SELECT j.regiao_id FROM public.jovens j WHERE j.id = namorados.jovem_id),
-    (SELECT j.igreja_id FROM public.jovens j WHERE j.id = namorados.jovem_id),
-    namorados.jovem_id
+    (SELECT j.igreja_id FROM public.jovens j WHERE j.id = namorados.jovem_id)
   )
 );
 
@@ -107,8 +104,7 @@ USING (
     (SELECT j.estado_id FROM public.jovens j WHERE j.id = namorados.jovem_id),
     (SELECT j.bloco_id FROM public.jovens j WHERE j.id = namorados.jovem_id),
     (SELECT j.regiao_id FROM public.jovens j WHERE j.id = namorados.jovem_id),
-    (SELECT j.igreja_id FROM public.jovens j WHERE j.id = namorados.jovem_id),
-    namorados.jovem_id
+    (SELECT j.igreja_id FROM public.jovens j WHERE j.id = namorados.jovem_id)
   )
 );
 
