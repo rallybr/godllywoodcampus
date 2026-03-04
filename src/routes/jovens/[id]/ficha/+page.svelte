@@ -3,6 +3,7 @@
   import { page } from '$app/stores';
   import { supabase } from '$lib/utils/supabase';
   import { get } from 'svelte/store';
+  import { goto } from '$app/navigation';
 
   let jovemId;
   let jovem = null;
@@ -27,7 +28,7 @@
         .single();
       jovem = jovemData;
 
-      // Carregar dados do namorado (pastor) se existir
+      // Carregar dados do namorado se existir
       if (jovem) {
         const { data: namoradoData } = await supabase
           .from('namorados')
@@ -141,7 +142,7 @@
           </div>
           {#if namorado}
             <div class="foto foto-namorado">
-              <span class="foto-label">Namorado (pastor)</span>
+              <span class="foto-label">Namorado</span>
               {#if namorado.foto}
                 <img src={namorado.foto} alt={namorado.nome || 'Namorado'} />
               {:else}
@@ -169,7 +170,7 @@
       <!-- Dados do Namorado (quando existir) -->
       {#if namorado}
         <div class="secao bloco">
-          <h2>Dados do Namorado (pastor)</h2>
+          <h2>Dados do Namorado</h2>
           <div class="grid">
             <div class="campo"><span>NOME</span><strong>{namorado.nome || '-'}</strong></div>
             <div class="campo"><span>IDADE</span><strong>{namorado.idade != null ? namorado.idade + ' anos' : '-'}</strong></div>

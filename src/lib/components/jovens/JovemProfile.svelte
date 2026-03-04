@@ -256,6 +256,20 @@
   </div>
 {:else if jovem}
   <div class="max-w-6xl mx-auto px-2 sm:px-4 lg:px-6 overflow-x-hidden">
+    <!-- Barra de navegação superior / Voltar -->
+    <div class="flex items-center gap-2 mb-3 sm:mb-4">
+      <button
+        type="button"
+        class="inline-flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 rounded px-1 -ml-1"
+        on:click={() => goto('/jovens')}
+      >
+        <svg class="w-4 h-4" viewBox="0 0 20 20" fill="none" stroke="currentColor">
+          <path d="M12.5 4.5L7 10l5.5 5.5" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        <span>Voltar</span>
+      </button>
+    </div>
+
     <!-- Header -->
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-4 sm:mb-6">
       <!-- Header salmon/rosa com nome e edição -->

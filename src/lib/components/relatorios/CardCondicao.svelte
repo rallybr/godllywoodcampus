@@ -105,7 +105,7 @@
       
       <!-- Bandeira do estado no canto superior direito -->
       {#if jovem.estado?.bandeira}
-        <div class="absolute top-2 right-2 w-[84px] h-[60px] rounded overflow-hidden border border-gray-300 shadow-md z-10">
+        <div class="absolute top-2 right-2 w-[112px] h-[80px] rounded-lg overflow-hidden border border-gray-300 shadow-md z-10">
           <img 
             src={jovem.estado.bandeira} 
             alt={jovem.estado?.sigla || 'UF'} 
@@ -116,22 +116,22 @@
 
       <!-- Miniatura do pastor (namorado) – abaixo da bandeira, à direita, sobre a foto -->
       {#if jovem.namorado && (jovem.namorado.nome || jovem.namorado.foto || jovem.namorado.idade != null)}
-        <div class="absolute right-2 top-[4.5rem] z-10 w-20 rounded-lg overflow-hidden border border-white/90 shadow-lg bg-white/95 backdrop-blur-sm namorado-mini">
+        <div class="absolute right-2 top-[5.6rem] z-10 w-[112px] rounded-lg overflow-hidden border border-white/90 shadow-lg bg-white/95 backdrop-blur-sm namorado-mini">
           {#if jovem.namorado.foto}
             <img
               src={jovem.namorado.foto}
               alt={jovem.namorado.nome || 'Namorado'}
-              class="w-full h-14 object-cover"
+              class="w-full h-[100px] object-cover"
             />
           {:else}
-            <div class="w-full h-14 bg-gradient-to-br from-rose-300 to-purple-300 flex items-center justify-center">
-              <span class="text-white font-bold text-lg">{jovem.namorado.nome?.charAt(0) || 'N'}</span>
+            <div class="w-full h-[100px] bg-gradient-to-br from-rose-300 to-purple-300 flex items-center justify-center">
+              <span class="text-white font-bold text-xl">{jovem.namorado.nome?.charAt(0) || 'N'}</span>
             </div>
           {/if}
           <div class="px-1.5 py-1 bg-white/95 backdrop-blur-sm">
-            <p class="text-[10px] font-bold text-gray-800 truncate leading-tight" title={jovem.namorado.nome}>{jovem.namorado.nome || '–'}</p>
+            <p class="text-[11px] font-bold text-gray-800 truncate leading-tight" title={jovem.namorado.nome}>{jovem.namorado.nome || '–'}</p>
             {#if jovem.namorado.idade != null}
-              <p class="text-[9px] text-gray-600">{jovem.namorado.idade} anos</p>
+              <p class="text-[10px] text-gray-600">{jovem.namorado.idade} anos</p>
             {/if}
           </div>
         </div>
@@ -218,7 +218,7 @@
     max-width: 100%;
   }
   .namorado-mini {
-    min-width: 5rem;
+    min-width: 112px;
   }
 </style>
 

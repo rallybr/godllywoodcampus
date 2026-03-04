@@ -318,6 +318,19 @@ $$;
 ALTER FUNCTION "public"."atribuir_papel_usuario"("p_usuario_id" "uuid", "p_role_id" "uuid", "p_estado_id" "uuid", "p_bloco_id" "uuid", "p_regiao_id" "uuid", "p_igreja_id" "uuid") OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."atualizar_namorados_updated_at"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    AS $$
+BEGIN
+  NEW.atualizado_em = now();
+  RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."atualizar_namorados_updated_at"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."atualizar_status_jovem"("p_jovem_id" "uuid") RETURNS "void"
     LANGUAGE "plpgsql" SECURITY DEFINER
     AS $$
@@ -788,6 +801,158 @@ COMMENT ON FUNCTION "public"."can_access_jovem"("jovem_estado_id" "uuid", "jovem
 
 
 
+CREATE OR REPLACE FUNCTION "public"."can_access_jovem_com_associacoes"("jovem_estado_id" "uuid", "jovem_bloco_id" "uuid", "jovem_regiao_id" "uuid", "jovem_igreja_id" "uuid", "jovem_id" "uuid" DEFAULT NULL::"uuid") RETURNS boolean
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $$
+DECLARE
+  current_user_id uuid;
+  user_info record;
+  tem_associacao boolean := false;
+BEGIN
+  -- Obter o ID do usuário atual
+  current_user_id := (SELECT id FROM public.usuarios WHERE id_auth = auth.uid());
+  
+  -- Se não encontrou o usuário, não tem acesso
+  IF current_user_id IS NULL THEN 
+    RETURN false; 
+  END IF;
+  
+  -- Buscar informações do usuário atual
+  SELECT 
+    id,
+    nivel,
+    estado_id,
+    bloco_id,
+    regiao_id,
+    igreja_id
+  INTO user_info
+  FROM public.usuarios 
+  WHERE id = current_user_id;
+  
+  -- Se não encontrou o usuário, não tem acesso
+  IF user_info IS NULL THEN 
+    RETURN false; 
+  END IF;
+  
+  -- 1. ADMINISTRADOR - Acesso total
+  IF user_info.nivel = 'administrador' THEN 
+    RETURN true; 
+  END IF;
+  
+  -- 2. LÍDERES NACIONAIS - Acesso total (visão nacional)
+  IF user_info.nivel IN ('lider_nacional_iurd', 'lider_nacional_fju') THEN 
+    RETURN true; 
+  END IF;
+  
+  -- 3. LÍDERES ESTADUAIS - Acesso ao estado OU jovens associados
+  IF user_info.nivel IN ('lider_estadual_iurd', 'lider_estadual_fju') THEN 
+    -- Verificar acesso geográfico
+    IF user_info.estado_id IS NOT NULL AND jovem_estado_id = user_info.estado_id THEN 
+      RETURN true; 
+    END IF;
+    
+    -- Verificar associação (se jovem_id foi fornecido)
+    IF jovem_id IS NOT NULL THEN
+      SELECT EXISTS(
+        SELECT 1 FROM public.jovens_usuarios_associacoes 
+        WHERE jovens_usuarios_associacoes.jovem_id = jovem_id AND jovens_usuarios_associacoes.usuario_id = current_user_id
+      ) INTO tem_associacao;
+      
+      IF tem_associacao THEN 
+        RETURN true; 
+      END IF;
+    END IF;
+    
+    RETURN false;
+  END IF;
+  
+  -- 4. LÍDERES DE BLOCO - Acesso ao bloco OU jovens associados
+  IF user_info.nivel IN ('lider_bloco_iurd', 'lider_bloco_fju') THEN 
+    -- Verificar acesso geográfico
+    IF user_info.bloco_id IS NOT NULL AND jovem_bloco_id = user_info.bloco_id THEN 
+      RETURN true; 
+    END IF;
+    
+    -- Verificar associação (se jovem_id foi fornecido)
+    IF jovem_id IS NOT NULL THEN
+      SELECT EXISTS(
+        SELECT 1 FROM public.jovens_usuarios_associacoes 
+        WHERE jovens_usuarios_associacoes.jovem_id = jovem_id AND jovens_usuarios_associacoes.usuario_id = current_user_id
+      ) INTO tem_associacao;
+      
+      IF tem_associacao THEN 
+        RETURN true; 
+      END IF;
+    END IF;
+    
+    RETURN false;
+  END IF;
+  
+  -- 5. LÍDERES REGIONAIS - Acesso à região OU jovens associados
+  IF user_info.nivel = 'lider_regional_iurd' THEN 
+    -- Verificar acesso geográfico
+    IF user_info.regiao_id IS NOT NULL AND jovem_regiao_id = user_info.regiao_id THEN 
+      RETURN true; 
+    END IF;
+    
+    -- Verificar associação (se jovem_id foi fornecido)
+    IF jovem_id IS NOT NULL THEN
+      SELECT EXISTS(
+        SELECT 1 FROM public.jovens_usuarios_associacoes 
+        WHERE jovens_usuarios_associacoes.jovem_id = jovem_id AND jovens_usuarios_associacoes.usuario_id = current_user_id
+      ) INTO tem_associacao;
+      
+      IF tem_associacao THEN 
+        RETURN true; 
+      END IF;
+    END IF;
+    
+    RETURN false;
+  END IF;
+  
+  -- 6. LÍDERES DE IGREJA - Acesso à igreja OU jovens associados
+  IF user_info.nivel = 'lider_igreja_iurd' THEN 
+    -- Verificar acesso geográfico
+    IF user_info.igreja_id IS NOT NULL AND jovem_igreja_id = user_info.igreja_id THEN 
+      RETURN true; 
+    END IF;
+    
+    -- Verificar associação (se jovem_id foi fornecido)
+    IF jovem_id IS NOT NULL THEN
+      SELECT EXISTS(
+        SELECT 1 FROM public.jovens_usuarios_associacoes 
+        WHERE jovens_usuarios_associacoes.jovem_id = jovem_id AND jovens_usuarios_associacoes.usuario_id = current_user_id
+      ) INTO tem_associacao;
+      
+      IF tem_associacao THEN 
+        RETURN true; 
+      END IF;
+    END IF;
+    
+    RETURN false;
+  END IF;
+  
+  -- 7. COLABORADOR - Acesso apenas aos jovens que cadastrou
+  IF user_info.nivel = 'colaborador' THEN 
+    -- Colaborador não tem acesso via associações, apenas via usuario_id
+    RETURN false;
+  END IF;
+  
+  -- 8. JOVEM - Acesso apenas ao próprio perfil
+  IF user_info.nivel = 'jovem' THEN 
+    -- Jovem não tem acesso via associações, apenas ao próprio perfil
+    RETURN false;
+  END IF;
+  
+  -- Se chegou até aqui, não tem acesso
+  RETURN false;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."can_access_jovem_com_associacoes"("jovem_estado_id" "uuid", "jovem_bloco_id" "uuid", "jovem_regiao_id" "uuid", "jovem_igreja_id" "uuid", "jovem_id" "uuid") OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."can_access_viagem_by_level"("jovem_estado_id" "uuid", "jovem_bloco_id" "uuid", "jovem_regiao_id" "uuid", "jovem_igreja_id" "uuid") RETURNS boolean
     LANGUAGE "plpgsql" SECURITY DEFINER
     AS $$
@@ -1167,15 +1332,32 @@ BEGIN
       'id', i.id,
       'nome', i.nome,
       'endereco', i.endereco
-    )
+    ),
+    'namorado', CASE
+      WHEN n.id IS NOT NULL THEN jsonb_build_object(
+        'id', n.id,
+        'nome', n.nome,
+        'foto', n.foto,
+        'idade', n.idade,
+        'tempo_obra', n.tempo_obra,
+        'tempo_namoro', n.tempo_namoro,
+        'como_se_conheceram', n.como_se_conheceram,
+        'quanto_tempo_se_conhece', n.quanto_tempo_se_conhece,
+        'onde_esta_atualmente', n.onde_esta_atualmente,
+        'atribuicao_atual', n.atribuicao_atual,
+        'observacao_namoro', n.observacao_namoro
+      )
+      ELSE NULL
+    END
   ) INTO resultado
   FROM public.jovens j
   LEFT JOIN public.estados e ON e.id = j.estado_id
   LEFT JOIN public.blocos b ON b.id = j.bloco_id
   LEFT JOIN public.regioes r ON r.id = j.regiao_id
   LEFT JOIN public.igrejas i ON i.id = j.igreja_id
+  LEFT JOIN public.namorados n ON n.jovem_id = j.id
   WHERE j.id = p_jovem_id;
-  
+
   RETURN resultado;
 END;
 $$;
@@ -1547,6 +1729,26 @@ $$;
 
 
 ALTER FUNCTION "public"."limpar_notificacoes_antigas"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."namorado_jovem_pertence_ao_usuario"("p_jovem_id" "uuid") RETURNS boolean
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.jovens j
+    INNER JOIN public.usuarios u ON u.id = j.usuario_id AND u.id_auth = auth.uid()
+    WHERE j.id = p_jovem_id
+  );
+$$;
+
+
+ALTER FUNCTION "public"."namorado_jovem_pertence_ao_usuario"("p_jovem_id" "uuid") OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."namorado_jovem_pertence_ao_usuario"("p_jovem_id" "uuid") IS 'True se o jovem pertence ao usuário logado (jovens.usuario_id = usuarios.id onde id_auth = auth.uid())';
+
 
 
 CREATE OR REPLACE FUNCTION "public"."notificar_associacao_jovem"("p_jovem_id" "uuid", "p_usuario_associado_id" "uuid", "p_titulo" "text", "p_mensagem" "text", "p_acao_url" "text" DEFAULT NULL::"text") RETURNS integer
@@ -2879,6 +3081,71 @@ CREATE TABLE IF NOT EXISTS "public"."logs_historico" (
 ALTER TABLE "public"."logs_historico" OWNER TO "postgres";
 
 
+CREATE TABLE IF NOT EXISTS "public"."namorados" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "jovem_id" "uuid" NOT NULL,
+    "nome" "text",
+    "foto" "text",
+    "idade" integer,
+    "tempo_obra" "text",
+    "tempo_namoro" "text",
+    "como_se_conheceram" "text",
+    "quanto_tempo_se_conhece" "text",
+    "onde_esta_atualmente" "text",
+    "atribuicao_atual" "text",
+    "observacao_namoro" "text",
+    "criado_em" timestamp with time zone DEFAULT "now"(),
+    "atualizado_em" timestamp with time zone DEFAULT "now"()
+);
+
+
+ALTER TABLE "public"."namorados" OWNER TO "postgres";
+
+
+COMMENT ON TABLE "public"."namorados" IS 'Dados do namorado (pastor) da jovem do Godllywood Campus';
+
+
+
+COMMENT ON COLUMN "public"."namorados"."nome" IS 'Nome do namorado';
+
+
+
+COMMENT ON COLUMN "public"."namorados"."foto" IS 'URL da foto do namorado (Storage)';
+
+
+
+COMMENT ON COLUMN "public"."namorados"."idade" IS 'Idade do namorado';
+
+
+
+COMMENT ON COLUMN "public"."namorados"."tempo_obra" IS 'Tempo de obra';
+
+
+
+COMMENT ON COLUMN "public"."namorados"."tempo_namoro" IS 'Tempo de namoro';
+
+
+
+COMMENT ON COLUMN "public"."namorados"."como_se_conheceram" IS 'Como se conheceram';
+
+
+
+COMMENT ON COLUMN "public"."namorados"."quanto_tempo_se_conhece" IS 'Há quanto tempo se conhecem';
+
+
+
+COMMENT ON COLUMN "public"."namorados"."onde_esta_atualmente" IS 'Onde está atualmente';
+
+
+
+COMMENT ON COLUMN "public"."namorados"."atribuicao_atual" IS 'Atribuição atual (pastor, etc.)';
+
+
+
+COMMENT ON COLUMN "public"."namorados"."observacao_namoro" IS 'Observação sobre o namoro';
+
+
+
 CREATE TABLE IF NOT EXISTS "public"."notificacoes" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "tipo" character varying(50) NOT NULL,
@@ -2892,7 +3159,7 @@ CREATE TABLE IF NOT EXISTS "public"."notificacoes" (
     "lida_em" timestamp with time zone,
     "criado_em" timestamp with time zone DEFAULT "now"(),
     "atualizado_em" timestamp with time zone DEFAULT "now"(),
-    CONSTRAINT "notificacoes_tipo_check" CHECK ((("tipo")::"text" = ANY ((ARRAY['cadastro'::character varying, 'avaliacao'::character varying, 'aprovacao'::character varying, 'transferencia'::character varying, 'sistema'::character varying])::"text"[])))
+    CONSTRAINT "notificacoes_tipo_check" CHECK ((("tipo")::"text" = ANY (ARRAY[('cadastro'::character varying)::"text", ('avaliacao'::character varying)::"text", ('aprovacao'::character varying)::"text", ('transferencia'::character varying)::"text", ('sistema'::character varying)::"text"])))
 );
 
 
@@ -3073,6 +3340,16 @@ ALTER TABLE ONLY "public"."logs_historico"
 
 
 
+ALTER TABLE ONLY "public"."namorados"
+    ADD CONSTRAINT "namorados_jovem_id_unique" UNIQUE ("jovem_id");
+
+
+
+ALTER TABLE ONLY "public"."namorados"
+    ADD CONSTRAINT "namorados_pkey" PRIMARY KEY ("id");
+
+
+
 ALTER TABLE ONLY "public"."notificacoes"
     ADD CONSTRAINT "notificacoes_pkey" PRIMARY KEY ("id");
 
@@ -3227,6 +3504,10 @@ CREATE INDEX "idx_logs_user_id" ON "public"."logs_historico" USING "btree" ("use
 
 
 
+CREATE INDEX "idx_namorados_jovem_id" ON "public"."namorados" USING "btree" ("jovem_id");
+
+
+
 CREATE INDEX "idx_notificacoes_criado_em" ON "public"."notificacoes" USING "btree" ("criado_em");
 
 
@@ -3344,6 +3625,10 @@ CREATE OR REPLACE TRIGGER "trigger_atualizar_timestamp_sessoes" BEFORE UPDATE ON
 
 
 CREATE OR REPLACE TRIGGER "trigger_mudanca_status_jovem" AFTER UPDATE ON "public"."jovens" FOR EACH ROW EXECUTE FUNCTION "public"."trigger_notificar_mudanca_status"();
+
+
+
+CREATE OR REPLACE TRIGGER "trigger_namorados_updated_at" BEFORE UPDATE ON "public"."namorados" FOR EACH ROW EXECUTE FUNCTION "public"."atualizar_namorados_updated_at"();
 
 
 
@@ -3496,6 +3781,11 @@ ALTER TABLE ONLY "public"."logs_historico"
 
 ALTER TABLE ONLY "public"."logs_historico"
     ADD CONSTRAINT "logs_historico_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."usuarios"("id");
+
+
+
+ALTER TABLE ONLY "public"."namorados"
+    ADD CONSTRAINT "namorados_jovem_id_fkey" FOREIGN KEY ("jovem_id") REFERENCES "public"."jovens"("id") ON DELETE CASCADE;
 
 
 
@@ -4062,6 +4352,89 @@ ALTER TABLE "public"."logs_auditoria" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."logs_historico" ENABLE ROW LEVEL SECURITY;
 
 
+ALTER TABLE "public"."namorados" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "namorados_delete" ON "public"."namorados" FOR DELETE TO "authenticated" USING (("public"."can_access_jovem"(( SELECT "j"."estado_id"
+   FROM "public"."jovens" "j"
+  WHERE ("j"."id" = "namorados"."jovem_id")), ( SELECT "j"."bloco_id"
+   FROM "public"."jovens" "j"
+  WHERE ("j"."id" = "namorados"."jovem_id")), ( SELECT "j"."regiao_id"
+   FROM "public"."jovens" "j"
+  WHERE ("j"."id" = "namorados"."jovem_id")), ( SELECT "j"."igreja_id"
+   FROM "public"."jovens" "j"
+  WHERE ("j"."id" = "namorados"."jovem_id"))) OR "public"."can_access_jovem_com_associacoes"(( SELECT "j"."estado_id"
+   FROM "public"."jovens" "j"
+  WHERE ("j"."id" = "namorados"."jovem_id")), ( SELECT "j"."bloco_id"
+   FROM "public"."jovens" "j"
+  WHERE ("j"."id" = "namorados"."jovem_id")), ( SELECT "j"."regiao_id"
+   FROM "public"."jovens" "j"
+  WHERE ("j"."id" = "namorados"."jovem_id")), ( SELECT "j"."igreja_id"
+   FROM "public"."jovens" "j"
+  WHERE ("j"."id" = "namorados"."jovem_id")), "jovem_id") OR "public"."namorado_jovem_pertence_ao_usuario"("jovem_id")));
+
+
+
+CREATE POLICY "namorados_insert" ON "public"."namorados" FOR INSERT TO "authenticated" WITH CHECK (("public"."can_access_jovem"(( SELECT "j"."estado_id"
+   FROM "public"."jovens" "j"
+  WHERE ("j"."id" = "namorados"."jovem_id")), ( SELECT "j"."bloco_id"
+   FROM "public"."jovens" "j"
+  WHERE ("j"."id" = "namorados"."jovem_id")), ( SELECT "j"."regiao_id"
+   FROM "public"."jovens" "j"
+  WHERE ("j"."id" = "namorados"."jovem_id")), ( SELECT "j"."igreja_id"
+   FROM "public"."jovens" "j"
+  WHERE ("j"."id" = "namorados"."jovem_id"))) OR "public"."can_access_jovem_com_associacoes"(( SELECT "j"."estado_id"
+   FROM "public"."jovens" "j"
+  WHERE ("j"."id" = "namorados"."jovem_id")), ( SELECT "j"."bloco_id"
+   FROM "public"."jovens" "j"
+  WHERE ("j"."id" = "namorados"."jovem_id")), ( SELECT "j"."regiao_id"
+   FROM "public"."jovens" "j"
+  WHERE ("j"."id" = "namorados"."jovem_id")), ( SELECT "j"."igreja_id"
+   FROM "public"."jovens" "j"
+  WHERE ("j"."id" = "namorados"."jovem_id")), "jovem_id") OR "public"."namorado_jovem_pertence_ao_usuario"("jovem_id")));
+
+
+
+CREATE POLICY "namorados_select" ON "public"."namorados" FOR SELECT TO "authenticated" USING (("public"."can_access_jovem"(( SELECT "j"."estado_id"
+   FROM "public"."jovens" "j"
+  WHERE ("j"."id" = "namorados"."jovem_id")), ( SELECT "j"."bloco_id"
+   FROM "public"."jovens" "j"
+  WHERE ("j"."id" = "namorados"."jovem_id")), ( SELECT "j"."regiao_id"
+   FROM "public"."jovens" "j"
+  WHERE ("j"."id" = "namorados"."jovem_id")), ( SELECT "j"."igreja_id"
+   FROM "public"."jovens" "j"
+  WHERE ("j"."id" = "namorados"."jovem_id"))) OR "public"."can_access_jovem_com_associacoes"(( SELECT "j"."estado_id"
+   FROM "public"."jovens" "j"
+  WHERE ("j"."id" = "namorados"."jovem_id")), ( SELECT "j"."bloco_id"
+   FROM "public"."jovens" "j"
+  WHERE ("j"."id" = "namorados"."jovem_id")), ( SELECT "j"."regiao_id"
+   FROM "public"."jovens" "j"
+  WHERE ("j"."id" = "namorados"."jovem_id")), ( SELECT "j"."igreja_id"
+   FROM "public"."jovens" "j"
+  WHERE ("j"."id" = "namorados"."jovem_id")), "jovem_id") OR "public"."namorado_jovem_pertence_ao_usuario"("jovem_id")));
+
+
+
+CREATE POLICY "namorados_update" ON "public"."namorados" FOR UPDATE TO "authenticated" USING (("public"."can_access_jovem"(( SELECT "j"."estado_id"
+   FROM "public"."jovens" "j"
+  WHERE ("j"."id" = "namorados"."jovem_id")), ( SELECT "j"."bloco_id"
+   FROM "public"."jovens" "j"
+  WHERE ("j"."id" = "namorados"."jovem_id")), ( SELECT "j"."regiao_id"
+   FROM "public"."jovens" "j"
+  WHERE ("j"."id" = "namorados"."jovem_id")), ( SELECT "j"."igreja_id"
+   FROM "public"."jovens" "j"
+  WHERE ("j"."id" = "namorados"."jovem_id"))) OR "public"."can_access_jovem_com_associacoes"(( SELECT "j"."estado_id"
+   FROM "public"."jovens" "j"
+  WHERE ("j"."id" = "namorados"."jovem_id")), ( SELECT "j"."bloco_id"
+   FROM "public"."jovens" "j"
+  WHERE ("j"."id" = "namorados"."jovem_id")), ( SELECT "j"."regiao_id"
+   FROM "public"."jovens" "j"
+  WHERE ("j"."id" = "namorados"."jovem_id")), ( SELECT "j"."igreja_id"
+   FROM "public"."jovens" "j"
+  WHERE ("j"."id" = "namorados"."jovem_id")), "jovem_id") OR "public"."namorado_jovem_pertence_ao_usuario"("jovem_id")));
+
+
+
 ALTER TABLE "public"."notificacoes" ENABLE ROW LEVEL SECURITY;
 
 
@@ -4330,6 +4703,12 @@ GRANT ALL ON FUNCTION "public"."atribuir_papel_usuario"("p_usuario_id" "uuid", "
 
 
 
+GRANT ALL ON FUNCTION "public"."atualizar_namorados_updated_at"() TO "anon";
+GRANT ALL ON FUNCTION "public"."atualizar_namorados_updated_at"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."atualizar_namorados_updated_at"() TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."atualizar_status_jovem"("p_jovem_id" "uuid") TO "anon";
 GRANT ALL ON FUNCTION "public"."atualizar_status_jovem"("p_jovem_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."atualizar_status_jovem"("p_jovem_id" "uuid") TO "service_role";
@@ -4381,6 +4760,12 @@ GRANT ALL ON FUNCTION "public"."buscar_usuarios_com_ultimo_acesso"() TO "service
 GRANT ALL ON FUNCTION "public"."can_access_jovem"("jovem_estado_id" "uuid", "jovem_bloco_id" "uuid", "jovem_regiao_id" "uuid", "jovem_igreja_id" "uuid", "p_jovem_id" "uuid") TO "anon";
 GRANT ALL ON FUNCTION "public"."can_access_jovem"("jovem_estado_id" "uuid", "jovem_bloco_id" "uuid", "jovem_regiao_id" "uuid", "jovem_igreja_id" "uuid", "p_jovem_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."can_access_jovem"("jovem_estado_id" "uuid", "jovem_bloco_id" "uuid", "jovem_regiao_id" "uuid", "jovem_igreja_id" "uuid", "p_jovem_id" "uuid") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."can_access_jovem_com_associacoes"("jovem_estado_id" "uuid", "jovem_bloco_id" "uuid", "jovem_regiao_id" "uuid", "jovem_igreja_id" "uuid", "jovem_id" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."can_access_jovem_com_associacoes"("jovem_estado_id" "uuid", "jovem_bloco_id" "uuid", "jovem_regiao_id" "uuid", "jovem_igreja_id" "uuid", "jovem_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."can_access_jovem_com_associacoes"("jovem_estado_id" "uuid", "jovem_bloco_id" "uuid", "jovem_regiao_id" "uuid", "jovem_igreja_id" "uuid", "jovem_id" "uuid") TO "service_role";
 
 
 
@@ -4483,6 +4868,12 @@ GRANT ALL ON FUNCTION "public"."limpar_logs_antigos"("dias_retencao" integer) TO
 GRANT ALL ON FUNCTION "public"."limpar_notificacoes_antigas"() TO "anon";
 GRANT ALL ON FUNCTION "public"."limpar_notificacoes_antigas"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."limpar_notificacoes_antigas"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."namorado_jovem_pertence_ao_usuario"("p_jovem_id" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."namorado_jovem_pertence_ao_usuario"("p_jovem_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."namorado_jovem_pertence_ao_usuario"("p_jovem_id" "uuid") TO "service_role";
 
 
 
@@ -4744,6 +5135,12 @@ GRANT ALL ON TABLE "public"."logs_auditoria" TO "service_role";
 GRANT ALL ON TABLE "public"."logs_historico" TO "anon";
 GRANT ALL ON TABLE "public"."logs_historico" TO "authenticated";
 GRANT ALL ON TABLE "public"."logs_historico" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."namorados" TO "anon";
+GRANT ALL ON TABLE "public"."namorados" TO "authenticated";
+GRANT ALL ON TABLE "public"."namorados" TO "service_role";
 
 
 

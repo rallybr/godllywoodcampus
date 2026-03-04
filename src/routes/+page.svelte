@@ -732,11 +732,16 @@
         <p class="text-sm text-gray-500">Bem-vindo ao Godllywood Campus</p>
       </div>
     </div>
-    <div class="bg-gray-50 rounded-lg p-4">
-      <p class="text-gray-700">
-        Evolução das moças que estiveram no Godllywood Campus.
-      </p>
-    </div>
+    <button
+      type="button"
+      class="mt-3 w-full inline-flex items-center justify-center gap-2 rounded-lg border border-rose-200 bg-gradient-to-r from-rose-50 to-rose-100 px-4 py-2.5 text-xs sm:text-sm font-semibold tracking-[0.08em] text-rose-700 uppercase shadow-sm hover:from-rose-100 hover:to-rose-200 hover:border-rose-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 focus-visible:ring-offset-1 transition-colors"
+      on:click={() => goto('/relatorio-condicao')}
+    >
+      <span>EVOLUÇÃO GODLLYWOOD CAMPUS</span>
+      <svg class="w-3.5 h-3.5 text-rose-600" viewBox="0 0 20 20" fill="none" stroke="currentColor">
+        <path d="M8 5l4 5-4 5" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+    </button>
   </div>
   
   <!-- Stats overview -->

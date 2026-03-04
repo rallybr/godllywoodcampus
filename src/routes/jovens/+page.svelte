@@ -73,6 +73,20 @@
 </svelte:head>
 
 <div class="space-y-6 px-4 sm:px-6">
+  <!-- Barra de navegação / Voltar para o feed -->
+  <div class="pt-4">
+    <button
+      type="button"
+      class="inline-flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 rounded px-1 -ml-1"
+      on:click={() => goto('/')}
+    >
+      <svg class="w-4 h-4" viewBox="0 0 20 20" fill="none" stroke="currentColor">
+        <path d="M12.5 4.5L7 10l5.5 5.5" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+      <span>Voltar</span>
+    </button>
+  </div>
+
   <!-- Header -->
   <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
     <div>
