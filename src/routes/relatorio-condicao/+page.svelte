@@ -30,6 +30,7 @@
   // Mapear códigos para nomes
   const condicoesMap = {
     'auxiliar_pastor': 'Esposa de Pastor',
+    'curso': 'Curso',
     'iburd': 'Candidata do Altar',
     'namorada': 'Namorada de Pastor',
     'noiva': 'Noiva de Pastor',
@@ -585,7 +586,7 @@
       function getEstagioAtual(jovem) {
         const condicaoParaEstagioMap = {
           'jovem_batizado_es': 1, 'cpo': 2, 'colaborador': 3,
-          'obreiro': 4, 'iburd': 5, 'namorada': 6, 'auxiliar_pastor': 7
+          'obreiro': 4, 'iburd': 5, 'namorada': 6, 'curso': 7, 'auxiliar_pastor': 8
         };
         return condicaoParaEstagioMap[normalize(jovem.condicao)] || 0;
       }
@@ -594,7 +595,7 @@
         if (!jovem.condicao_campus) return 0;
         const condicaoParaEstagioMap = {
           'jovem_batizado_es': 1, 'cpo': 2, 'colaborador': 3,
-          'obreiro': 4, 'iburd': 5, 'namorada': 6, 'auxiliar_pastor': 7
+          'obreiro': 4, 'iburd': 5, 'namorada': 6, 'curso': 7, 'auxiliar_pastor': 8
         };
         return condicaoParaEstagioMap[normalize(jovem.condicao_campus)] || 0;
       }

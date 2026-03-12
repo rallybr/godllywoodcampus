@@ -1130,6 +1130,7 @@
                     <option value="obreiro">Obreiro(a)</option>
                     <option value="iburd">Candidata do Altar</option>
                     <option value="auxiliar_pastor">Esposa de Pastor</option>
+                    <option value="curso">Curso</option>
                     <option value="namorada">Namorada de Pastor</option>
                     <option value="noiva">Noiva de Pastor</option>
                   </select>
@@ -1158,6 +1159,7 @@
                     <option value="obreiro">Obreiro(a)</option>
                     <option value="iburd">Candidata do Altar</option>
                     <option value="auxiliar_pastor">Esposa de Pastor</option>
+                    <option value="curso">Curso</option>
                     <option value="namorada">Namorada de Pastor</option>
                     <option value="noiva">Noiva de Pastor</option>
                   </select>
@@ -1205,7 +1207,7 @@
                   bind:checked={formData.disposto_servir}
                   class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                 />
-                <label for="disposto_servir" class="ml-2 text-sm text-gray-700">Disposto a Servir</label>
+                <label for="disposto_servir" class="ml-2 text-sm text-gray-700">Disposta a Servir</label>
               </div>
               <div class="flex items-center">
                 <input

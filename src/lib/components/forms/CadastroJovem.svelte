@@ -1459,6 +1459,7 @@
                       <option value="obreiro">Obreiro(a)</option>
                       <option value="iburd">Candidata do Altar</option>
                       <option value="auxiliar_pastor">Esposa de Pastor</option>
+                      <option value="curso">Curso</option>
                       <option value="namorada">Namorada de Pastor</option>
                       <option value="noiva">Noiva de Pastor</option>
                     </select>
@@ -1488,6 +1489,7 @@
                       <option value="obreiro">Obreiro(a)</option>
                       <option value="iburd">Candidata do Altar</option>
                       <option value="auxiliar_pastor">Esposa de Pastor</option>
+                      <option value="curso">Curso</option>
                       <option value="namorada">Namorada de Pastor</option>
                       <option value="noiva">Noiva de Pastor</option>
                     </select>
@@ -1686,7 +1688,7 @@
                     <svg class="w-5 h-5 text-green-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    <span class="text-sm font-semibold text-gray-700 break-words">Disposto a servir em qualquer lugar?</span>
+                    <span class="text-sm font-semibold text-gray-700 break-words">Disposta a servir em qualquer lugar?</span>
                   </div>
                 </label>
               </div>

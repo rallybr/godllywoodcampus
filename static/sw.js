@@ -77,6 +77,16 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+// Verificar se a requisição e a resposta podem ser cacheadas (Cache API só suporta GET e respostas completas)
+function canCache(request, response) {
+  if (request.method !== 'GET') return false;
+  // 206 Partial Content não é suportado pelo Cache API
+  if (response.status === 206) return false;
+  // Só cachear respostas consideradas "completas"
+  if (response.status !== 200 && response.status !== 301 && response.status !== 302 && response.status !== 304) return false;
+  return true;
+}
+
 // Interceptar requisições
 self.addEventListener('fetch', (event) => {
   const { request } = event;
@@ -92,10 +102,10 @@ self.addEventListener('fetch', (event) => {
     // Network First para APIs e autenticação
     event.respondWith(networkFirstStrategy(request));
   } else if (CACHE_FIRST_URLS.some(pattern => url.pathname.includes(pattern))) {
-    // Cache First para assets estáticos
+    // Cache First para assets estáticos (apenas GET)
     event.respondWith(cacheFirstStrategy(request));
   } else {
-    // Stale While Revalidate para páginas
+    // Stale While Revalidate para páginas (apenas GET)
     event.respondWith(staleWhileRevalidateStrategy(request));
   }
 });
@@ -106,8 +116,8 @@ async function networkFirstStrategy(request) {
     // Tentar buscar da rede primeiro
     const networkResponse = await fetch(request);
     
-    // Se sucesso, cachear a resposta
-    if (networkResponse.ok) {
+    // Se sucesso e for cacheável (GET + resposta completa), cachear
+    if (networkResponse.ok && canCache(request, networkResponse)) {
       const cache = await caches.open(DYNAMIC_CACHE);
       cache.put(request, networkResponse.clone());
     }
@@ -145,7 +155,7 @@ async function cacheFirstStrategy(request) {
   try {
     const networkResponse = await fetch(request);
     
-    if (networkResponse.ok) {
+    if (networkResponse.ok && canCache(request, networkResponse)) {
       const cache = await caches.open(STATIC_CACHE);
       cache.put(request, networkResponse.clone());
     }
@@ -164,7 +174,7 @@ async function staleWhileRevalidateStrategy(request) {
   
   // Buscar da rede em background
   const networkResponsePromise = fetch(request).then((response) => {
-    if (response.ok) {
+    if (response.ok && canCache(request, response)) {
       cache.put(request, response.clone());
     }
     return response;

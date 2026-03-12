@@ -50,21 +50,21 @@
     const labels = {
       espirito: {
         'ruim': 'Ruim',
-        'ser_observar': 'Ser Observado',
+        'ser_observar': 'Ser Observada',
         'bom': 'Bom',
         'excelente': 'Excelente'
       },
       caractere: {
         'excelente': 'Excelente',
         'bom': 'Bom',
-        'ser_observar': 'Ser Observado',
+        'ser_observar': 'Ser Observada',
         'ruim': 'Ruim'
       },
       disposicao: {
-        'muito_disposto': 'Muito Disposto',
+        'muito_disposto': 'Muito Disposta',
         'normal': 'Normal',
-        'pacato': 'Pacato',
-        'desanimado': 'Desanimado'
+        'pacato': 'Pacata',
+        'desanimado': 'Desanimada'
       }
     };
     

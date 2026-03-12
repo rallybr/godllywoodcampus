@@ -336,10 +336,10 @@ function getEnumLabel(value, type) {
       'ruim': 'Ruim'
     },
     disposicao: {
-      'muito_disposto': 'Muito Disposto',
+      'muito_disposto': 'Muito Disposta',
       'normal': 'Normal',
-      'pacato': 'Pacato',
-      'desanimado': 'Desanimado'
+      'pacato': 'Pacata',
+      'desanimado': 'Desanimada'
     }
   };
   
@@ -352,7 +352,7 @@ export function getEnumOptions() {
     espirito: [
       { value: '', label: 'Selecione a avaliação' },
       { value: 'ruim', label: 'Ruim' },
-      { value: 'ser_observar', label: 'Ser Observado' },
+      { value: 'ser_observar', label: 'Ser Observada' },
       { value: 'bom', label: 'Bom' },
       { value: 'excelente', label: 'Excelente' }
     ],
@@ -360,15 +360,15 @@ export function getEnumOptions() {
       { value: '', label: 'Selecione a avaliação' },
       { value: 'excelente', label: 'Excelente' },
       { value: 'bom', label: 'Bom' },
-      { value: 'ser_observar', label: 'Ser Observado' },
+      { value: 'ser_observar', label: 'Ser Observada' },
       { value: 'ruim', label: 'Ruim' }
     ],
     disposicao: [
       { value: '', label: 'Selecione a avaliação' },
-      { value: 'muito_disposto', label: 'Muito Disposto' },
+      { value: 'muito_disposto', label: 'Muito Disposta' },
       { value: 'normal', label: 'Normal' },
-      { value: 'pacato', label: 'Pacato' },
-      { value: 'desanimado', label: 'Desanimado' }
+      { value: 'pacato', label: 'Pacata' },
+      { value: 'desanimado', label: 'Desanimada' }
     ],
     notas: [
       { value: '', label: 'Selecione a nota' },

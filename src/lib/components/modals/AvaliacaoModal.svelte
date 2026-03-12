@@ -34,7 +34,7 @@
   // Opções dos selects
   const opcoesEspirito = [
     { value: 'ruim', label: 'Ruim' },
-    { value: 'ser_observar', label: 'Ser Observado' },
+    { value: 'ser_observar', label: 'Ser Observada' },
     { value: 'bom', label: 'Bom' },
     { value: 'excelente', label: 'Excelente' }
   ];
@@ -42,15 +42,15 @@
   const opcoesCaractere = [
     { value: 'excelente', label: 'Excelente' },
     { value: 'bom', label: 'Bom' },
-    { value: 'ser_observar', label: 'Ser Observado' },
+    { value: 'ser_observar', label: 'Ser Observada' },
     { value: 'ruim', label: 'Ruim' }
   ];
   
   const opcoesDisposicao = [
-    { value: 'muito_disposto', label: 'Disposto' },
+    { value: 'muito_disposto', label: 'Disposta' },
     { value: 'normal', label: 'Normal' },
-    { value: 'pacato', label: 'Pacato' },
-    { value: 'desanimado', label: 'Desanimado' }
+    { value: 'pacato', label: 'Pacata' },
+    { value: 'desanimado', label: 'Desanimada' }
   ];
   
   // Validação

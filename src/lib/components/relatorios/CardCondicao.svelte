@@ -13,7 +13,7 @@
       .replace(/\s+/g, ' ');
   }
 
-  // Mapeamento de condição -> estágio (1 a 7): JOVEM, CPO, COL, OBR, CAND, NAM, ESP
+  // Mapeamento de condição -> estágio (1 a 8): JOVEM, CPO, COL, OBR, CAND, NAM, CURSO, ESP
   const condicaoParaEstagioMap = new Map([
     [normalize('jovem_batizado_es'), 1],
     [normalize('cpo'), 2],
@@ -21,7 +21,8 @@
     [normalize('obreiro'), 4],
     [normalize('iburd'), 5],
     [normalize('namorada'), 6],
-    [normalize('auxiliar_pastor'), 7],
+    [normalize('curso'), 7],
+    [normalize('auxiliar_pastor'), 8],
     [normalize('Batizado com o Espírito Santo'), 1],
     [normalize('CPO'), 2],
     [normalize('Colaborador'), 3],
@@ -29,8 +30,9 @@
     [normalize('IBURD'), 5],
     [normalize('Candidata do Altar'), 5],
     [normalize('Namorada de Pastor'), 6],
-    [normalize('Auxiliar de Pastor'), 7],
-    [normalize('Esposa de Pastor'), 7]
+    [normalize('Curso'), 7],
+    [normalize('Auxiliar de Pastor'), 8],
+    [normalize('Esposa de Pastor'), 8]
   ]);
 
   // Estágio atual de acordo com a condição
@@ -41,23 +43,24 @@
     ? condicaoParaEstagioMap.get(normalize(jovem.condicao_campus)) || 0 
     : 0;
   
-  // Posições proporcionais dos 7 círculos (0% a 100% distribuídos uniformemente)
+  // Posições proporcionais dos 8 círculos (0% a 100% distribuídos uniformemente)
   const posicoesCirculos = {
     1: 5,       // JOVEM
-    2: 20,      // CPO
-    3: 35,      // COL
-    4: 50,      // OBR
-    5: 65,      // CAND
-    6: 80,      // NAM
-    7: 100      // ESP
+    2: 18,      // CPO
+    3: 31,      // COL
+    4: 44,      // OBR
+    5: 57,      // CAND
+    6: 70,      // NAM
+    7: 82,      // CURSO
+    8: 100      // ESP
   };
   
-  // Se for a última condição (ESP = 7), a barra vai até 100%; senão para no círculo correspondente
+  // Se for a última condição (ESP = 8), a barra vai até 100%; senão para no círculo correspondente
   $: larguraBarraProgresso = estagioAtual > 0 
-    ? (estagioAtual === 7 ? 100 : posicoesCirculos[estagioAtual] || 0)
+    ? (estagioAtual === 8 ? 100 : posicoesCirculos[estagioAtual] || 0)
     : 0;
 
-  // Etapas da timeline (7 estágios, distribuídos com flex)
+  // Etapas da timeline (8 estágios, distribuídos com flex)
   const etapas = [
     { id: 1, label: 'JOVEM', nome: 'Jovem' },
     { id: 2, label: 'CPO', nome: 'CPO' },
@@ -65,7 +68,8 @@
     { id: 4, label: 'OBR', nome: 'Obreiro' },
     { id: 5, label: 'CAND', nome: 'Candidata do Altar' },
     { id: 6, label: 'NAM', nome: 'Namorada de Pastor' },
-    { id: 7, label: 'ESP', nome: 'Esposa de Pastor' }
+    { id: 7, label: 'CURSO', nome: 'Curso' },
+    { id: 8, label: 'ESP', nome: 'Esposa de Pastor' }
   ];
 
   // Função para determinar a cor de cada ponto

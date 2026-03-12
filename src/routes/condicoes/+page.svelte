@@ -17,6 +17,7 @@
   // Mapear códigos para nomes
   const condicoesMap = {
     'auxiliar_pastor': 'Esposa de Pastor',
+    'curso': 'Curso',
     'iburd': 'Candidata do Altar',
     'namorada': 'Namorada de Pastor',
     'noiva': 'Noiva de Pastor',

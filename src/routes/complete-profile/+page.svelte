@@ -60,8 +60,9 @@
     { value: 'colaborador', label: 'Colaborador(a)' },
     { value: 'obreiro', label: 'Obreiro(a)' },
     { value: 'iburd', label: 'Candidata do Altar' },
-    { value: 'auxiliar_pastor', label: 'Esposa de Pastor' },
     { value: 'namorada', label: 'Namorada de Pastor' },
+    { value: 'curso', label: 'Curso' },
+    { value: 'auxiliar_pastor', label: 'Esposa de Pastor' },
     { value: 'noiva', label: 'Noiva de Pastor' }
   ];
   

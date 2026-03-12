@@ -1,10 +1,11 @@
 <script>
   import { onMount } from 'svelte';
   import { browser } from '$app/environment';
-  import { loadAvaliacoesByJovem, calculateAvaliacaoStats, updateAvaliacao } from '$lib/stores/avaliacoes';
+  import { loadAvaliacoesByJovem, calculateAvaliacaoStats, updateAvaliacao, deleteAvaliacao } from '$lib/stores/avaliacoes';
   import { user, userProfile } from '$lib/stores/auth';
   import Button from '$lib/components/ui/Button.svelte';
   import Card from '$lib/components/ui/Card.svelte';
+  import Modal from '$lib/components/ui/Modal.svelte';
   import AvaliacaoModal from '$lib/components/modals/AvaliacaoModal.svelte';
   
   let DOMPurify = null;
@@ -81,6 +82,9 @@
   let stats = null;
   let showEditModal = false;
   let avaliacaoParaEditar = null;
+  let showExcluirModal = false;
+  let avaliacaoParaExcluir = null;
+  let excluindoId = null;
   
   onMount(async () => {
     await loadAvaliacoes();
@@ -115,6 +119,33 @@
     await loadAvaliacoes(); // Recarregar lista
     closeEditModal();
   }
+
+  // Abrir modal de confirmação de exclusão
+  function openExcluirModal(avaliacao) {
+    avaliacaoParaExcluir = avaliacao;
+    showExcluirModal = true;
+  }
+
+  function closeExcluirModal() {
+    showExcluirModal = false;
+    avaliacaoParaExcluir = null;
+  }
+
+  // Confirmar e executar exclusão da avaliação
+  async function confirmarExcluirAvaliacao() {
+    if (!avaliacaoParaExcluir) return;
+    error = '';
+    excluindoId = avaliacaoParaExcluir.id;
+    try {
+      await deleteAvaliacao(avaliacaoParaExcluir.id);
+      await loadAvaliacoes();
+      closeExcluirModal();
+    } catch (err) {
+      error = err.message;
+    } finally {
+      excluindoId = null;
+    }
+  }
   
   async function loadAvaliacoes() {
     loading = true;
@@ -136,21 +167,21 @@
     const labels = {
       espirito: {
         'ruim': 'Ruim',
-        'ser_observar': 'Ser Observado',
+        'ser_observar': 'Ser Observada',
         'bom': 'Bom',
         'excelente': 'Excelente'
       },
       caractere: {
         'excelente': 'Excelente',
         'bom': 'Bom',
-        'ser_observar': 'Ser Observado',
+        'ser_observar': 'Ser Observada',
         'ruim': 'Ruim'
       },
       disposicao: {
-        'muito_disposto': 'Muito Disposto',
+        'muito_disposto': 'Muito Disposta',
         'normal': 'Normal',
-        'pacato': 'Pacato',
-        'desanimado': 'Desanimado'
+        'pacato': 'Pacata',
+        'desanimado': 'Desanimada'
       }
     };
     
@@ -372,19 +403,40 @@
                         </div>
                       </div>
                       
-                      <!-- Botão Editar (apenas para quem criou a avaliação) -->
+                      <!-- Botões Editar e Excluir (apenas para quem criou a avaliação) -->
                       {#if canEditAvaliacao(avaliacao)}
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          on:click={() => openEditModal(avaliacao)}
-                          class="flex items-center space-x-2"
-                        >
-                          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                          <span>Editar</span>
-                        </Button>
+                        <div class="flex flex-col gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            on:click={() => openEditModal(avaliacao)}
+                            class="flex items-center justify-center space-x-2 w-full sm:w-auto"
+                          >
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                            <span>Editar</span>
+                          </Button>
+                          <button
+                            type="button"
+                            disabled={excluindoId === avaliacao.id}
+                            on:click={() => openExcluirModal(avaliacao)}
+                            class="inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-red-700 bg-white border border-red-200 rounded-lg hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          >
+                            {#if excluindoId === avaliacao.id}
+                              <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                              <span>Excluindo...</span>
+                            {:else}
+                              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                              <span>Excluir avaliação</span>
+                            {/if}
+                          </button>
+                        </div>
                       {/if}
                     </div>
                   </div>
@@ -481,6 +533,41 @@
     {/if}
   </div>
 </div>
+
+<!-- Modal de confirmação de exclusão -->
+<Modal
+  open={showExcluirModal}
+  title="Excluir avaliação"
+  size="sm"
+  on:close={closeExcluirModal}
+>
+  <div class="flex gap-4">
+    <div class="flex-shrink-0 w-12 h-12 rounded-full bg-red-100 flex items-center justify-center" aria-hidden="true">
+      <svg class="w-6 h-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+      </svg>
+    </div>
+    <div class="flex-1 pt-0.5">
+      <p class="text-gray-700 leading-relaxed">
+        Tem certeza que deseja excluir esta avaliação? Esta ação não pode ser desfeita.
+      </p>
+    </div>
+  </div>
+  <svelte:fragment slot="footer">
+    <Button variant="outline" size="sm" on:click={closeExcluirModal}>
+      Cancelar
+    </Button>
+    <Button
+      variant="danger"
+      size="sm"
+      disabled={excluindoId !== null}
+      loading={excluindoId !== null}
+      on:click={confirmarExcluirAvaliacao}
+    >
+      Excluir
+    </Button>
+  </svelte:fragment>
+</Modal>
 
 <!-- Modal de Edição de Avaliação -->
 {#if showEditModal && avaliacaoParaEditar}

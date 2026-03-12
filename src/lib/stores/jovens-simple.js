@@ -249,9 +249,13 @@ export async function loadJovemById(id) {
         edicoes!edicao_id(id, nome, numero)
       `)
       .eq('id', id)
-      .single();
+      .maybeSingle();
     
     if (fetchError) throw fetchError;
+    if (!data) {
+      error.set('Jovem não encontrado');
+      return null;
+    }
 
     // Carregar namorado (dados do pastor) se existir
     const { data: namoradoData } = await supabase
