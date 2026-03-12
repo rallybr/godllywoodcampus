@@ -1,10 +1,72 @@
 <script>
   import { onMount } from 'svelte';
+  import { browser } from '$app/environment';
   import { loadAvaliacoes, calculateAvaliacaoStats } from '$lib/stores/avaliacoes';
   import { userProfile } from '$lib/stores/auth';
   import { getUserLevelName } from '$lib/stores/niveis-acesso';
   import Button from '$lib/components/ui/Button.svelte';
   import Card from '$lib/components/ui/Card.svelte';
+  
+  let DOMPurify = null;
+  let isDOMPurifyReady = false;
+  
+  // Carregar DOMPurify assim que o componente for montado
+  onMount(async () => {
+    if (browser) {
+      try {
+        const module = await import('dompurify');
+        DOMPurify = module.default;
+        isDOMPurifyReady = true;
+      } catch (err) {
+        console.error('Erro ao carregar DOMPurify:', err);
+        isDOMPurifyReady = true; // Permite renderizar mesmo sem DOMPurify
+      }
+    } else {
+      isDOMPurifyReady = true; // SSR não precisa de DOMPurify
+    }
+  });
+  
+  function sanitizeHtml(html) {
+    if (!html || html.trim() === '') return '';
+    
+    // Se não estiver no browser, retorna o HTML sem sanitização
+    if (!browser) {
+      return html;
+    }
+    
+    // Se DOMPurify estiver disponível, usa para sanitizar
+    if (DOMPurify) {
+      try {
+        const sanitized = DOMPurify.sanitize(html, {
+          ALLOWED_TAGS: ['p', 'br', 'strong', 'b', 'em', 'i', 'u', 'ul', 'ol', 'li', 'span', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'font'],
+          ALLOWED_ATTR: ['style', 'class', 'align', 'color', 'size'],
+          ALLOWED_STYLES: {
+            '*': {
+              'color': /^(#[0-9a-fA-F]{3,6}|rgb\([^)]+\)|rgba\([^)]+\)|[a-zA-Z]+)$/,
+              'background-color': /^(#[0-9a-fA-F]{3,6}|rgb\([^)]+\)|rgba\([^)]+\)|[a-zA-Z]+)$/,
+              'text-align': /^(left|right|center|justify)$/,
+              'font-size': /^[\d.]+(px|em|rem|pt|%)?$/,
+              'font-weight': /^(normal|bold|bolder|lighter|100|200|300|400|500|600|700|800|900)$/,
+              'font-style': /^(normal|italic|oblique)$/,
+              'text-decoration': /^(none|underline|line-through|overline)$/,
+              'font-family': /^[a-zA-Z0-9\s,"-]+$/
+            }
+          }
+        });
+        return sanitized || html;
+      } catch (err) {
+        console.error('Erro ao sanitizar HTML:', err);
+        return html;
+      }
+    }
+    
+    // Fallback básico: remove apenas scripts e eventos inline perigosos
+    return html
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+      .replace(/on\w+="[^"]*"/gi, '')
+      .replace(/on\w+='[^']*'/gi, '')
+      .replace(/javascript:/gi, '');
+  }
   
   let avaliacoes = [];
   let loading = true;
@@ -359,9 +421,9 @@
                         <h4 class="text-lg font-semibold text-gray-800">Observações</h4>
                       </div>
                       <div class="bg-white rounded-lg p-4 border border-amber-100">
-                        <p class="text-base text-gray-700 leading-relaxed">
-                          {avaliacao.avaliacao_texto}
-                        </p>
+                        <div class="text-base text-gray-700 leading-relaxed space-y-2 rich-text-content">
+                          {@html sanitizeHtml(avaliacao.avaliacao_texto)}
+                        </div>
                       </div>
                     </div>
                   </div>
