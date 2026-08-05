@@ -567,3 +567,75 @@ export async function removerAprovacaoAdmin(aprovacaoId) {
     loading.set(false);
   }
 }
+
+/** Busca jovens por nome para autocomplete (respeita escopo do usuário). */
+export async function searchJovensByName(term, userProfile, limit = 8) {
+  const trimmed = (term || '').trim();
+  if (trimmed.length < 2) return [];
+
+  let query = supabase
+    .from('jovens')
+    .select('id, nome_completo, whatsapp, foto, estado:estados!estado_id(sigla)')
+    .ilike('nome_completo', `%${trimmed}%`)
+    .order('nome_completo')
+    .limit(limit);
+
+  const nivel = userProfile?.nivel;
+  const userId = userProfile?.id;
+
+  if (nivel === 'lider_estadual_iurd' || nivel === 'lider_estadual_fju') {
+    if (userProfile?.estado_id) {
+      const { data: assoc } = await supabase
+        .from('jovens_usuarios_associacoes')
+        .select('jovem_id')
+        .eq('usuario_id', userId);
+      const ids = (assoc || []).map((a) => a.jovem_id);
+      query = ids.length > 0
+        ? query.or(`estado_id.eq.${userProfile.estado_id},id.in.(${ids.join(',')})`)
+        : query.eq('estado_id', userProfile.estado_id);
+    }
+  } else if (nivel === 'lider_bloco_iurd' || nivel === 'lider_bloco_fju') {
+    if (userProfile?.bloco_id) {
+      const { data: assoc } = await supabase
+        .from('jovens_usuarios_associacoes')
+        .select('jovem_id')
+        .eq('usuario_id', userId);
+      const ids = (assoc || []).map((a) => a.jovem_id);
+      query = ids.length > 0
+        ? query.or(`bloco_id.eq.${userProfile.bloco_id},id.in.(${ids.join(',')})`)
+        : query.eq('bloco_id', userProfile.bloco_id);
+    }
+  } else if (nivel === 'lider_regional_iurd') {
+    if (userProfile?.regiao_id) {
+      const { data: assoc } = await supabase
+        .from('jovens_usuarios_associacoes')
+        .select('jovem_id')
+        .eq('usuario_id', userId);
+      const ids = (assoc || []).map((a) => a.jovem_id);
+      query = ids.length > 0
+        ? query.or(`regiao_id.eq.${userProfile.regiao_id},id.in.(${ids.join(',')})`)
+        : query.eq('regiao_id', userProfile.regiao_id);
+    }
+  } else if (nivel === 'lider_igreja_iurd') {
+    if (userProfile?.igreja_id) {
+      const { data: assoc } = await supabase
+        .from('jovens_usuarios_associacoes')
+        .select('jovem_id')
+        .eq('usuario_id', userId);
+      const ids = (assoc || []).map((a) => a.jovem_id);
+      query = ids.length > 0
+        ? query.or(`igreja_id.eq.${userProfile.igreja_id},id.in.(${ids.join(',')})`)
+        : query.eq('igreja_id', userProfile.igreja_id);
+    }
+  } else if ((nivel === 'colaborador' || nivel === 'jovem') && userId) {
+    query = query.eq('usuario_id', userId);
+  }
+
+  const { data, error: fetchError } = await query;
+  if (fetchError) {
+    console.error('Erro ao buscar jovens por nome:', fetchError);
+    return [];
+  }
+
+  return data || [];
+}

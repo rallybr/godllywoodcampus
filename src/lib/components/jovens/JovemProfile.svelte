@@ -1,5 +1,4 @@
 <script>
-  import { onMount } from 'svelte';
   import { page } from '$app/stores';
   import { loadJovemById, aprovarJovem, buscarAprovacoesJovem, verificarSeUsuarioJaAprovou, removerAprovacaoAdmin } from '$lib/stores/jovens-simple';
   import { goto } from '$app/navigation';
@@ -46,72 +45,63 @@
   let aprovacoesTab = 'pre_aprovado';
   let removendoAprovacao = false; // Aba ativa por padrão
   let showFotoModal = false;
-  
+  let loadedJovemId = '';
+
   const tabs = [
     { id: 'dados-pessoais', label: 'Dados Pessoais', icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z' },
     { id: 'espirituais', label: 'Espirituais', icon: 'M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z' },
     { id: 'profissionais', label: 'Profissionais', icon: 'M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2-2v2m8 0V6a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V8a2 2 0 012-2V6' },
-    // Aba de avaliações será exibida apenas se não for papel jovem
     { id: 'avaliacoes', label: 'Avaliações', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
     { id: 'associacoes', label: 'Associações', icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z' },
     { id: 'nucleo', label: 'Núcleo de Oração', icon: 'M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z' },
     { id: 'historico', label: 'Histórico', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' }
   ];
-  
-  onMount(async () => {
-    await loadJovemData();
-    
-    // Verificar se há parâmetro tab na URL
+
+  $: if (jovemId && jovemId !== loadedJovemId) {
+    loadedJovemId = jovemId;
+    void initializeForJovem();
+  }
+
+  async function initializeForJovem() {
     const tabParam = $page.url.searchParams.get('tab');
-    if (tabParam && tabs.some(tab => tab.id === tabParam)) {
+    if (tabParam && tabs.some((tab) => tab.id === tabParam)) {
       activeTab = tabParam;
     }
-  });
-  
+    await loadJovemData();
+  }
+
   async function loadJovemData() {
+    const requestId = jovemId;
     loading = true;
     error = '';
-    
+    jovem = null;
+    aprovacoes = [];
+    usuarioJaAprovouAprovado = false;
+    usuarioJaAprovouPreAprovado = false;
+
     try {
-      jovem = await loadJovemById(jovemId);
+      const data = await loadJovemById(requestId);
+      if (requestId !== jovemId) return;
+
+      jovem = data;
       if (!jovem) {
         error = 'Jovem não encontrado';
       } else {
-        console.log('Jovem carregado:', jovem);
-        console.log('Sexo do jovem:', jovem.sexo);
-        console.log('WhatsApp do jovem:', jovem.whatsapp);
-        console.log('Edição do jovem:', jovem.edicao);
-        
-        // Debug específico para dados geográficos
-        console.log('🔍 DEBUG - Dados geográficos do jovem:', {
-          estado: jovem.estados,
-          bloco: jovem.blocos,
-          regiao: jovem.regioes,
-          igreja: jovem.igrejas
-        });
-        console.log('🔍 DEBUG - Nomes geográficos:', {
-          estado_nome: jovem.estados?.nome,
-          bloco_nome: jovem.blocos?.nome,
-          regiao_nome: jovem.regioes?.nome,
-          igreja_nome: jovem.igrejas?.nome
-        });
-        
-        // Carregar aprovações do jovem
         await loadAprovacoes();
       }
     } catch (err) {
+      if (requestId !== jovemId) return;
       error = err.message;
     } finally {
-      loading = false;
+      if (requestId === jovemId) {
+        loading = false;
+      }
     }
   }
-  
+
   async function loadAprovacoes() {
     try {
-      // Buscar todas as aprovações do jovem
       aprovacoes = await buscarAprovacoesJovem(jovemId);
-      
-      // Verificar se o usuário atual já aprovou
       usuarioJaAprovouAprovado = await verificarSeUsuarioJaAprovou(jovemId, 'aprovado');
       usuarioJaAprovouPreAprovado = await verificarSeUsuarioJaAprovou(jovemId, 'pre_aprovado');
     } catch (err) {
@@ -628,6 +618,7 @@
     
     <!-- Tab Content -->
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+      {#key jovemId}
       {#if activeTab === 'dados-pessoais'}
         <!-- Dados Pessoais -->
         <div class="space-y-4 sm:space-y-6">
@@ -957,6 +948,7 @@
           <p class="text-gray-600">Esta funcionalidade será implementada em breve.</p>
         </div>
       {/if}
+      {/key}
     </div>
   </div>
 {/if}

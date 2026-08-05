@@ -1,16 +1,42 @@
 <script>
   import { createEventDispatcher, onMount } from 'svelte';
+  import { get } from 'svelte/store';
   import { userProfile, signOut } from '$lib/stores/auth';
+  import { searchJovensByName } from '$lib/stores/jovens-simple';
   import { goto } from '$app/navigation';
   import NotificacoesDropdown from '$lib/components/notificacoes/NotificacoesDropdown.svelte';
   import UserAccessLevel from '$lib/components/security/UserAccessLevel.svelte';
+  import Autocomplete from '$lib/components/ui/Autocomplete.svelte';
   
   const dispatch = createEventDispatcher();
+  const headerSearchInputClass = 'w-full pl-10 pr-4 py-2 bg-gray-100 border-0 rounded-full focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors';
   
   let showUserMenu = false;
   let showNotifications = false;
   let showMobileSearch = false;
   let isPWA = false;
+  let searchTerm = '';
+  
+  async function buscarJovens(term) {
+    return searchJovensByName(term, get(userProfile));
+  }
+
+  async function handleSelectJovem(event) {
+    const jovem = event.detail.suggestion;
+    if (!jovem?.id) return;
+
+    searchTerm = jovem.nome_completo || '';
+    showMobileSearch = false;
+
+    const target = `/jovens/${jovem.id}`;
+    if (window.location.pathname !== target) {
+      await goto(target, { invalidateAll: true });
+    }
+  }
+
+  function handleSearchInput(event) {
+    searchTerm = event.detail.value;
+  }
   
   onMount(() => {
     // Detectar se está em PWA
@@ -59,7 +85,11 @@
         </svg>
       </button>
       
-      <div class="flex items-center space-x-3">
+      <a
+        href="/"
+        class="flex items-center space-x-3 rounded-lg hover:bg-gray-100 transition-colors px-1 -ml-1"
+        aria-label="Ir para página principal"
+      >
         <img src="/logo.png" alt="IM" class="w-10 h-10 rounded-xl object-contain bg-white/70 p-1 ring-1 ring-white/40" />
         {#if isPWA}
           <!-- PWA: Apenas "IM" -->
@@ -69,23 +99,23 @@
           <h1 class="text-xl font-bold gc-gradient hidden sm:block">Godllywood Campus</h1>
           <h1 class="text-lg font-bold gc-gradient sm:hidden">GC Campus</h1>
         {/if}
-      </div>
+      </a>
     </div>
     
     <!-- Center - Search bar (oculto em PWA) -->
     {#if !isPWA}
-      <div class="hidden md:flex flex-1 max-w-md mx-8">
+      <div class="hidden md:flex flex-1 max-w-md mx-8 min-w-0 w-full">
         <div class="relative w-full">
-          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </div>
-          <input
-            type="text"
-            placeholder="Pesquisar jovens, avaliações..."
-            class="w-full pl-10 pr-4 py-2 bg-gray-100 border-0 rounded-full focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors"
-          />
+          <Autocomplete
+          inputId="header-search-desktop"
+          placeholder="Pesquisar jovens..."
+          bind:value={searchTerm}
+          inputClass={headerSearchInputClass}
+          searchFunction={buscarJovens}
+          debounceMs={250}
+          on:input={handleSearchInput}
+          on:select={handleSelectJovem}
+        />
         </div>
       </div>
     {/if}
@@ -205,28 +235,29 @@
   <!-- Mobile Search Modal (oculto em PWA) -->
   {#if showMobileSearch && !isPWA}
     <div class="md:hidden border-t border-gray-200 bg-white">
-      <div class="px-4 py-3">
-        <div class="relative">
-          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </div>
-          <input
-            type="text"
-            placeholder="Pesquisar jovens, avaliações..."
-            class="w-full pl-10 pr-4 py-2 bg-gray-100 border-0 rounded-full focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors"
+      <div class="px-4 py-3 flex items-center gap-2">
+        <div class="flex-1 min-w-0">
+          <Autocomplete
+            inputId="header-search-mobile"
+            placeholder="Pesquisar jovens..."
+            bind:value={searchTerm}
+            inputClass={headerSearchInputClass}
+            searchFunction={buscarJovens}
+            debounceMs={250}
+            on:input={handleSearchInput}
+            on:select={handleSelectJovem}
           />
-          <button
-            type="button"
-            class="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 rounded-full hover:bg-gray-200 transition-colors"
-            on:click={toggleMobileSearch}
-          >
-            <svg class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
         </div>
+        <button
+          type="button"
+          class="flex-shrink-0 p-2 rounded-full hover:bg-gray-100 transition-colors"
+          on:click={toggleMobileSearch}
+          aria-label="Fechar busca"
+        >
+          <svg class="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
       </div>
     </div>
   {/if}

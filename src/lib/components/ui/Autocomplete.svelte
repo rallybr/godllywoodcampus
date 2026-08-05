@@ -11,9 +11,12 @@
   export let minLength = 2;
   export let debounceMs = 300;
   export let searchFunction = null; // Função personalizada de busca
+  export let inputClass = 'w-full pl-10 pr-20 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors disabled:bg-gray-50 disabled:text-gray-500';
+  export let inputId = 'autocomplete-input';
   
   const dispatch = createEventDispatcher();
   
+  let containerElement;
   let inputElement;
   let suggestions = [];
   let showSuggestions = false;
@@ -23,10 +26,6 @@
   
   // Função para buscar sugestões
   async function searchSuggestions(searchTerm) {
-    console.log('searchSuggestions chamada com:', searchTerm);
-    console.log('minLength:', minLength);
-    console.log('searchFunction existe:', !!searchFunction);
-    
     if (searchTerm.length < minLength) {
       suggestions = [];
       showSuggestions = false;
@@ -38,14 +37,9 @@
     try {
       let data = [];
       
-      // Se uma função personalizada foi fornecida, usá-la
       if (searchFunction && typeof searchFunction === 'function') {
-        console.log('Usando searchFunction personalizada');
         data = await searchFunction(searchTerm);
-        console.log('Dados retornados pela searchFunction:', data);
       } else {
-        console.log('Usando busca padrão na tabela jovens');
-        // Busca padrão na tabela jovens
         const { data: fetchData, error: fetchError } = await supabase
           .from('jovens')
           .select('id, nome_completo, whatsapp, estado:estados(sigla)')
@@ -62,10 +56,8 @@
       }
       
       suggestions = data;
-      showSuggestions = suggestions.length > 0;
+      showSuggestions = suggestions.length > 0 || searchTerm.length >= minLength;
       selectedIndex = -1;
-      console.log('Sugestões finais:', suggestions);
-      console.log('showSuggestions:', showSuggestions);
     } catch (err) {
       console.error('Erro na busca:', err);
       suggestions = [];
@@ -75,19 +67,14 @@
     }
   }
   
-  // Função com debounce para evitar muitas requisições
   function handleInput(event) {
     const searchTerm = event.target.value;
-    console.log('handleInput chamado com:', searchTerm);
     
-    // Limpar timer anterior
     if (debounceTimer) {
       clearTimeout(debounceTimer);
     }
     
-    // Definir novo timer
     debounceTimer = setTimeout(() => {
-      console.log('Executando searchSuggestions após debounce');
       searchSuggestions(searchTerm);
     }, debounceMs);
     
@@ -150,7 +137,7 @@
   
   // Função para fechar sugestões ao clicar fora
   function handleClickOutside(event) {
-    if (inputElement && !inputElement.contains(event.target)) {
+    if (containerElement && !containerElement.contains(event.target)) {
       showSuggestions = false;
       selectedIndex = -1;
     }
@@ -180,9 +167,9 @@
   });
 </script>
 
-<div class="relative">
+<div class="relative w-full" bind:this={containerElement}>
   {#if label}
-    <label for="autocomplete-input" class="block text-sm font-medium text-gray-700 mb-1">
+    <label for={inputId} class="block text-sm font-medium text-gray-700 mb-1">
       {label}
       {#if required}
         <span class="text-red-500">*</span>
@@ -198,7 +185,7 @@
     </div>
     
     <input
-      id="autocomplete-input"
+      id={inputId}
       bind:this={inputElement}
       type="text"
       {placeholder}
@@ -208,11 +195,13 @@
       on:input={handleInput}
       on:keydown={handleKeydown}
       on:focus={() => {
-        if (suggestions.length > 0) {
+        if (value.length >= minLength) {
+          searchSuggestions(value);
+        } else if (suggestions.length > 0) {
           showSuggestions = true;
         }
       }}
-      class="w-full pl-10 pr-20 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors disabled:bg-gray-50 disabled:text-gray-500 {error ? 'border-red-300 focus:ring-red-500' : ''}"
+      class="{inputClass} {error ? 'border-red-300 focus:ring-red-500' : ''} disabled:text-gray-500"
     />
     
     <!-- Botão de limpar -->
@@ -238,7 +227,7 @@
   
   <!-- Sugestões -->
   {#if showSuggestions}
-    <div class="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto" style="position: absolute; z-index: 9999;">
+    <div class="absolute z-[100] w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
       {#if suggestions.length > 0}
         {#each suggestions as suggestion, index}
           <button
@@ -246,38 +235,37 @@
             on:click={() => selectSuggestion(suggestion)}
             class="w-full px-4 py-3 text-left hover:bg-gray-50 focus:bg-gray-50 focus:outline-none {index === selectedIndex ? 'bg-blue-50' : ''}"
           >
-            <div class="flex items-center justify-between">
-              <div>
-                <!-- Para usuários (com display) -->
-                {#if suggestion.display}
-                  <div class="font-medium text-gray-900">{suggestion.display}</div>
-                <!-- Para jovens (com nome_completo) -->
-                {:else if suggestion.nome_completo}
-                  <div class="font-medium text-gray-900">{suggestion.nome_completo}</div>
-                  {#if suggestion.whatsapp}
-                    <div class="text-sm text-gray-500">{suggestion.whatsapp}</div>
+            <div class="flex items-center gap-3">
+              {#if suggestion.foto}
+                <img src={suggestion.foto} alt="" class="w-8 h-8 rounded-full object-cover flex-shrink-0" />
+              {:else}
+                <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+                  <span class="text-white text-xs font-medium">{suggestion.nome_completo?.charAt(0) || 'J'}</span>
+                </div>
+              {/if}
+              <div class="flex-1 min-w-0 flex items-center justify-between gap-2">
+                <div class="min-w-0">
+                  {#if suggestion.display}
+                    <div class="font-medium text-gray-900 truncate">{suggestion.display}</div>
+                  {:else if suggestion.nome_completo}
+                    <div class="font-medium text-gray-900 truncate">{suggestion.nome_completo}</div>
+                    {#if suggestion.whatsapp}
+                      <div class="text-sm text-gray-500 truncate">{suggestion.whatsapp}</div>
+                    {/if}
+                  {:else}
+                    <div class="font-medium text-gray-900 truncate">{suggestion.nome || suggestion.toString()}</div>
                   {/if}
-                <!-- Para outros casos -->
-                {:else}
-                  <div class="font-medium text-gray-900">{suggestion.nome || suggestion.toString()}</div>
+                </div>
+                {#if suggestion.estado?.sigla}
+                  <div class="text-sm text-gray-400 flex-shrink-0">{suggestion.estado.sigla}</div>
                 {/if}
               </div>
-              {#if suggestion.estado?.sigla}
-                <div class="text-sm text-gray-400">{suggestion.estado.sigla}</div>
-              {/if}
             </div>
           </button>
         {/each}
-      {:else}
-        <div class="px-4 py-3 text-gray-500">Nenhuma sugestão encontrada</div>
+      {:else if !loading}
+        <div class="px-4 py-3 text-gray-500 text-sm">Nenhum jovem encontrado</div>
       {/if}
-    </div>
-  {/if}
-  
-  <!-- Debug info -->
-  {#if showSuggestions}
-    <div class="absolute top-full left-0 bg-red-100 p-2 text-xs">
-      Debug: showSuggestions={showSuggestions}, suggestions.length={suggestions.length}
     </div>
   {/if}
   
