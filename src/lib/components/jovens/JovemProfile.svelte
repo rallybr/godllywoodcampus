@@ -45,6 +45,7 @@
   let usuarioJaAprovouPreAprovado = false;
   let aprovacoesTab = 'pre_aprovado';
   let removendoAprovacao = false; // Aba ativa por padrão
+  let showFotoModal = false;
   
   const tabs = [
     { id: 'dados-pessoais', label: 'Dados Pessoais', icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z' },
@@ -227,6 +228,22 @@
   function closeAssociarModal() {
     showAssociarModal = false;
   }
+
+  function abrirFotoJovem() {
+    if (jovem?.foto) {
+      showFotoModal = true;
+    }
+  }
+
+  function fecharFotoJovem() {
+    showFotoModal = false;
+  }
+
+  function handleFotoModalKeydown(event) {
+    if (event.key === 'Escape') {
+      fecharFotoJovem();
+    }
+  }
   
   // @ts-ignore
   async function handleAvaliacaoSuccess(event) {
@@ -285,7 +302,19 @@
           <!-- Foto -->
           <div class="flex-shrink-0">
             {#if jovem.foto}
-              <img class="w-24 h-28 sm:w-28 sm:h-32 lg:w-32 lg:h-36 xl:w-36 xl:h-44 rounded-xl object-cover border-2 sm:border-4 border-rose-300 shadow-lg shadow-rose-200/50" src={jovem.foto} alt={jovem.nome_completo} />
+              <button
+                type="button"
+                class="block p-0 border-0 bg-transparent cursor-zoom-in group rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400"
+                on:click={abrirFotoJovem}
+                title="Clique para ampliar a foto"
+                aria-label="Ampliar foto de {jovem.nome_completo}"
+              >
+                <img
+                  class="w-24 h-28 sm:w-28 sm:h-32 lg:w-32 lg:h-36 xl:w-36 xl:h-44 rounded-xl object-cover border-2 sm:border-4 border-rose-300 shadow-lg shadow-rose-200/50 transition-opacity group-hover:opacity-90"
+                  src={jovem.foto}
+                  alt={jovem.nome_completo}
+                />
+              </button>
             {:else}
               <div class="w-24 h-28 sm:w-28 sm:h-32 lg:w-32 lg:h-36 xl:w-36 xl:h-44 bg-gradient-to-br from-rose-400 to-rose-600 rounded-xl flex items-center justify-center border-2 sm:border-4 border-rose-300 shadow-lg shadow-rose-200/50">
                 <span class="text-white font-bold text-2xl sm:text-3xl lg:text-4xl">{jovem.nome_completo?.charAt(0) || 'J'}</span>
@@ -951,3 +980,53 @@
     await loadJovemData();
   }}
 />
+
+{#if showFotoModal && jovem?.foto}
+  <div
+    class="fixed inset-0 bg-black/75 z-50 flex items-center justify-center p-4"
+    on:click={fecharFotoJovem}
+    on:keydown={handleFotoModalKeydown}
+    role="dialog"
+    aria-modal="true"
+    aria-label="Foto ampliada do jovem"
+    tabindex="-1"
+  >
+    <div
+      class="relative max-w-2xl w-full bg-white rounded-2xl shadow-2xl overflow-hidden"
+      on:click|stopPropagation
+      role="presentation"
+    >
+      <div class="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-rose-50 to-purple-50">
+        <div class="min-w-0 pr-4">
+          <h3 class="text-lg font-bold text-gray-900 truncate">{jovem.nome_completo}</h3>
+          {#if jovem.edicao}
+            <p class="text-sm text-gray-600 truncate">{jovem.edicao}</p>
+          {/if}
+        </div>
+        <button
+          type="button"
+          on:click={fecharFotoJovem}
+          class="flex-shrink-0 flex items-center justify-center w-10 h-10 bg-white hover:bg-gray-50 text-gray-600 hover:text-gray-800 rounded-full shadow-lg transition-colors"
+          title="Fechar"
+          aria-label="Fechar visualização"
+        >
+          <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="p-4">
+        <img
+          src={jovem.foto}
+          alt={jovem.nome_completo}
+          class="max-w-full max-h-[70vh] object-contain rounded-lg shadow-lg mx-auto"
+        />
+      </div>
+
+      <div class="px-4 pb-4 text-center text-xs text-gray-500">
+        Clique fora da imagem ou pressione ESC para fechar
+      </div>
+    </div>
+  </div>
+{/if}

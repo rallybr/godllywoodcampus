@@ -87,6 +87,24 @@
       return 'gray'; // Cinza para etapas pendentes
     }
   }
+
+  let showNamoradoModal = false;
+
+  function abrirFotoNamorado() {
+    if (jovem.namorado?.foto) {
+      showNamoradoModal = true;
+    }
+  }
+
+  function fecharFotoNamorado() {
+    showNamoradoModal = false;
+  }
+
+  function handleModalKeydown(event) {
+    if (event.key === 'Escape') {
+      fecharFotoNamorado();
+    }
+  }
 </script>
 
 <div class="card-condicao bg-white rounded-lg shadow-lg overflow-hidden">
@@ -109,7 +127,7 @@
       
       <!-- Bandeira do estado no canto superior direito -->
       {#if jovem.estado?.bandeira}
-        <div class="absolute top-2 right-2 w-[112px] h-[80px] rounded-lg overflow-hidden border border-gray-300 shadow-md z-10">
+        <div class="absolute top-2 right-2 w-14 h-10 sm:w-20 sm:h-14 md:w-[112px] md:h-[80px] rounded-md md:rounded-lg overflow-hidden border border-gray-300 shadow-md z-10">
           <img 
             src={jovem.estado.bandeira} 
             alt={jovem.estado?.sigla || 'UF'} 
@@ -117,30 +135,38 @@
           />
         </div>
       {/if}
+    </a>
 
-      <!-- Miniatura do pastor (namorado) – abaixo da bandeira, à direita, sobre a foto -->
-      {#if jovem.namorado && (jovem.namorado.nome || jovem.namorado.foto || jovem.namorado.idade != null)}
-        <div class="absolute right-2 top-[5.6rem] z-10 w-[112px] rounded-lg overflow-hidden border border-white/90 shadow-lg bg-white/95 backdrop-blur-sm namorado-mini">
-          {#if jovem.namorado.foto}
+    <!-- Miniatura do pastor (namorado) – fora do link para permitir ampliar a foto -->
+    {#if jovem.namorado && (jovem.namorado.nome || jovem.namorado.foto || jovem.namorado.idade != null)}
+      <div class="absolute right-2 top-[3.25rem] sm:top-[4.75rem] md:top-[5.6rem] z-20 w-14 sm:w-20 md:w-[112px] rounded-md md:rounded-lg overflow-hidden border border-white/90 shadow-lg bg-white/95 backdrop-blur-sm namorado-mini">
+        {#if jovem.namorado.foto}
+          <button
+            type="button"
+            class="block w-full p-0 border-0 bg-transparent cursor-zoom-in group"
+            on:click={abrirFotoNamorado}
+            title="Clique para ampliar a foto"
+            aria-label="Ampliar foto de {jovem.namorado.nome || 'namorado'}"
+          >
             <img
               src={jovem.namorado.foto}
               alt={jovem.namorado.nome || 'Namorado'}
-              class="w-full h-[100px] object-cover"
+              class="w-full h-14 sm:h-20 md:h-[100px] object-cover transition-opacity group-hover:opacity-90"
             />
-          {:else}
-            <div class="w-full h-[100px] bg-gradient-to-br from-rose-300 to-purple-300 flex items-center justify-center">
-              <span class="text-white font-bold text-xl">{jovem.namorado.nome?.charAt(0) || 'N'}</span>
-            </div>
-          {/if}
-          <div class="px-1.5 py-1 bg-white/95 backdrop-blur-sm">
-            <p class="text-[11px] font-bold text-gray-800 truncate leading-tight" title={jovem.namorado.nome}>{jovem.namorado.nome || '–'}</p>
-            {#if jovem.namorado.idade != null}
-              <p class="text-[10px] text-gray-600">{jovem.namorado.idade} anos</p>
-            {/if}
+          </button>
+        {:else}
+          <div class="w-full h-14 sm:h-20 md:h-[100px] bg-gradient-to-br from-rose-300 to-purple-300 flex items-center justify-center">
+            <span class="text-white font-bold text-sm sm:text-lg md:text-xl">{jovem.namorado.nome?.charAt(0) || 'N'}</span>
           </div>
+        {/if}
+        <div class="px-1 py-0.5 sm:px-1.5 sm:py-1 bg-white/95 backdrop-blur-sm pointer-events-none">
+          <p class="text-[8px] sm:text-[10px] md:text-[11px] font-bold text-gray-800 truncate leading-tight" title={jovem.namorado.nome}>{jovem.namorado.nome || '–'}</p>
+          {#if jovem.namorado.idade != null}
+            <p class="text-[7px] sm:text-[9px] md:text-[10px] text-gray-600">{jovem.namorado.idade} anos</p>
+          {/if}
         </div>
-      {/if}
-    </a>
+      </div>
+    {/if}
   </div>
   
   <!-- Conteúdo abaixo da foto -->
@@ -216,13 +242,75 @@
   </div>
 </div>
 
+{#if showNamoradoModal && jovem.namorado?.foto}
+  <div
+    class="fixed inset-0 bg-black/75 z-50 flex items-center justify-center p-4"
+    on:click={fecharFotoNamorado}
+    on:keydown={handleModalKeydown}
+    role="dialog"
+    aria-modal="true"
+    aria-label="Foto ampliada do namorado"
+    tabindex="-1"
+  >
+    <div
+      class="relative max-w-lg w-full bg-white rounded-2xl shadow-2xl overflow-hidden"
+      on:click|stopPropagation
+      role="presentation"
+    >
+      <div class="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-rose-50 to-purple-50">
+        <div class="min-w-0 pr-4">
+          <h3 class="text-lg font-bold text-gray-900 truncate">{jovem.namorado.nome || 'Namorado'}</h3>
+          {#if jovem.namorado.idade != null}
+            <p class="text-sm text-gray-600">{jovem.namorado.idade} anos</p>
+          {/if}
+        </div>
+        <button
+          type="button"
+          on:click={fecharFotoNamorado}
+          class="flex-shrink-0 flex items-center justify-center w-10 h-10 bg-white hover:bg-gray-50 text-gray-600 hover:text-gray-800 rounded-full shadow-lg transition-colors"
+          title="Fechar"
+          aria-label="Fechar visualização"
+        >
+          <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="p-4">
+        <img
+          src={jovem.namorado.foto}
+          alt={jovem.namorado.nome || 'Namorado'}
+          class="max-w-full max-h-[70vh] object-contain rounded-lg shadow-lg mx-auto"
+        />
+      </div>
+
+      <div class="px-4 pb-4 text-center text-xs text-gray-500">
+        Clique fora da imagem ou pressione ESC para fechar
+      </div>
+    </div>
+  </div>
+{/if}
+
 <style>
   .card-condicao {
     min-height: 360px;
     max-width: 100%;
   }
   .namorado-mini {
-    min-width: 112px;
+    min-width: 3.5rem;
+  }
+
+  @media (min-width: 640px) {
+    .namorado-mini {
+      min-width: 5rem;
+    }
+  }
+
+  @media (min-width: 768px) {
+    .namorado-mini {
+      min-width: 112px;
+    }
   }
 </style>
 
