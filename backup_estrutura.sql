@@ -414,7 +414,7 @@ BEGIN
     role_id,
     estado_id,
     bloco_id,
-    regiao_id,  -- ✅ CORRIGIDO: era p_regiao_id
+    regiao_id,
     igreja_id,
     ativo,
     criado_em
@@ -424,7 +424,7 @@ BEGIN
     p_role_id,
     p_estado_id,
     p_bloco_id,
-    p_regiao_id,  -- ✅ CORRIGIDO: era p_regiao_id
+    p_regiao_id,
     p_igreja_id,
     true,
     NOW()
@@ -3674,6 +3674,7 @@ CREATE TABLE IF NOT EXISTS "auth"."custom_oauth_providers" (
     "jwks_uri" "text",
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "custom_claims_allowlist" "text"[] DEFAULT '{}'::"text"[] NOT NULL,
     CONSTRAINT "custom_oauth_providers_authorization_url_https" CHECK ((("authorization_url" IS NULL) OR ("authorization_url" ~~ 'https://%'::"text"))),
     CONSTRAINT "custom_oauth_providers_authorization_url_length" CHECK ((("authorization_url" IS NULL) OR ("char_length"("authorization_url") <= 2048))),
     CONSTRAINT "custom_oauth_providers_client_id_length" CHECK ((("char_length"("client_id") >= 1) AND ("char_length"("client_id") <= 512))),

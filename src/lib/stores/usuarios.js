@@ -310,12 +310,28 @@ export async function deletarFotoAntiga(urlFoto) {
 export async function buscarPapeisDisponiveis() {
   try {
     const { data, error } = await supabase.rpc('buscar_papeis_disponiveis');
-    if (error) throw error;
-    return data || [];
+    if (!error && Array.isArray(data) && data.length > 0) {
+      return data;
+    }
+    if (error) {
+      console.warn('RPC buscar_papeis_disponiveis falhou, tentando consulta direta:', error);
+    }
   } catch (err) {
-    console.error('Erro ao buscar papéis:', err);
-    throw err;
+    console.warn('RPC buscar_papeis_disponiveis indisponível, tentando consulta direta:', err);
   }
+
+  const { data, error: fetchError } = await supabase
+    .from('roles')
+    .select('id, nome, slug, nivel_hierarquico, descricao')
+    .order('nivel_hierarquico', { ascending: true })
+    .order('nome', { ascending: true });
+
+  if (fetchError) {
+    console.error('Erro ao buscar papéis:', fetchError);
+    throw fetchError;
+  }
+
+  return data || [];
 }
 
 // Função para buscar papéis de um usuário
@@ -368,12 +384,12 @@ export async function removerPapelUsuario(papelId) {
 // Função para carregar papéis (roles)
 export async function loadRoles() {
   try {
-    const { data, error } = await supabase.rpc('buscar_papeis_disponiveis');
-    if (error) throw error;
+    const data = await buscarPapeisDisponiveis();
     roles.set(data || []);
     return data || [];
   } catch (err) {
     console.error('Erro ao carregar papéis:', err);
+    roles.set([]);
     throw err;
   }
 }

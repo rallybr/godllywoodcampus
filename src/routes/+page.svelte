@@ -1,10 +1,15 @@
 <script>
+  /** @type {import('./$types').PageData} */
+  export let data;
+  /** @type {import('./$types').PageParams} */
+  export let params;
+
   import { onMount } from 'svelte';
-  import { user, userProfile } from '$lib/stores/auth';
+  import { user, userProfile, waitForUserProfile } from '$lib/stores/auth';
+  import { applyEscopoJovensQuery } from '$lib/utils/escopo-jovens';
   import { getUserLevelName, canCadastrarJovem, canViewAcoesRapidas, canClickEstado } from '$lib/stores/niveis-acesso';
   import { goto } from '$app/navigation';
   import Button from '$lib/components/ui/Button.svelte';
-  import AvaliacoesChart from '$lib/components/charts/AvaliacoesChart.svelte';
   import { estatisticas, loadEstatisticas, condicoesStats, loadCondicoesStats } from '$lib/stores/estatisticas';
   import { supabase } from '$lib/utils/supabase';
   import Autocomplete from '$lib/components/ui/Autocomplete.svelte';
@@ -46,14 +51,7 @@
     if (!$user) {
       goto('/login');
     } else {
-      await loadInitialData(); // Carregar edições
-      
-      // Aguardar o userProfile ser carregado antes de carregar os dados
-      if (!$userProfile) {
-        // Aguardar um pouco para o userProfile ser carregado
-        await new Promise(resolve => setTimeout(resolve, 100));
-      }
-      
+      await loadInitialData();
       await loadDashboardData();
       await Promise.all([loadEstadosFeed(), loadCondicoesFeed()]);
       await fetchJovensFeed();
@@ -64,25 +62,19 @@
   async function loadDashboardData() {
     loading = true;
     try {
-      // Aguardar o userProfile ser carregado
-      let attempts = 0;
-      while (!$userProfile && attempts < 10) {
-        await new Promise(resolve => setTimeout(resolve, 100));
-        attempts++;
-      }
-      
-      const userId = $userProfile?.id;
-      const userLevel = $userProfile?.nivel;
+      const profile = await waitForUserProfile();
+      const userId = profile?.id;
+      const userLevel = profile?.nivel;
       
       console.log('🔍 DEBUG - loadDashboardData - userProfile:', $userProfile);
       console.log('🔍 DEBUG - loadDashboardData - userId:', userId);
       console.log('🔍 DEBUG - loadDashboardData - userLevel:', userLevel);
       
       // Carregar estatísticas gerais
-      await loadEstatisticas(userId, userLevel, $userProfile);
+      await loadEstatisticas(userId, userLevel, profile);
       
       // Carregar estatísticas das condições
-      await loadCondicoesStats(userId, userLevel, $userProfile);
+      await loadCondicoesStats(userId, userLevel, profile);
       
       // Carregar atividades recentes
       await loadRecentActivities(userId, userLevel);
@@ -114,6 +106,7 @@
     loadingJovensFeed = true;
     errorJovensFeed = '';
     try {
+      const profile = await waitForUserProfile();
       const from = (pageFeed - 1) * pageSizeFeed;
       const to = from + pageSizeFeed - 1;
 
@@ -148,51 +141,9 @@
             nome,
             numero
           )
-        `, { count: 'exact' })
-        .order('nome_completo', { ascending: true });
+        `, { count: 'exact' });
 
-      // Aplicar filtros baseados na hierarquia de níveis de acesso
-      if ($userProfile?.nivel === 'administrador') {
-        // Administrador: acesso total - sem filtros
-        console.log('🔍 DEBUG - Administrador: feed sem filtros');
-      } else if ($userProfile?.nivel === 'lider_nacional_iurd' || $userProfile?.nivel === 'lider_nacional_fju') {
-        // Líderes nacionais: acesso nacional - sem filtros
-        console.log('🔍 DEBUG - Líder nacional: feed sem filtros');
-      } else if ($userProfile?.nivel === 'lider_estadual_iurd' || $userProfile?.nivel === 'lider_estadual_fju') {
-        // Líderes estaduais: acesso estadual OU jovens associados
-        if ($userProfile?.estado_id) {
-          console.log('🔍 DEBUG - Líder estadual: filtrando feed por estado OU associados:', { nivel: $userProfile.nivel, estado_id: $userProfile.estado_id, userId: $userProfile.id });
-          query = query.or(`estado_id.eq.${$userProfile.estado_id},usuario_id.eq.${$userProfile.id}`);
-        }
-      } else if ($userProfile?.nivel === 'lider_bloco_iurd' || $userProfile?.nivel === 'lider_bloco_fju') {
-        // Líderes de bloco: acesso ao bloco OU jovens associados
-        if ($userProfile?.bloco_id) {
-          console.log('🔍 DEBUG - Líder de bloco: filtrando feed por bloco OU associados:', { nivel: $userProfile.nivel, bloco_id: $userProfile.bloco_id, userId: $userProfile.id });
-          query = query.or(`bloco_id.eq.${$userProfile.bloco_id},usuario_id.eq.${$userProfile.id}`);
-        }
-      } else if ($userProfile?.nivel === 'lider_regional_iurd') {
-        // Líder regional: acesso à região OU jovens associados
-        if ($userProfile?.regiao_id) {
-          console.log('🔍 DEBUG - Líder regional: filtrando feed por região OU associados:', { nivel: $userProfile.nivel, regiao_id: $userProfile.regiao_id, userId: $userProfile.id });
-          query = query.or(`regiao_id.eq.${$userProfile.regiao_id},usuario_id.eq.${$userProfile.id}`);
-        }
-      } else if ($userProfile?.nivel === 'lider_igreja_iurd') {
-        // Líder de igreja: acesso à igreja OU jovens associados
-        if ($userProfile?.igreja_id) {
-          console.log('🔍 DEBUG - Líder de igreja: filtrando feed por igreja OU associados:', { nivel: $userProfile.nivel, igreja_id: $userProfile.igreja_id, userId: $userProfile.id });
-          query = query.or(`igreja_id.eq.${$userProfile.igreja_id},usuario_id.eq.${$userProfile.id}`);
-        }
-      } else if ($userProfile?.nivel === 'colaborador' && $userProfile?.id) {
-        // Colaborador: acesso aos jovens que ele cadastrou OU jovens associados
-        console.log('🔍 DEBUG - Colaborador: filtrando feed por usuário que cadastrou OU associados:', { nivel: $userProfile.nivel, userId: $userProfile.id });
-        query = query.eq('usuario_id', $userProfile.id);
-      } else if ($userProfile?.nivel === 'jovem' && $userProfile?.id) {
-        // Jovem: acesso apenas aos seus próprios dados
-        console.log('🔍 DEBUG - Jovem: filtrando feed por usuário:', { nivel: $userProfile.nivel, userId: $userProfile.id });
-        query = query.eq('usuario_id', $userProfile.id);
-      } else {
-        console.log('🔍 DEBUG - Nível não reconhecido ou sem filtros:', { nivel: $userProfile?.nivel, userId: $userProfile?.id });
-      }
+      ({ query } = await applyEscopoJovensQuery(query, profile));
 
       if (searchTermFeed && searchTermFeed.trim().length > 0) {
         query = query.ilike('nome_completo', `%${searchTermFeed.trim()}%`);
@@ -215,7 +166,9 @@
         query = query.lte('idade', Number(idadeMaxFeed));
       }
 
-      const { data, error: err, count } = await query.range(from, to);
+      const { data, error: err, count } = await query
+        .order('nome_completo', { ascending: true })
+        .range(from, to);
       if (err) throw err;
       
       console.log('🔍 DEBUG - Feed - Dados retornados:', data);
@@ -588,10 +541,10 @@
       
       if (estadosError) throw estadosError;
       
-      // Verificar se o usuário tem permissão para ver estatísticas por estado
-      const userLevel = getUserLevelName($userProfile);
+      // Contagem por estado com escopo do usuário (sem RPC — evita 400 quando função não existe no banco)
+      const profile = await waitForUserProfile();
+      const userLevel = getUserLevelName(profile);
       
-      // Verificar se o usuário tem qualquer papel relacionado a nível
       const isNivelUser = userLevel.includes('Nacional') || 
                           userLevel.includes('Estadual') || 
                           userLevel.includes('Bloco') || 
@@ -600,60 +553,18 @@
                           userLevel === 'Administrador' || 
                           userLevel === 'Instrutor';
       
-      
-      // Apenas usuários com papel "Jovem" (que não são de nível) não podem ver estatísticas por estado
       if (userLevel === 'Jovem' && !isNivelUser) {
         estadosStats = [];
         return;
       }
-      
-      
-      // Para usuários de nível, usar função RPC que contorna RLS
-      if (isNivelUser) {
-        try {
-          const { data: rpcData, error: rpcError } = await supabase.rpc('get_jovens_por_estado_count', {
-            p_edicao_id: edicaoId && edicaoId !== '' ? edicaoId : null
-          });
-          
-          if (!rpcError && rpcData) {
-            // Processar dados do RPC
-            const contagemPorEstado = {};
-            rpcData.forEach(item => {
-              contagemPorEstado[item.estado_id] = item.total;
-            });
-            
-            
-            // Processar dados para incluir contagem (incluindo estados com 0 jovens)
-            estadosStats = estadosData.map(estado => ({
-              id: estado.id,
-              nome: estado.nome,
-              sigla: estado.sigla,
-              bandeira: estado.bandeira,
-              totalJovens: contagemPorEstado[estado.id] || 0
-            })).sort((a, b) => b.totalJovens - a.totalJovens);
-            
-            return;
-          }
-        } catch (rpcErr) {
-          // RPC não disponível, usar consulta normal
-        }
-      }
-      
-      // Consulta normal (pode ser limitada por RLS)
+
       let query = supabase
         .from('jovens')
-        .select('estado_id, usuario_id')
+        .select('estado_id')
         .not('estado_id', 'is', null);
+
+      ({ query } = await applyEscopoJovensQuery(query, profile));
       
-      // Se for colaborador, filtrar apenas jovens que ele cadastrou
-      if ($userProfile?.nivel === 'colaborador' && $userProfile?.id) {
-        console.log('🔍 DEBUG - Filtrando estatísticas de estados para colaborador:', { userId: $userProfile.id, userLevel: $userProfile.nivel });
-        query = query.eq('usuario_id', $userProfile.id);
-      } else {
-        console.log('🔍 DEBUG - Não filtrando estatísticas de estados:', { userId: $userProfile?.id, userLevel: $userProfile?.nivel });
-      }
-      
-      // Aplicar filtro de edição se uma edição específica foi selecionada
       if (edicaoId) {
         query = query.eq('edicao_id', edicaoId);
       }
@@ -661,27 +572,19 @@
       const { data: jovensData, error: jovensError } = await query;
       
       if (jovensError) throw jovensError;
-      console.log('🔍 DEBUG - Jovens encontrados para estatísticas de estados:', jovensData?.length);
-      console.log('🔍 DEBUG - Primeiros 3 jovens:', jovensData?.slice(0, 3));
       
-      // Contar jovens por estado
       const contagemPorEstado = {};
-      jovensData.forEach(jovem => {
+      (jovensData || []).forEach(jovem => {
         contagemPorEstado[jovem.estado_id] = (contagemPorEstado[jovem.estado_id] || 0) + 1;
       });
-      console.log('🔍 DEBUG - Contagem por estado:', contagemPorEstado);
       
-      // Processar dados para incluir contagem (incluindo estados com 0 jovens)
       estadosStats = estadosData.map(estado => ({
         id: estado.id,
         nome: estado.nome,
         sigla: estado.sigla,
         bandeira: estado.bandeira,
         totalJovens: contagemPorEstado[estado.id] || 0
-      })).sort((a, b) => b.totalJovens - a.totalJovens); // Ordenar do maior para o menor
-      
-      console.log('🔍 DEBUG - EstadosStats final:', estadosStats);
-      console.log('🔍 DEBUG - EstadosStats com jovens:', estadosStats.filter(e => e.totalJovens > 0));
+      })).sort((a, b) => b.totalJovens - a.totalJovens);
       
     } catch (err) {
       console.error('Erro ao carregar estatísticas dos estados:', err);
@@ -1203,12 +1106,8 @@
     </div>
   {/if}
   
-  <!-- Estatísticas de Avaliações (não mostrar para jovens) -->
-  {#if getUserLevelName($userProfile) !== 'Jovem'}
-    <AvaliacoesChart jovemId={null} title="ESTATÍSTICAS GERAIS DE AVALIAÇÕES" />
-    
-    <!-- Quick actions (não mostrar para jovens) -->
-    {#if getUserLevelName($userProfile) !== 'Jovem' && canViewAcoesRapidas()}
+  <!-- Quick actions (não mostrar para jovens) -->
+  {#if getUserLevelName($userProfile) !== 'Jovem' && canViewAcoesRapidas()}
     <div class="fb-card p-6">
       <h3 class="text-lg font-semibold text-gray-900 mb-4">AÇÕES RÁPIDAS</h3>
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1236,6 +1135,5 @@
       </Button>
     </div>
     </div>
-    {/if}
   {/if}
 </div>

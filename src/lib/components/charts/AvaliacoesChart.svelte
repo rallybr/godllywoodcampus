@@ -27,7 +27,6 @@
     try {
       // Verificar se jovemId é válido antes de chamar a função
       if (!jovemId) {
-        console.warn('AvaliacoesChart: jovemId é null ou undefined, pulando carregamento');
         stats = null;
         return;
       }

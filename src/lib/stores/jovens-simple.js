@@ -1,5 +1,6 @@
 import { writable, derived } from 'svelte/store';
 import { supabase } from '$lib/utils/supabase';
+import { waitForUserProfile } from './auth';
 
 export const jovens = writable([]);
 export const loading = writable(false);
@@ -65,6 +66,24 @@ export const filteredJovens = derived(
 export async function loadJovens(page = 1, limit = 20, userId = null, userLevel = null, options = {}) {
   loading.set(true);
   error.set(null);
+
+  if (!userId || !userLevel) {
+    const profile = await waitForUserProfile();
+    if (profile) {
+      userId = profile.id;
+      userLevel = profile.nivel;
+      options = {
+        ...options,
+        scope: {
+          estadoId: profile.estado_id,
+          blocoId: profile.bloco_id,
+          regiaoId: profile.regiao_id,
+          igrejaId: profile.igreja_id,
+          ...options.scope
+        }
+      };
+    }
+  }
   
   try {
     // Consulta otimizada com relacionamentos

@@ -1,4 +1,9 @@
 <script lang="ts">
+  /** @type {import('./$types').LayoutData} */
+  export let data;
+  /** @type {import('./$types').LayoutParams} */
+  export let params;
+
   import { onMount } from 'svelte';
   import { user, loading, userProfile, hasRole } from '$lib/stores/auth';
   import { getUserLevelName, canCadastrarJovem, canViewAcoesRapidas } from '$lib/stores/niveis-acesso';

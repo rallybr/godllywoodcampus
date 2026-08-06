@@ -4,7 +4,8 @@
   import { supabase } from '$lib/utils/supabase';
   import JovemMiniCard from '$lib/components/jovens/JovemMiniCard.svelte';
   import Autocomplete from '$lib/components/ui/Autocomplete.svelte';
-  import { userProfile } from '$lib/stores/auth';
+  import { userProfile, waitForUserProfile } from '$lib/stores/auth';
+  import { applyEscopoJovensQuery } from '$lib/utils/escopo-jovens';
 
   let jovens = [];
   let loading = true;
@@ -26,10 +27,7 @@
     loading = true;
     error = '';
     try {
-      console.log('🔍 DEBUG - Iniciando fetchJovens');
-      console.log('🔍 DEBUG - userProfile:', $userProfile);
-      console.log('🔍 DEBUG - userProfile.nivel:', $userProfile?.nivel);
-      console.log('🔍 DEBUG - userProfile.id:', $userProfile?.id);
+      const profile = await waitForUserProfile();
       
       const from = (page - 1) * pageSize;
       const to = from + pageSize - 1;
@@ -66,67 +64,9 @@
             nome,
             numero
           )
-        `, { count: 'exact' })
-        .order('nome_completo', { ascending: true });
+        `, { count: 'exact' });
 
-      // Aplicar escopo por nível (alinhado ao can_access_jovem)
-      const nivel = $userProfile?.nivel;
-      if (!nivel) {
-        console.log('🔍 DEBUG - Sem nível definido, sem filtros adicionais');
-      } else if (nivel === 'administrador' || nivel === 'lider_nacional_iurd' || nivel === 'lider_nacional_fju') {
-        console.log('🔍 DEBUG - Visão nacional (admin/nacional)');
-      } else if (nivel === 'lider_estadual_iurd' || nivel === 'lider_estadual_fju') {
-        if ($userProfile?.estado_id) {
-          console.log('🔍 DEBUG - Filtrando por estado/associados:', $userProfile.estado_id);
-          const { data: assoc } = await supabase
-            .from('jovens_usuarios_associacoes')
-            .select('jovem_id')
-            .eq('usuario_id', $userProfile.id);
-          const ids = (assoc || []).map(a => a.jovem_id);
-          query = ids.length > 0
-            ? query.or(`estado_id.eq.${$userProfile.estado_id},id.in.(${ids.join(',')})`)
-            : query.eq('estado_id', $userProfile.estado_id);
-        }
-      } else if (nivel === 'lider_bloco_iurd' || nivel === 'lider_bloco_fju') {
-        if ($userProfile?.bloco_id) {
-          console.log('🔍 DEBUG - Filtrando por bloco/associados:', $userProfile.bloco_id);
-          const { data: assoc } = await supabase
-            .from('jovens_usuarios_associacoes')
-            .select('jovem_id')
-            .eq('usuario_id', $userProfile.id);
-          const ids = (assoc || []).map(a => a.jovem_id);
-          query = ids.length > 0
-            ? query.or(`bloco_id.eq.${$userProfile.bloco_id},id.in.(${ids.join(',')})`)
-            : query.eq('bloco_id', $userProfile.bloco_id);
-        }
-      } else if (nivel === 'lider_regional_iurd') {
-        if ($userProfile?.regiao_id) {
-          console.log('🔍 DEBUG - Filtrando por região/associados:', $userProfile.regiao_id);
-          const { data: assoc } = await supabase
-            .from('jovens_usuarios_associacoes')
-            .select('jovem_id')
-            .eq('usuario_id', $userProfile.id);
-          const ids = (assoc || []).map(a => a.jovem_id);
-          query = ids.length > 0
-            ? query.or(`regiao_id.eq.${$userProfile.regiao_id},id.in.(${ids.join(',')})`)
-            : query.eq('regiao_id', $userProfile.regiao_id);
-        }
-      } else if (nivel === 'lider_igreja_iurd') {
-        if ($userProfile?.igreja_id) {
-          console.log('🔍 DEBUG - Filtrando por igreja/associados:', $userProfile.igreja_id);
-          const { data: assoc } = await supabase
-            .from('jovens_usuarios_associacoes')
-            .select('jovem_id')
-            .eq('usuario_id', $userProfile.id);
-          const ids = (assoc || []).map(a => a.jovem_id);
-          query = ids.length > 0
-            ? query.or(`igreja_id.eq.${$userProfile.igreja_id},id.in.(${ids.join(',')})`)
-            : query.eq('igreja_id', $userProfile.igreja_id);
-        }
-      } else if ((nivel === 'colaborador' || nivel === 'jovem') && $userProfile?.id) {
-        console.log('🔍 DEBUG - Filtrando por usuário (colaborador/jovem):', $userProfile.id);
-        query = query.eq('usuario_id', $userProfile.id);
-      }
+      ({ query } = await applyEscopoJovensQuery(query, profile));
 
       if (searchTerm && searchTerm.trim().length > 0) {
         query = query.ilike('nome_completo', `%${searchTerm.trim()}%`);
@@ -155,7 +95,9 @@
         query = query.lte('idade', Number(idadeMax));
       }
 
-      const { data, error: err, count } = await query.range(from, to);
+      const { data, error: err, count } = await query
+        .order('nome_completo', { ascending: true })
+        .range(from, to);
       if (err) throw err;
       
       console.log('🔍 DEBUG - Dados retornados:', data);

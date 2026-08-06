@@ -1,7 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
-  import { user, userProfile } from '$lib/stores/auth';
+  import { user, userProfile, waitForUserProfile } from '$lib/stores/auth';
   import { supabase } from '$lib/utils/supabase';
   import JovemCard from '$lib/components/jovens/JovemCard.svelte';
   import Button from '$lib/components/ui/Button.svelte';
@@ -17,14 +17,18 @@
   
   // Obter status da URL
   $: status = $page.url.searchParams.get('status') || '';
+
+  $: if ($userProfile?.id) {
+    status;
+    currentPage;
+    loadJovensAssociados();
+  }
   
   onMount(async () => {
     if (!$user) {
       window.location.href = '/login';
     } else if ($userProfile?.nivel === 'jovem') {
       window.location.href = '/';
-    } else {
-      await loadJovensAssociados();
     }
   });
   
@@ -33,10 +37,28 @@
     error = null;
     
     try {
-      console.log('🔍 DEBUG - Carregando jovens associados para usuário:', $userProfile?.id);
-      console.log('🔍 DEBUG - Status filtro:', status);
-      
-      // Buscar jovens associados ao usuário
+      const profile = await waitForUserProfile();
+      if (!profile?.id) {
+        jovens = [];
+        total = 0;
+        return;
+      }
+
+      const { data: associacoes, error: associacoesError } = await supabase
+        .from('jovens_usuarios_associacoes')
+        .select('jovem_id')
+        .eq('usuario_id', profile.id);
+
+      if (associacoesError) throw associacoesError;
+
+      if (!associacoes?.length) {
+        jovens = [];
+        total = 0;
+        return;
+      }
+
+      const jovensIds = associacoes.map(a => a.jovem_id);
+
       let query = supabase
         .from('jovens')
         .select(`
@@ -55,7 +77,7 @@
             criado_em
           )
         `, { count: 'exact' })
-        .eq('usuario_id', $userProfile.id)
+        .in('id', jovensIds)
         .order('data_cadastro', { ascending: false });
       
       // Aplicar filtro por status se especificado

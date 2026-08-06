@@ -1,4 +1,9 @@
 <script>
+  /** @type {import('./$types').PageData} */
+  export let data;
+  /** @type {import('./$types').PageParams} */
+  export let params;
+
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
   import { user, signIn, loading } from '$lib/stores/auth';

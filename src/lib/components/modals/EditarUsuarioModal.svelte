@@ -1,7 +1,7 @@
 <script>
   import { createEventDispatcher } from 'svelte';
   import { userProfile, hasRole } from '$lib/stores/auth';
-  import { atualizarUsuario, uploadFotoUsuario, deletarFotoAntiga, buscarPapeisDisponiveis, buscarPapeisUsuario, atribuirPapelUsuario, removerPapelUsuario } from '$lib/stores/usuarios';
+  import { atualizarUsuario, uploadFotoUsuario, deletarFotoAntiga, loadRoles, roles, buscarPapeisUsuario, atribuirPapelUsuario, removerPapelUsuario } from '$lib/stores/usuarios';
   import { loadInitialData, estados, blocos, regioes, igrejas, loadBlocos, loadRegioes, loadIgrejas, clearHierarchy } from '$lib/stores/geographic';
   import Button from '$lib/components/ui/Button.svelte';
   import Card from '$lib/components/ui/Card.svelte';
@@ -21,10 +21,10 @@
   let success = null;
   let fotoPreview = null;
   let arquivoFoto = null;
-  let papeisDisponiveis = [];
   let papeisUsuario = [];
   let carregandoPapeis = false;
   let novoPapel = '';
+  let modalUsuarioId = null;
   let estadoId = null;
   let blocoId = null;
   let regiaoId = null;
@@ -46,11 +46,51 @@
   // Verificar se pode alterar status ativo (apenas administradores)
   $: podeAlterarStatus = hasRole('administrador')($userProfile);
 
-  // Carregar papéis quando o modal abrir
-  $: if (isOpen && usuario?.id) {
-    carregarPapeisDisponiveis();
-    carregarPapeisUsuario();
-    carregarDadosGeograficos();
+  // Inicializar modal ao abrir para um usuário
+  $: if (isOpen && usuario?.id && usuario.id !== modalUsuarioId) {
+    modalUsuarioId = usuario.id;
+    void inicializarModal(usuario);
+  }
+
+  $: if (!isOpen) {
+    modalUsuarioId = null;
+    novoPapel = '';
+  }
+
+  async function inicializarModal(user) {
+    dadosFormulario = {
+      nome: user?.nome || '',
+      email: user?.email || '',
+      sexo: user?.sexo || '',
+      nivel: user?.nivel || '',
+      ativo: user?.ativo !== undefined ? user.ativo : true
+    };
+    novoPapel = '';
+    estadoId = null;
+    blocoId = null;
+    regiaoId = null;
+    igrejaId = null;
+    error = null;
+    success = null;
+
+    try {
+      carregandoPapeis = true;
+      await loadRoles();
+      await carregarPapeisUsuario();
+      await carregarDadosGeograficos();
+
+      if ($roles.length > 0 && user?.nivel) {
+        const papelAtual = $roles.find((p) => p.slug === user.nivel);
+        if (papelAtual) {
+          novoPapel = papelAtual.id;
+        }
+      }
+    } catch (err) {
+      console.error('Erro ao inicializar modal de usuário:', err);
+      error = 'Erro ao carregar papéis disponíveis';
+    } finally {
+      carregandoPapeis = false;
+    }
   }
 
   // Carregar dados geográficos iniciais
@@ -79,8 +119,8 @@
   }
 
   // Pré-selecionar o papel atual quando os papéis estiverem carregados
-  $: if (papeisDisponiveis.length > 0 && usuario?.nivel) {
-    const papelAtual = papeisDisponiveis.find(p => p.slug === usuario.nivel);
+  $: if ($roles.length > 0 && usuario?.nivel && !novoPapel) {
+    const papelAtual = $roles.find((p) => p.slug === usuario.nivel);
     if (papelAtual) {
       novoPapel = papelAtual.id;
     }
@@ -135,19 +175,6 @@
     igrejaId = event.detail.value;
   }
 
-  // Carregar papéis disponíveis
-  async function carregarPapeisDisponiveis() {
-    try {
-      carregandoPapeis = true;
-      papeisDisponiveis = await buscarPapeisDisponiveis();
-    } catch (err) {
-      console.error('Erro ao carregar papéis:', err);
-      error = 'Erro ao carregar papéis disponíveis';
-    } finally {
-      carregandoPapeis = false;
-    }
-  }
-
   // Carregar papéis do usuário
   async function carregarPapeisUsuario() {
     try {
@@ -171,7 +198,7 @@
       }
       
       // Encontrar o papel selecionado para obter o slug
-      const papelSelecionado = papeisDisponiveis.find(p => p.id === novoPapel);
+      const papelSelecionado = $roles.find((p) => p.id === novoPapel);
       if (!papelSelecionado) {
         error = 'Papel selecionado não encontrado';
         return;
@@ -527,13 +554,20 @@
                     <select
                       id="novo-papel"
                       bind:value={novoPapel}
-                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      disabled={carregandoPapeis}
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
                     >
-                      <option value="">Selecione um papel</option>
-                      {#each papeisDisponiveis as papel}
+                      <option value="">{carregandoPapeis ? 'Carregando papéis...' : 'Selecione um papel'}</option>
+                      {#each $roles as papel (papel.id)}
                         <option value={papel.id}>{papel.nome} (Nível {papel.nivel_hierarquico})</option>
                       {/each}
                     </select>
+                    {#if !carregandoPapeis && $roles.length === 0}
+                      <p class="mt-1 text-xs text-amber-600">
+                        Nenhum papel cadastrado na tabela <code class="bg-amber-50 px-1 rounded">public.roles</code>.
+                        Execute o script <code class="bg-amber-50 px-1 rounded">scripts-desenvolvimento/correcoes/seed-roles-papeis.sql</code> no Supabase.
+                      </p>
+                    {/if}
                   </div>
 
                   <div class="grid grid-cols-2 gap-4">

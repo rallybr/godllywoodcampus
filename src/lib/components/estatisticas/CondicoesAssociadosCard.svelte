@@ -1,23 +1,28 @@
 <script>
-  import { onMount } from 'svelte';
   import { condicoesAssociadosStats, loadCondicoesAssociadosStats } from '$lib/stores/estatisticas';
   import { userProfile } from '$lib/stores/auth';
   import { getUserLevelName } from '$lib/stores/niveis-acesso';
   
   let loading = false;
+  let lastLoadedUserId = null;
   
-  onMount(async () => {
-    if ($userProfile?.id) {
-      loading = true;
-      try {
-        await loadCondicoesAssociadosStats($userProfile.id);
-      } catch (error) {
-        console.error('Erro ao carregar condições dos jovens associados:', error);
-      } finally {
-        loading = false;
-      }
+  async function carregarStats(userId) {
+    if (!userId || userId === lastLoadedUserId) return;
+    lastLoadedUserId = userId;
+
+    loading = true;
+    try {
+      await loadCondicoesAssociadosStats(userId);
+    } catch (error) {
+      console.error('Erro ao carregar condições dos jovens associados:', error);
+    } finally {
+      loading = false;
     }
-  });
+  }
+
+  $: if ($userProfile?.id) {
+    carregarStats($userProfile.id);
+  }
 </script>
 
 <!-- Card de Condições dos Jovens Associados (não mostrar para jovens) -->

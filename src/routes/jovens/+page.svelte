@@ -1,7 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
-  import { user, userProfile } from '$lib/stores/auth';
+  import { user, userProfile, waitForUserProfile } from '$lib/stores/auth';
   import { canCadastrarJovem } from '$lib/stores/niveis-acesso';
   import { loadJovens, filteredJovens, filters, loading, error, pagination } from '$lib/stores/jovens-simple';
   import JovemCard from '$lib/components/jovens/JovemCard.svelte';
@@ -11,17 +11,18 @@
   let currentPage = 1;
   let viewMode = 'grid';
   
-  onMount(() => {
+  onMount(async () => {
     if (!$user) {
       goto('/login');
     } else {
-      const userId = $userProfile?.id;
-      const userLevel = $userProfile?.nivel;
+      const profile = await waitForUserProfile();
+      const userId = profile?.id;
+      const userLevel = profile?.nivel;
       const scope = {
-        estadoId: $userProfile?.estado_id || undefined,
-        blocoId: $userProfile?.bloco_id || undefined,
-        regiaoId: $userProfile?.regiao_id || undefined,
-        igrejaId: $userProfile?.igreja_id || undefined
+        estadoId: profile?.estado_id || undefined,
+        blocoId: profile?.bloco_id || undefined,
+        regiaoId: profile?.regiao_id || undefined,
+        igrejaId: profile?.igreja_id || undefined
       };
       loadJovens(1, 20, userId, userLevel, { scope });
     }

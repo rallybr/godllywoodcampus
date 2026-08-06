@@ -1,4 +1,4 @@
-import { writable } from 'svelte/store';
+import { writable, get } from 'svelte/store';
 import { supabase } from '$lib/utils/supabase';
 import { registrarUltimoAcesso } from './usuarios';
 import { initializeAccessLevels } from './niveis-acesso';
@@ -9,29 +9,108 @@ export const user = writable(null);
 export const loading = writable(true);
 export const userProfile = writable(null);
 
-// Initialize auth state
-if (browser) {
-  // Get initial session
-  supabase.auth.getSession().then(({ data: { session } }) => {
-    user.set(session?.user ?? null);
-    loading.set(false);
-  });
+let profileLoadPromise = null;
+let profileLoadUserId = null;
 
-  // Listen for auth changes
-  supabase.auth.onAuthStateChange((event, session) => {
-    user.set(session?.user ?? null);
-    loading.set(false);
-    
-    if (session?.user) {
-      loadUserProfile(session.user.id);
-    } else {
-      userProfile.set(null);
-      marcarJovemNaoCadastrado();
-    }
+/** Aguarda o perfil do usuário estar disponível (útil para queries com escopo). */
+export function waitForUserProfile(timeoutMs = 15000) {
+  const current = get(userProfile);
+  if (current?.id && current?.nivel) {
+    return Promise.resolve(current);
+  }
+  if (!get(user)) {
+    return Promise.resolve(null);
+  }
+
+  return new Promise((resolve) => {
+    const timeout = setTimeout(() => {
+      unsub();
+      resolve(get(userProfile));
+    }, timeoutMs);
+
+    const unsub = userProfile.subscribe((profile) => {
+      if (profile?.id && profile?.nivel) {
+        clearTimeout(timeout);
+        unsub();
+        resolve(profile);
+      }
+    });
   });
 }
 
+// Initialize auth state
+if (browser) {
+  let initialSessionHandled = false;
+
+  function scheduleProfileLoad(userId) {
+    setTimeout(async () => {
+      try {
+        await loadUserProfile(userId);
+      } finally {
+        loading.set(false);
+      }
+    }, 0);
+  }
+
+  function handleAuthSession(event, session) {
+    user.set(session?.user ?? null);
+
+    if (session?.user) {
+      if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+        scheduleProfileLoad(session.user.id);
+        return;
+      }
+      loading.set(false);
+      return;
+    }
+
+    userProfile.set(null);
+    if (event === 'SIGNED_OUT') {
+      marcarJovemNaoCadastrado();
+    }
+    loading.set(false);
+  }
+
+  supabase.auth.onAuthStateChange((event, session) => {
+    if (event === 'INITIAL_SESSION') {
+      if (initialSessionHandled) return;
+      initialSessionHandled = true;
+    }
+    handleAuthSession(event, session);
+  });
+
+  // Fallback caso INITIAL_SESSION demore ou não dispare
+  supabase.auth.getSession().then(({ data: { session } }) => {
+    if (!initialSessionHandled) {
+      initialSessionHandled = true;
+      handleAuthSession('INITIAL_SESSION', session);
+    }
+  });
+
+  // Segurança: nunca deixar loading infinito
+  setTimeout(() => {
+    if (get(loading)) {
+      console.warn('Timeout na inicialização do auth — liberando tela.');
+      loading.set(false);
+    }
+  }, 15000);
+}
+
 export async function loadUserProfile(userId) {
+  if (profileLoadUserId === userId && profileLoadPromise) {
+    return profileLoadPromise;
+  }
+
+  profileLoadUserId = userId;
+  profileLoadPromise = _loadUserProfile(userId).finally(() => {
+    profileLoadPromise = null;
+    profileLoadUserId = null;
+  });
+
+  return profileLoadPromise;
+}
+
+async function _loadUserProfile(userId) {
   try {
     const { data, error } = await supabase
       .from('usuarios')

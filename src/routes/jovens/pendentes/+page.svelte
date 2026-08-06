@@ -1,7 +1,8 @@
 <script>
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
-  import { user, userProfile } from '$lib/stores/auth';
+  import { user, userProfile, waitForUserProfile } from '$lib/stores/auth';
+  import { applyEscopoJovensQuery } from '$lib/utils/escopo-jovens';
   import { canCadastrarJovem } from '$lib/stores/niveis-acesso';
   import { supabase } from '$lib/utils/supabase';
   import JovemCard from '$lib/components/jovens/JovemCard.svelte';
@@ -62,70 +63,8 @@
         `)
         .or('aprovado.is.null,aprovado.eq.null');
       
-      // 🔧 APLICAR FILTROS BASEADOS NO NÍVEL DE ACESSO
-      const userLevel = $userProfile?.nivel;
-      const userId = $userProfile?.id;
-      
-      console.log('🔍 DEBUG - Carregando jovens pendentes:', { userLevel, userId, estado_id: $userProfile?.estado_id });
-      
-      if (userLevel === 'colaborador' && userId) {
-        // Colaborador: apenas jovens que ele cadastrou
-        console.log('🔍 DEBUG - Filtrando por colaborador:', userId);
-        query = query.eq('usuario_id', userId);
-      } else if (userLevel === 'lider_estadual_iurd' || userLevel === 'lider_estadual_fju') {
-        // Líder estadual: jovens do estado OU associados ao usuário
-        if ($userProfile?.estado_id) {
-          console.log('🔍 DEBUG - Filtrando por estado/associados:', $userProfile.estado_id);
-          const { data: assoc } = await supabase
-            .from('jovens_usuarios_associacoes')
-            .select('jovem_id')
-            .eq('usuario_id', userId);
-          const ids = (assoc || []).map(a => a.jovem_id);
-          query = ids.length > 0
-            ? query.or(`estado_id.eq.${$userProfile.estado_id},id.in.(${ids.join(',')})`)
-            : query.eq('estado_id', $userProfile.estado_id);
-        }
-      } else if (userLevel === 'lider_bloco_iurd' || userLevel === 'lider_bloco_fju') {
-        // Líder de bloco: jovens do bloco OU associados
-        if ($userProfile?.bloco_id) {
-          console.log('🔍 DEBUG - Filtrando por bloco/associados:', $userProfile.bloco_id);
-          const { data: assoc } = await supabase
-            .from('jovens_usuarios_associacoes')
-            .select('jovem_id')
-            .eq('usuario_id', userId);
-          const ids = (assoc || []).map(a => a.jovem_id);
-          query = ids.length > 0
-            ? query.or(`bloco_id.eq.${$userProfile.bloco_id},id.in.(${ids.join(',')})`)
-            : query.eq('bloco_id', $userProfile.bloco_id);
-        }
-      } else if (userLevel === 'lider_regional_iurd') {
-        // Líder regional: jovens da região OU associados
-        if ($userProfile?.regiao_id) {
-          console.log('🔍 DEBUG - Filtrando por região/associados:', $userProfile.regiao_id);
-          const { data: assoc } = await supabase
-            .from('jovens_usuarios_associacoes')
-            .select('jovem_id')
-            .eq('usuario_id', userId);
-          const ids = (assoc || []).map(a => a.jovem_id);
-          query = ids.length > 0
-            ? query.or(`regiao_id.eq.${$userProfile.regiao_id},id.in.(${ids.join(',')})`)
-            : query.eq('regiao_id', $userProfile.regiao_id);
-        }
-      } else if (userLevel === 'lider_igreja_iurd') {
-        // Líder de igreja: jovens da igreja OU associados
-        if ($userProfile?.igreja_id) {
-          console.log('🔍 DEBUG - Filtrando por igreja/associados:', $userProfile.igreja_id);
-          const { data: assoc } = await supabase
-            .from('jovens_usuarios_associacoes')
-            .select('jovem_id')
-            .eq('usuario_id', userId);
-          const ids = (assoc || []).map(a => a.jovem_id);
-          query = ids.length > 0
-            ? query.or(`igreja_id.eq.${$userProfile.igreja_id},id.in.(${ids.join(',')})`)
-            : query.eq('igreja_id', $userProfile.igreja_id);
-        }
-      }
-      // Administrador e líderes nacionais: sem filtros adicionais
+      const profile = await waitForUserProfile();
+      ({ query } = await applyEscopoJovensQuery(query, profile));
       
       // Filtrar por edição se selecionada
       if (edicaoSelecionada) {

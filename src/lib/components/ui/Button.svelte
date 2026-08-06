@@ -7,6 +7,8 @@
   export let loading = false;
   export let type = 'button';
   export let href = null;
+  let className = '';
+  export { className as class };
   
   const dispatch = createEventDispatcher();
   
@@ -29,7 +31,7 @@
   function getClasses() {
     const variantClass = variants[variant] || variants.primary;
     const sizeClass = sizes[size] || sizes.md;
-    return `${baseClasses} ${variantClass} ${sizeClass}`;
+    return `${baseClasses} ${variantClass} ${sizeClass} ${className}`.trim();
   }
   
   function handleClick(event) {

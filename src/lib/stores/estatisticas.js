@@ -593,9 +593,6 @@ function calcularCondicoes(jovensData) {
         stats.colaborador++;
       } else if (responsabilidade.includes('cpo')) {
         stats.cpo++;
-      } else {
-        // Se não se encaixa em nenhuma categoria, não conta (ou poderia ser uma categoria "Outros")
-        console.log('Jovem sem classificação:', jovem);
       }
     }
   });
@@ -611,14 +608,15 @@ export async function loadEstatisticasJovensAssociados(usuarioId) {
   try {
     console.log('🔍 DEBUG - Carregando estatísticas de jovens associados para usuário:', usuarioId);
     
-    // Buscar jovens associados ao usuário via tabela associativa
     const { data: associacoes, error: associacoesError } = await supabase
       .from('jovens_usuarios_associacoes')
       .select('jovem_id')
       .eq('usuario_id', usuarioId);
+
+    if (associacoesError) throw associacoesError;
     
     let jovensAssociados = [];
-    if (associacoes && associacoes.length > 0) {
+    if (associacoes?.length > 0) {
       const jovensIds = associacoes.map(a => a.jovem_id);
       const { data: jovensData, error: jovensError } = await supabase
         .from('jovens')
@@ -630,11 +628,6 @@ export async function loadEstatisticasJovensAssociados(usuarioId) {
       
       if (jovensError) throw jovensError;
       jovensAssociados = jovensData || [];
-    }
-    
-    if (jovensError) {
-      console.error('Erro ao buscar jovens associados:', jovensError);
-      throw jovensError;
     }
     
     console.log('🔍 DEBUG - Jovens associados encontrados:', jovensAssociados?.length || 0);
@@ -705,24 +698,26 @@ export async function loadCondicoesAssociadosStats(usuarioId) {
   try {
     console.log('🔍 DEBUG - Carregando condições dos jovens associados para usuário:', usuarioId);
     
-    // Buscar jovens associados ao usuário via tabela associativa
     const { data: associacoes, error: associacoesError } = await supabase
       .from('jovens_usuarios_associacoes')
       .select('jovem_id')
       .eq('usuario_id', usuarioId);
+
+    if (associacoesError) throw associacoesError;
     
     let jovensAssociados = [];
-    if (associacoes && associacoes.length > 0) {
+    if (associacoes?.length > 0) {
       const jovensIds = associacoes.map(a => a.jovem_id);
       const { data: jovensData, error: jovensError } = await supabase
         .from('jovens')
         .select(`
           id,
           condicao,
-          condicao_campus,
           responsabilidade_igreja,
           ja_obreiro,
+          foi_obreiro,
           ja_colaborador,
+          foi_colaborador,
           batizado_es
         `)
         .in('id', jovensIds);
@@ -731,44 +726,9 @@ export async function loadCondicoesAssociadosStats(usuarioId) {
       jovensAssociados = jovensData || [];
     }
     
-    if (jovensError) {
-      console.error('Erro ao buscar jovens associados:', jovensError);
-      throw jovensError;
-    }
-    
     console.log('🔍 DEBUG - Jovens associados encontrados para condições:', jovensAssociados?.length || 0);
     
-    // Inicializar estatísticas
-    const stats = {
-      auxPastor: 0,
-      iburd: 0,
-      obreiro: 0,
-      colaborador: 0,
-      cpo: 0,
-      batizadoES: 0
-    };
-    
-    // Processar cada jovem associado
-    jovensAssociados?.forEach(jovem => {
-      // Verificar condição principal
-      const condicao = jovem.condicao || jovem.condicao_campus || '';
-      const responsabilidade = jovem.responsabilidade_igreja || '';
-      
-      // Classificar por condição
-      if (condicao.includes('auxiliar_pastor') || responsabilidade.includes('auxiliar_pastor')) {
-        stats.auxPastor++;
-      } else if (condicao.includes('iburd') || responsabilidade.includes('iburd')) {
-        stats.iburd++;
-      } else if (condicao.includes('obreiro') || responsabilidade.includes('obreiro') || jovem.ja_obreiro) {
-        stats.obreiro++;
-      } else if (condicao.includes('colaborador') || responsabilidade.includes('colaborador') || jovem.ja_colaborador) {
-        stats.colaborador++;
-      } else if (condicao.includes('cpo') || responsabilidade.includes('cpo')) {
-        stats.cpo++;
-      } else if (jovem.batizado_es) {
-        stats.batizadoES++;
-      }
-    });
+    const stats = calcularCondicoes(jovensAssociados);
     
     console.log('🔍 DEBUG - Condições dos jovens associados:', stats);
     
