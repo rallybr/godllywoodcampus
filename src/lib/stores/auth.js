@@ -93,7 +93,7 @@ if (browser) {
       console.warn('Timeout na inicialização do auth — liberando tela.');
       loading.set(false);
     }
-  }, 15000);
+  }, 5000);
 }
 
 export async function loadUserProfile(userId) {
@@ -108,6 +108,17 @@ export async function loadUserProfile(userId) {
   });
 
   return profileLoadPromise;
+}
+
+function runProfileSideEffects() {
+  // Não bloqueia a UI: roles/cadastro/último acesso rodam em paralelo após o perfil
+  void Promise.allSettled([
+    initializeAccessLevels(),
+    initializeCadastroCheck(),
+    registrarUltimoAcesso().catch((err) => {
+      console.warn('Erro ao registrar último acesso:', err);
+    })
+  ]);
 }
 
 async function _loadUserProfile(userId) {
@@ -156,6 +167,7 @@ async function _loadUserProfile(userId) {
               .single();
             if (!reloadErr) {
               userProfile.set(created);
+              runProfileSideEffects();
               return;
             }
           }
@@ -168,19 +180,7 @@ async function _loadUserProfile(userId) {
       throw error;
     }
     userProfile.set(data);
-    
-    // Inicializar sistema de níveis de acesso
-    await initializeAccessLevels();
-    
-    // Inicializar verificação de cadastro do jovem
-    await initializeCadastroCheck();
-    
-    // Registrar último acesso
-    try {
-      await registrarUltimoAcesso();
-    } catch (err) {
-      console.warn('Erro ao registrar último acesso:', err);
-    }
+    runProfileSideEffects();
   } catch (error) {
     console.error('Error loading user profile:', error);
     console.error('Error details:', JSON.stringify(error, null, 2));

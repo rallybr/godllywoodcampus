@@ -238,6 +238,18 @@
             nome,
             sigla,
             bandeira
+          ),
+          bloco:blocos!bloco_id(
+            id,
+            nome
+          ),
+          regiao:regioes!regiao_id(
+            id,
+            nome
+          ),
+          igreja:igrejas!igreja_id(
+            id,
+            nome
           )
         `)
         .order('nome_completo', { ascending: true });
@@ -406,8 +418,8 @@
 
         let currentYCard = y;
 
-        // Foto (largura total do card)
-        const fotoHeight = 80; // Altura fixa para foto
+        // Foto (largura total do card; um pouco menor para caber bloco/região/igreja)
+        const fotoHeight = 72;
         const fotoWidth = cardWidth;
 
         if (jovem.foto) {
@@ -463,13 +475,41 @@
         doc.text(nomeLines, x + cardWidth / 2, currentYCard, { align: 'center' });
         currentYCard += nomeLines.length * 4 + 2;
 
-        // Estado (fonte maior, caixa alta)
-        doc.setFontSize(10); // Aumentado de 9 para 10
+        // Localização: esquerda estado/região | a partir do centro bloco/igreja
+        doc.setFontSize(7.5);
         doc.setFont('helvetica', 'bold');
+        doc.setTextColor(40, 40, 40);
+
         const estadoNome = (jovem.estado?.nome || jovem.estado?.sigla || 'N/A').toUpperCase();
-        const estadoTexto = `ESTADO: ${estadoNome}`;
-        doc.text(estadoTexto, x + cardWidth / 2, currentYCard, { align: 'center' });
-        currentYCard += 5;
+        const blocoNome = (jovem.bloco?.nome || 'N/A').toUpperCase();
+        const regiaoNome = (jovem.regiao?.nome || 'N/A').toUpperCase();
+        const igrejaNome = (jovem.igreja?.nome || 'N/A').toUpperCase();
+
+        const colEsqX = x + 3;
+        const colDirX = x + cardWidth / 2;
+        const colWidth = (cardWidth / 2) - 4;
+
+        const desenharParLocal = (labelEsq, valorEsq, labelDir, valorDir) => {
+          const textoEsq = `${labelEsq} ${valorEsq}`;
+          const textoDir = `${labelDir} ${valorDir}`;
+          const linhasEsq = doc.splitTextToSize(textoEsq, colWidth);
+          const linhasDir = doc.splitTextToSize(textoDir, colWidth);
+          const maxLinhas = Math.max(linhasEsq.length, linhasDir.length);
+
+          for (let i = 0; i < maxLinhas; i++) {
+            if (linhasEsq[i]) {
+              doc.text(linhasEsq[i], colEsqX, currentYCard, { align: 'left' });
+            }
+            if (linhasDir[i]) {
+              doc.text(linhasDir[i], colDirX, currentYCard, { align: 'left' });
+            }
+            currentYCard += 3.1;
+          }
+        };
+
+        desenharParLocal('ESTADO', estadoNome, 'BLOCO', blocoNome);
+        desenharParLocal('REGIÃO', regiaoNome, 'IGREJA', igrejaNome);
+        currentYCard += 2;
 
         // Timeline - replicar exatamente como está na tela
         const timelineY = currentYCard;

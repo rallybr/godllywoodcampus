@@ -179,11 +179,30 @@
     </h3>
   </div>
 
-  <!-- Estado -->
-  <div class="text-center mb-4">
-    <p class="text-xs font-bold text-gray-900 uppercase">
-      ESTADO: {jovem.estado?.nome || jovem.estado?.sigla || 'N/A'}
-    </p>
+  <!-- Localização hierárquica -->
+  <div class="mb-4 space-y-1.5 text-[11px] sm:text-xs font-bold uppercase tracking-wide">
+    <div class="grid grid-cols-2 gap-x-3 items-start">
+      <div class="text-left min-w-0">
+        <span class="text-gray-700 font-bold">Estado</span>
+        <span class="text-gray-900 ml-1.5 break-words">{jovem.estado?.nome || jovem.estado?.sigla || 'N/A'}</span>
+      </div>
+      <div class="text-left min-w-0">
+        <span class="text-gray-700 font-bold">Bloco</span>
+        <span class="text-gray-900 ml-1.5 break-words">{jovem.bloco?.nome || 'N/A'}</span>
+      </div>
+    </div>
+    <div class="grid grid-cols-2 gap-x-3 items-start">
+      <div class="text-left min-w-0">
+        <span class="text-gray-700 font-bold">Região</span>
+        <span class="text-gray-900 ml-1.5 break-words">{jovem.regiao?.nome || 'N/A'}</span>
+      </div>
+      <div class="text-left min-w-0">
+        <span class="text-gray-700 font-bold">Igreja</span>
+        <span class="text-gray-900 ml-1.5 break-words" title={jovem.igreja?.nome || 'N/A'}>
+          {jovem.igreja?.nome || 'N/A'}
+        </span>
+      </div>
+    </div>
   </div>
 
     <!-- Timeline horizontal -->

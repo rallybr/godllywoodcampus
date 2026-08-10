@@ -50,40 +50,35 @@
   onMount(async () => {
     if (!$user) {
       goto('/login');
-    } else {
-      await loadInitialData();
-      await loadDashboardData();
-      await Promise.all([loadEstadosFeed(), loadCondicoesFeed()]);
-      await fetchJovensFeed();
+      return;
     }
+
+    const profile = await waitForUserProfile();
+
+    await Promise.all([
+      loadInitialData(),
+      loadDashboardData(profile),
+      loadEstadosFeed(),
+      loadCondicoesFeed(),
+      fetchJovensFeed()
+    ]);
   });
   
   // Carregar dados reais do dashboard
-  async function loadDashboardData() {
+  async function loadDashboardData(profileParam = null) {
     loading = true;
     try {
-      const profile = await waitForUserProfile();
+      const profile = profileParam || await waitForUserProfile();
       const userId = profile?.id;
       const userLevel = profile?.nivel;
-      
-      console.log('🔍 DEBUG - loadDashboardData - userProfile:', $userProfile);
-      console.log('🔍 DEBUG - loadDashboardData - userId:', userId);
-      console.log('🔍 DEBUG - loadDashboardData - userLevel:', userLevel);
-      
-      // Carregar estatísticas gerais
-      await loadEstatisticas(userId, userLevel, profile);
-      
-      // Carregar estatísticas das condições
-      await loadCondicoesStats(userId, userLevel, profile);
-      
-      // Carregar atividades recentes
-      await loadRecentActivities(userId, userLevel);
-      
-      // Carregar últimos cadastros
-      await loadUltimosCadastros(userId, userLevel);
-      
-      // Carregar estatísticas dos estados
-      await loadEstadosStats();
+
+      await Promise.all([
+        loadEstatisticas(userId, userLevel, profile),
+        loadCondicoesStats(userId, userLevel, profile),
+        loadRecentActivities(userId, userLevel),
+        loadUltimosCadastros(userId, userLevel),
+        loadEstadosStats()
+      ]);
       
       // Atualizar stats locais com dados do store
       stats = {
@@ -91,7 +86,7 @@
         avaliacoesPendentes: $estatisticas.pendentes || 0,
         avaliados: $estatisticas.avaliados || 0,
         aprovados: $estatisticas.aprovados || 0,
-        ultimosCadastros: []
+        ultimosCadastros: stats.ultimosCadastros || []
       };
       
     } catch (err) {

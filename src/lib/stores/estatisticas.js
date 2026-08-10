@@ -47,238 +47,260 @@ export const condicoesAssociadosStats = writable({
 export const loading = writable(false);
 export const error = writable(null);
 
+const ESTATISTICAS_CACHE_TTL_MS = 30000;
+let estatisticasInFlight = null;
+let estatisticasCache = { key: null, at: 0, data: null };
+
+function getEscopoKey(userId, userLevel, userProfile) {
+  return JSON.stringify({
+    userId: userId || null,
+    userLevel: userLevel || null,
+    estado_id: userProfile?.estado_id || null,
+    bloco_id: userProfile?.bloco_id || null,
+    regiao_id: userProfile?.regiao_id || null,
+    igreja_id: userProfile?.igreja_id || null
+  });
+}
+
+/** Aplica filtros de hierarquia em queries da tabela jovens */
+function applyJovensEscopo(query, userId = null, userLevel = null, userProfile = null) {
+  if (userLevel === 'administrador' || userLevel === 'lider_nacional_iurd' || userLevel === 'lider_nacional_fju') {
+    return query;
+  }
+  if ((userLevel === 'lider_estadual_iurd' || userLevel === 'lider_estadual_fju') && userProfile?.estado_id) {
+    return query.eq('estado_id', userProfile.estado_id);
+  }
+  if ((userLevel === 'lider_bloco_iurd' || userLevel === 'lider_bloco_fju') && userProfile?.bloco_id) {
+    return query.eq('bloco_id', userProfile.bloco_id);
+  }
+  if (userLevel === 'lider_regional_iurd' && userProfile?.regiao_id) {
+    return query.eq('regiao_id', userProfile.regiao_id);
+  }
+  if (userLevel === 'lider_igreja_iurd' && userProfile?.igreja_id) {
+    return query.eq('igreja_id', userProfile.igreja_id);
+  }
+  if ((userLevel === 'colaborador' || userLevel === 'jovem') && userId) {
+    return query.eq('usuario_id', userId);
+  }
+  return query;
+}
+
+async function countJovens(userId, userLevel, userProfile, extraFilter = null) {
+  let query = supabase
+    .from('jovens')
+    .select('id', { count: 'exact', head: true });
+
+  query = applyJovensEscopo(query, userId, userLevel, userProfile);
+  if (extraFilter) {
+    query = extraFilter(query);
+  }
+
+  const { count, error: countError } = await query;
+  if (countError) throw countError;
+  return count || 0;
+}
+
+function buildAvaliacoesQuery(userId, userLevel, userProfile) {
+  const baseSelect = 'nota, jovem_id, espirito, caractere, disposicao, user_id';
+
+  if (userLevel === 'colaborador' && userId) {
+    return supabase
+      .from('avaliacoes')
+      .select(baseSelect)
+      .eq('user_id', userId);
+  }
+
+  if ((userLevel === 'lider_estadual_iurd' || userLevel === 'lider_estadual_fju') && userProfile?.estado_id) {
+    return supabase
+      .from('avaliacoes')
+      .select(`${baseSelect}, jovens!inner(estado_id)`)
+      .eq('jovens.estado_id', userProfile.estado_id);
+  }
+
+  if ((userLevel === 'lider_bloco_iurd' || userLevel === 'lider_bloco_fju') && userProfile?.bloco_id) {
+    return supabase
+      .from('avaliacoes')
+      .select(`${baseSelect}, jovens!inner(bloco_id)`)
+      .eq('jovens.bloco_id', userProfile.bloco_id);
+  }
+
+  if (userLevel === 'lider_regional_iurd' && userProfile?.regiao_id) {
+    return supabase
+      .from('avaliacoes')
+      .select(`${baseSelect}, jovens!inner(regiao_id)`)
+      .eq('jovens.regiao_id', userProfile.regiao_id);
+  }
+
+  if (userLevel === 'lider_igreja_iurd' && userProfile?.igreja_id) {
+    return supabase
+      .from('avaliacoes')
+      .select(`${baseSelect}, jovens!inner(igreja_id)`)
+      .eq('jovens.igreja_id', userProfile.igreja_id);
+  }
+
+  return supabase.from('avaliacoes').select(baseSelect);
+}
+
+/** Fallback caso o join jovens!inner falhe (nome de FK / schema) */
+async function fetchAvaliacoesScopedFallback(userId, userLevel, userProfile) {
+  const scoped = applyJovensEscopo(
+    supabase.from('jovens').select('id'),
+    userId,
+    userLevel,
+    userProfile
+  );
+  const { data: jovensData, error: jovensError } = await scoped;
+  if (jovensError) throw jovensError;
+
+  const ids = (jovensData || []).map((j) => j.id);
+  if (ids.length === 0) {
+    return { data: [], error: null };
+  }
+
+  // PostgREST limita .in() — busca em lotes se necessário
+  const chunkSize = 200;
+  const all = [];
+  for (let i = 0; i < ids.length; i += chunkSize) {
+    const chunk = ids.slice(i, i + chunkSize);
+    const { data, error } = await supabase
+      .from('avaliacoes')
+      .select('nota, jovem_id, espirito, caractere, disposicao, user_id')
+      .in('jovem_id', chunk);
+    if (error) throw error;
+    if (data?.length) all.push(...data);
+  }
+  return { data: all, error: null };
+}
+
+function mapQualitativo(valor, mapa, padrao = 1) {
+  return mapa[valor] ?? padrao;
+}
+
 // Função para carregar estatísticas gerais
 export async function loadEstatisticas(userId = null, userLevel = null, userProfile = null) {
+  const cacheKey = getEscopoKey(userId, userLevel, userProfile);
+  const now = Date.now();
+
+  if (estatisticasCache.key === cacheKey && now - estatisticasCache.at < ESTATISTICAS_CACHE_TTL_MS) {
+    estatisticas.set(estatisticasCache.data);
+    return estatisticasCache.data;
+  }
+
+  if (estatisticasInFlight && estatisticasInFlight.key === cacheKey) {
+    return estatisticasInFlight.promise;
+  }
+
   loading.set(true);
   error.set(null);
-  
-  try {
-    // Buscar estatísticas dos jovens
-    let jovensQuery = supabase
-      .from('jovens')
-      .select('aprovado, data_cadastro, id, usuario_id, estado_id, bloco_id, regiao_id, igreja_id');
-    
-    // Aplicar filtros baseados na hierarquia de níveis de acesso
-    if (userLevel === 'administrador') {
-      // Administrador: acesso total - sem filtros
-      console.log('🔍 DEBUG - Administrador: acesso total sem filtros');
-    } else if (userLevel === 'lider_nacional_iurd' || userLevel === 'lider_nacional_fju') {
-      // Líderes nacionais: acesso nacional - sem filtros
-      console.log('🔍 DEBUG - Líder nacional: acesso nacional sem filtros');
-    } else if (userLevel === 'lider_estadual_iurd' || userLevel === 'lider_estadual_fju') {
-      // Líderes estaduais: acesso estadual
-      if (userProfile?.estado_id) {
-        console.log('🔍 DEBUG - Líder estadual: filtrando por estado:', { userId, userLevel, estado_id: userProfile.estado_id });
-        jovensQuery = jovensQuery.eq('estado_id', userProfile.estado_id);
+
+  const promise = (async () => {
+    try {
+      const hoje = new Date();
+      const mesAtual = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+      const mesAnterior = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1);
+      const mesAtualIso = mesAtual.toISOString();
+      const mesAnteriorIso = mesAnterior.toISOString();
+
+      const [
+        totalJovens,
+        aprovados,
+        preAprovados,
+        pendentes,
+        jovensMesAtual,
+        jovensMesAnterior,
+        avaliacoesResult
+      ] = await Promise.all([
+        countJovens(userId, userLevel, userProfile),
+        countJovens(userId, userLevel, userProfile, (q) => q.eq('aprovado', 'aprovado')),
+        countJovens(userId, userLevel, userProfile, (q) => q.eq('aprovado', 'pre_aprovado')),
+        // Mantém a regra atual: null + pre_aprovado
+        countJovens(userId, userLevel, userProfile, (q) =>
+          q.or('aprovado.is.null,aprovado.eq.pre_aprovado')
+        ),
+        countJovens(userId, userLevel, userProfile, (q) => q.gte('data_cadastro', mesAtualIso)),
+        countJovens(userId, userLevel, userProfile, (q) =>
+          q.gte('data_cadastro', mesAnteriorIso).lt('data_cadastro', mesAtualIso)
+        ),
+        buildAvaliacoesQuery(userId, userLevel, userProfile)
+      ]);
+
+      let avaliacoes = [];
+      if (avaliacoesResult?.error) {
+        console.warn('Fallback de avaliações (join):', avaliacoesResult.error.message);
+        const fallback = await fetchAvaliacoesScopedFallback(userId, userLevel, userProfile);
+        if (fallback.error) throw fallback.error;
+        avaliacoes = fallback.data || [];
       } else {
-        console.log('⚠️  WARNING - Líder estadual sem estado_id definido');
+        avaliacoes = avaliacoesResult?.data || [];
       }
-    } else if (userLevel === 'lider_bloco_iurd' || userLevel === 'lider_bloco_fju') {
-      // Líderes de bloco: acesso ao bloco
-      if (userProfile?.bloco_id) {
-        console.log('🔍 DEBUG - Líder de bloco: filtrando por bloco:', { userId, userLevel, bloco_id: userProfile.bloco_id });
-        jovensQuery = jovensQuery.eq('bloco_id', userProfile.bloco_id);
-      } else {
-        console.log('⚠️  WARNING - Líder de bloco sem bloco_id definido');
+      const jovensAvaliadosIds = new Set(avaliacoes.map((a) => a.jovem_id).filter(Boolean));
+      const avaliados = jovensAvaliadosIds.size;
+      const totalAvaliacoes = avaliacoes.length;
+
+      const mediaGeral = totalAvaliacoes > 0
+        ? avaliacoes.reduce((acc, av) => acc + (av.nota || 0), 0) / totalAvaliacoes
+        : 0;
+
+      const mapaEspirito = { excelente: 5, muito_bom: 4, bom: 3, regular: 2, ruim: 1 };
+      const mapaCaractere = { excelente: 5, muito_bom: 4, bom: 3, regular: 2, ruim: 1 };
+      const mapaDisposicao = {
+        muito_disposto: 5,
+        disposto: 4,
+        neutro: 3,
+        pouco_disposto: 2,
+        indisposto: 1
+      };
+
+      const comEspirito = avaliacoes.filter((av) => av.espirito);
+      const mediaEspirito = comEspirito.length > 0
+        ? comEspirito.reduce((acc, av) => acc + mapQualitativo(av.espirito, mapaEspirito), 0) / comEspirito.length
+        : 0;
+
+      const comCaractere = avaliacoes.filter((av) => av.caractere);
+      const mediaCaractere = comCaractere.length > 0
+        ? comCaractere.reduce((acc, av) => acc + mapQualitativo(av.caractere, mapaCaractere), 0) / comCaractere.length
+        : 0;
+
+      const comDisposicao = avaliacoes.filter((av) => av.disposicao);
+      const mediaDisposicao = comDisposicao.length > 0
+        ? comDisposicao.reduce((acc, av) => acc + mapQualitativo(av.disposicao, mapaDisposicao), 0) / comDisposicao.length
+        : 0;
+
+      const crescimento = jovensMesAnterior > 0
+        ? Math.round(((jovensMesAtual - jovensMesAnterior) / jovensMesAnterior) * 100)
+        : 0;
+
+      const payload = {
+        totalJovens,
+        aprovados,
+        pendentes,
+        preAprovados,
+        avaliados,
+        totalAvaliacoes,
+        mediaGeral: Math.round(mediaGeral * 10) / 10,
+        mediaEspirito: Math.round(mediaEspirito * 10) / 10,
+        mediaCaractere: Math.round(mediaCaractere * 10) / 10,
+        mediaDisposicao: Math.round(mediaDisposicao * 10) / 10,
+        crescimento
+      };
+
+      estatisticas.set(payload);
+      estatisticasCache = { key: cacheKey, at: Date.now(), data: payload };
+      return payload;
+    } catch (err) {
+      error.set(err.message);
+      console.error('Error loading estatísticas:', err);
+      return null;
+    } finally {
+      loading.set(false);
+      if (estatisticasInFlight?.key === cacheKey) {
+        estatisticasInFlight = null;
       }
-    } else if (userLevel === 'lider_regional_iurd') {
-      // Líder regional: acesso à região
-      if (userProfile?.regiao_id) {
-        console.log('🔍 DEBUG - Líder regional: filtrando por região:', { userId, userLevel, regiao_id: userProfile.regiao_id });
-        jovensQuery = jovensQuery.eq('regiao_id', userProfile.regiao_id);
-      } else {
-        console.log('⚠️  WARNING - Líder regional sem regiao_id definido');
-      }
-    } else if (userLevel === 'lider_igreja_iurd') {
-      // Líder de igreja: acesso à igreja
-      if (userProfile?.igreja_id) {
-        console.log('🔍 DEBUG - Líder de igreja: filtrando por igreja:', { userId, userLevel, igreja_id: userProfile.igreja_id });
-        jovensQuery = jovensQuery.eq('igreja_id', userProfile.igreja_id);
-      } else {
-        console.log('⚠️  WARNING - Líder de igreja sem igreja_id definido');
-      }
-    } else if (userLevel === 'colaborador' && userId) {
-      // Colaborador: acesso aos jovens que ele cadastrou
-      console.log('🔍 DEBUG - Colaborador: filtrando por usuário que cadastrou:', { userId, userLevel });
-      jovensQuery = jovensQuery.eq('usuario_id', userId);
-    } else if (userLevel === 'jovem' && userId) {
-      // Jovem: acesso apenas aos seus próprios dados
-      console.log('🔍 DEBUG - Jovem: filtrando por usuário:', { userId, userLevel });
-      jovensQuery = jovensQuery.eq('usuario_id', userId);
-    } else {
-      console.log('🔍 DEBUG - Nível não reconhecido ou sem filtros:', { userId, userLevel });
     }
-    
-    const { data: jovensData, error: jovensError } = await jovensQuery;
-    
-    if (jovensError) throw jovensError;
-    
-    console.log('🔍 DEBUG - Jovens carregados para estatísticas:', jovensData?.length);
-    console.log('🔍 DEBUG - Primeiros 3 jovens:', jovensData?.slice(0, 3));
-    
-    // Buscar estatísticas das avaliações
-    let avaliacoesQuery = supabase
-      .from('avaliacoes')
-      .select('nota, criado_em, jovem_id, espirito, caractere, disposicao, user_id');
-    
-    // 🔧 APLICAR FILTROS NAS AVALIAÇÕES BASEADOS NO NÍVEL DE ACESSO
-    if (userLevel === 'colaborador' && userId) {
-      // Colaborador: apenas avaliações que ele fez
-      console.log('🔍 DEBUG - Filtrando estatísticas de avaliações para colaborador:', { userId, userLevel });
-      avaliacoesQuery = avaliacoesQuery.eq('user_id', userId);
-    } else if (userLevel === 'lider_estadual_iurd' || userLevel === 'lider_estadual_fju') {
-      // Líder estadual: apenas avaliações de jovens do seu estado
-      if (userProfile?.estado_id) {
-        console.log('🔍 DEBUG - Filtrando avaliações por estado:', { userLevel, estado_id: userProfile.estado_id });
-        // Filtrar avaliações que pertencem a jovens do estado
-        avaliacoesQuery = avaliacoesQuery.in('jovem_id', 
-          jovensData.map(j => j.id)
-        );
-      }
-    } else if (userLevel === 'lider_bloco_iurd' || userLevel === 'lider_bloco_fju') {
-      // Líder de bloco: apenas avaliações de jovens do seu bloco
-      if (userProfile?.bloco_id) {
-        console.log('🔍 DEBUG - Filtrando avaliações por bloco:', { userLevel, bloco_id: userProfile.bloco_id });
-        avaliacoesQuery = avaliacoesQuery.in('jovem_id', 
-          jovensData.map(j => j.id)
-        );
-      }
-    } else if (userLevel === 'lider_regional_iurd') {
-      // Líder regional: apenas avaliações de jovens da sua região
-      if (userProfile?.regiao_id) {
-        console.log('🔍 DEBUG - Filtrando avaliações por região:', { userLevel, regiao_id: userProfile.regiao_id });
-        avaliacoesQuery = avaliacoesQuery.in('jovem_id', 
-          jovensData.map(j => j.id)
-        );
-      }
-    } else if (userLevel === 'lider_igreja_iurd') {
-      // Líder de igreja: apenas avaliações de jovens da sua igreja
-      if (userProfile?.igreja_id) {
-        console.log('🔍 DEBUG - Filtrando avaliações por igreja:', { userLevel, igreja_id: userProfile.igreja_id });
-        avaliacoesQuery = avaliacoesQuery.in('jovem_id', 
-          jovensData.map(j => j.id)
-        );
-      }
-    } else {
-      console.log('🔍 DEBUG - Não filtrando estatísticas de avaliações:', { userId, userLevel });
-    }
-    
-    const { data: avaliacoesData, error: avaliacoesError } = await avaliacoesQuery;
-    
-    if (avaliacoesError) throw avaliacoesError;
-    
-    console.log('🔍 DEBUG - Avaliações carregadas para estatísticas:', avaliacoesData?.length);
-    console.log('🔍 DEBUG - Primeiras 3 avaliações:', avaliacoesData?.slice(0, 3));
-    
-    // Calcular estatísticas dos jovens
-    const totalJovens = jovensData.length;
-    
-    const aprovados = jovensData.filter(j => 
-      j.aprovado === 'aprovado'
-    ).length;
-    
-    const preAprovados = jovensData.filter(j => 
-      j.aprovado === 'pre_aprovado'
-    ).length;
-    
-    // Pendentes inclui tanto null quanto pre_aprovado (ambos estão pendentes de aprovação final)
-    const pendentes = jovensData.filter(j => {
-      const aprovado = j.aprovado;
-      return aprovado === null || 
-             aprovado === 'null' ||
-             aprovado === undefined ||
-             aprovado === 'pre_aprovado';
-    }).length;
-    
-    console.log('🔍 DEBUG - Estatísticas calculadas:', {
-      totalJovens,
-      aprovados,
-      preAprovados,
-      pendentes
-    });
-    
-    // Calcular jovens avaliados (que têm pelo menos uma avaliação)
-    const jovensAvaliadosIds = [...new Set(avaliacoesData.map(a => a.jovem_id))];
-    const avaliados = jovensAvaliadosIds.length;
-    
-    // Calcular estatísticas das avaliações
-    const totalAvaliacoes = avaliacoesData.length;
-    const mediaGeral = totalAvaliacoes > 0 
-      ? avaliacoesData.reduce((acc, av) => acc + (av.nota || 0), 0) / totalAvaliacoes 
-      : 0;
-    
-    // Calcular médias específicas
-    const avaliacoesComEspirito = avaliacoesData.filter(av => av.espirito);
-    const mediaEspirito = avaliacoesComEspirito.length > 0 
-      ? avaliacoesComEspirito.reduce((acc, av) => {
-          const valorEspirito = av.espirito === 'excelente' ? 5 : 
-                               av.espirito === 'muito_bom' ? 4 :
-                               av.espirito === 'bom' ? 3 :
-                               av.espirito === 'regular' ? 2 : 1;
-          return acc + valorEspirito;
-        }, 0) / avaliacoesComEspirito.length
-      : 0;
-    
-    const avaliacoesComCaractere = avaliacoesData.filter(av => av.caractere);
-    const mediaCaractere = avaliacoesComCaractere.length > 0 
-      ? avaliacoesComCaractere.reduce((acc, av) => {
-          const valorCaractere = av.caractere === 'excelente' ? 5 : 
-                                av.caractere === 'muito_bom' ? 4 :
-                                av.caractere === 'bom' ? 3 :
-                                av.caractere === 'regular' ? 2 : 1;
-          return acc + valorCaractere;
-        }, 0) / avaliacoesComCaractere.length
-      : 0;
-    
-    const avaliacoesComDisposicao = avaliacoesData.filter(av => av.disposicao);
-    const mediaDisposicao = avaliacoesComDisposicao.length > 0 
-      ? avaliacoesComDisposicao.reduce((acc, av) => {
-          const valorDisposicao = av.disposicao === 'muito_disposto' ? 5 : 
-                                 av.disposicao === 'disposto' ? 4 :
-                                 av.disposicao === 'neutro' ? 3 :
-                                 av.disposicao === 'pouco_disposto' ? 2 : 1;
-          return acc + valorDisposicao;
-        }, 0) / avaliacoesComDisposicao.length
-      : 0;
-    
-    // Calcular crescimento (comparar com mês anterior)
-    const hoje = new Date();
-    const mesAtual = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
-    const mesAnterior = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1);
-    
-    const jovensMesAtual = jovensData.filter(j => 
-      new Date(j.data_cadastro) >= mesAtual
-    ).length;
-    
-    const jovensMesAnterior = jovensData.filter(j => {
-      const dataCadastro = new Date(j.data_cadastro);
-      return dataCadastro >= mesAnterior && dataCadastro < mesAtual;
-    }).length;
-    
-    const crescimento = jovensMesAnterior > 0 
-      ? Math.round(((jovensMesAtual - jovensMesAnterior) / jovensMesAnterior) * 100)
-      : 0;
-    
-    estatisticas.set({
-      totalJovens,
-      aprovados,
-      pendentes,
-      preAprovados,
-      avaliados,
-      totalAvaliacoes,
-      mediaGeral: Math.round(mediaGeral * 10) / 10,
-      mediaEspirito: Math.round(mediaEspirito * 10) / 10,
-      mediaCaractere: Math.round(mediaCaractere * 10) / 10,
-      mediaDisposicao: Math.round(mediaDisposicao * 10) / 10,
-      crescimento
-    });
-    
-  } catch (err) {
-    error.set(err.message);
-    console.error('Error loading estatísticas:', err);
-  } finally {
-    loading.set(false);
-  }
+  })();
+
+  estatisticasInFlight = { key: cacheKey, promise };
+  return promise;
 }
 
 // Função para carregar estatísticas do usuário logado
@@ -287,10 +309,6 @@ export async function loadEstatisticasUsuario(usuarioId) {
   error.set(null);
   
   try {
-    console.log('=== CARREGANDO ESTATÍSTICAS DO USUÁRIO ===');
-    console.log('ID do usuário recebido:', usuarioId);
-    
-    // Buscar dados do usuário para aplicar filtros
     const { data: userData, error: userError } = await supabase
       .from('usuarios')
       .select('nivel, estado_id, bloco_id, regiao_id, igreja_id')
@@ -303,128 +321,75 @@ export async function loadEstatisticasUsuario(usuarioId) {
     }
     
     const userLevel = userData?.nivel;
-    console.log('🔍 DEBUG - Nível do usuário:', userLevel);
-    
-    // Buscar avaliações feitas pelo usuário
-    console.log('Buscando avaliações do usuário...');
-    const { data: avaliacoesUsuario, error: avaliacoesError } = await supabase
-      .from('avaliacoes')
-      .select('nota, criado_em')
-      .eq('user_id', usuarioId);
-    
-    if (avaliacoesError) {
-      console.error('Erro ao buscar avaliações:', avaliacoesError);
-      throw avaliacoesError;
+
+    // Associações (quando aplicável) + avaliações do usuário em paralelo
+    const needsAssociados = [
+      'lider_estadual_iurd', 'lider_estadual_fju',
+      'lider_bloco_iurd', 'lider_bloco_fju',
+      'lider_regional_iurd', 'lider_igreja_iurd'
+    ].includes(userLevel);
+
+    const [avaliacoesResult, associadosResult] = await Promise.all([
+      supabase
+        .from('avaliacoes')
+        .select('nota')
+        .eq('user_id', usuarioId),
+      needsAssociados
+        ? supabase
+            .from('jovens_usuarios_associacoes')
+            .select('jovem_id')
+            .eq('usuario_id', usuarioId)
+        : Promise.resolve({ data: [], error: null })
+    ]);
+
+    if (avaliacoesResult.error) {
+      console.error('Erro ao buscar avaliações:', avaliacoesResult.error);
+      throw avaliacoesResult.error;
     }
-    
-    console.log('Avaliações encontradas:', avaliacoesUsuario);
-    
-    // Calcular estatísticas do usuário
+
+    const avaliacoesUsuario = avaliacoesResult.data || [];
     const totalAvaliacoes = avaliacoesUsuario.length;
-    const mediaGeral = totalAvaliacoes > 0 
-      ? avaliacoesUsuario.reduce((acc, av) => acc + (av.nota || 0), 0) / totalAvaliacoes 
+    const mediaGeral = totalAvaliacoes > 0
+      ? avaliacoesUsuario.reduce((acc, av) => acc + (av.nota || 0), 0) / totalAvaliacoes
       : 0;
-    
-    // Buscar total de jovens com filtros baseados no nível de acesso
-    console.log('Buscando total de jovens...');
+
     let jovensQuery = supabase
       .from('jovens')
-      .select('id, usuario_id');
-    
-    // 🔧 APLICAR FILTROS BASEADOS NO NÍVEL DE ACESSO (inclui jovens associados via tabela associativa)
+      .select('id', { count: 'exact', head: true });
+
+    const associadosIds = (associadosResult.data || []).map((a) => a.jovem_id).filter(Boolean);
+
     if (userLevel === 'colaborador') {
-      // Colaborador: jovens que cadastrou OU jovens associados a ele
-      console.log('🔍 DEBUG - Filtrando jovens para colaborador:', usuarioId);
       jovensQuery = jovensQuery.eq('usuario_id', usuarioId);
-    } else if (userLevel === 'lider_estadual_iurd' || userLevel === 'lider_estadual_fju') {
-      // Líder estadual: jovens do estado OU jovens associados a ele
-      if (userData?.estado_id) {
-        console.log('🔍 DEBUG - Filtrando jovens por estado OU associados:', userData.estado_id, usuarioId);
-        // Buscar IDs de jovens associados ao usuário
-        const { data: associados } = await supabase
-          .from('jovens_usuarios_associacoes')
-          .select('jovem_id')
-          .eq('usuario_id', usuarioId);
-        
-        const associadosIds = associados?.map(a => a.jovem_id) || [];
-        if (associadosIds.length > 0) {
-          jovensQuery = jovensQuery.or(`estado_id.eq.${userData.estado_id},id.in.(${associadosIds.join(',')})`);
-        } else {
-          jovensQuery = jovensQuery.eq('estado_id', userData.estado_id);
-        }
-      }
-    } else if (userLevel === 'lider_bloco_iurd' || userLevel === 'lider_bloco_fju') {
-      // Líder de bloco: jovens do bloco OU jovens associados a ele
-      if (userData?.bloco_id) {
-        console.log('🔍 DEBUG - Filtrando jovens por bloco OU associados:', userData.bloco_id, usuarioId);
-        // Buscar IDs de jovens associados ao usuário
-        const { data: associados } = await supabase
-          .from('jovens_usuarios_associacoes')
-          .select('jovem_id')
-          .eq('usuario_id', usuarioId);
-        
-        const associadosIds = associados?.map(a => a.jovem_id) || [];
-        if (associadosIds.length > 0) {
-          jovensQuery = jovensQuery.or(`bloco_id.eq.${userData.bloco_id},id.in.(${associadosIds.join(',')})`);
-        } else {
-          jovensQuery = jovensQuery.eq('bloco_id', userData.bloco_id);
-        }
-      }
-    } else if (userLevel === 'lider_regional_iurd') {
-      // Líder regional: jovens da região OU jovens associados a ele
-      if (userData?.regiao_id) {
-        console.log('🔍 DEBUG - Filtrando jovens por região OU associados:', userData.regiao_id, usuarioId);
-        // Buscar IDs de jovens associados ao usuário
-        const { data: associados } = await supabase
-          .from('jovens_usuarios_associacoes')
-          .select('jovem_id')
-          .eq('usuario_id', usuarioId);
-        
-        const associadosIds = associados?.map(a => a.jovem_id) || [];
-        if (associadosIds.length > 0) {
-          jovensQuery = jovensQuery.or(`regiao_id.eq.${userData.regiao_id},id.in.(${associadosIds.join(',')})`);
-        } else {
-          jovensQuery = jovensQuery.eq('regiao_id', userData.regiao_id);
-        }
-      }
-    } else if (userLevel === 'lider_igreja_iurd') {
-      // Líder de igreja: jovens da igreja OU jovens associados a ele
-      if (userData?.igreja_id) {
-        console.log('🔍 DEBUG - Filtrando jovens por igreja OU associados:', userData.igreja_id, usuarioId);
-        // Buscar IDs de jovens associados ao usuário
-        const { data: associados } = await supabase
-          .from('jovens_usuarios_associacoes')
-          .select('jovem_id')
-          .eq('usuario_id', usuarioId);
-        
-        const associadosIds = associados?.map(a => a.jovem_id) || [];
-        if (associadosIds.length > 0) {
-          jovensQuery = jovensQuery.or(`igreja_id.eq.${userData.igreja_id},id.in.(${associadosIds.join(',')})`);
-        } else {
-          jovensQuery = jovensQuery.eq('igreja_id', userData.igreja_id);
-        }
-      }
+    } else if ((userLevel === 'lider_estadual_iurd' || userLevel === 'lider_estadual_fju') && userData?.estado_id) {
+      jovensQuery = associadosIds.length > 0
+        ? jovensQuery.or(`estado_id.eq.${userData.estado_id},id.in.(${associadosIds.join(',')})`)
+        : jovensQuery.eq('estado_id', userData.estado_id);
+    } else if ((userLevel === 'lider_bloco_iurd' || userLevel === 'lider_bloco_fju') && userData?.bloco_id) {
+      jovensQuery = associadosIds.length > 0
+        ? jovensQuery.or(`bloco_id.eq.${userData.bloco_id},id.in.(${associadosIds.join(',')})`)
+        : jovensQuery.eq('bloco_id', userData.bloco_id);
+    } else if (userLevel === 'lider_regional_iurd' && userData?.regiao_id) {
+      jovensQuery = associadosIds.length > 0
+        ? jovensQuery.or(`regiao_id.eq.${userData.regiao_id},id.in.(${associadosIds.join(',')})`)
+        : jovensQuery.eq('regiao_id', userData.regiao_id);
+    } else if (userLevel === 'lider_igreja_iurd' && userData?.igreja_id) {
+      jovensQuery = associadosIds.length > 0
+        ? jovensQuery.or(`igreja_id.eq.${userData.igreja_id},id.in.(${associadosIds.join(',')})`)
+        : jovensQuery.eq('igreja_id', userData.igreja_id);
     }
-    // Administrador e líderes nacionais: sem filtros adicionais (veem todos)
-    
-    const { data: jovensData, error: jovensError } = await jovensQuery;
-    
+
+    const { count, error: jovensError } = await jovensQuery;
     if (jovensError) {
       console.error('Erro ao buscar jovens:', jovensError);
       throw jovensError;
     }
-    
-    console.log('Jovens encontrados:', jovensData);
-    
-    const resultado = {
-      totalJovens: jovensData.length,
+
+    return {
+      totalJovens: count || 0,
       avaliacoesFeitas: totalAvaliacoes,
       mediaGeral: Math.round(mediaGeral * 10) / 10
     };
-    
-    console.log('Resultado das estatísticas:', resultado);
-    
-    return resultado;
     
   } catch (err) {
     error.set(err.message);
@@ -471,78 +436,54 @@ export const estatisticasFiltradas = derived(
   }
 );
 
+async function countCondicao(userId, userLevel, userProfile, condicao) {
+  return countJovens(userId, userLevel, userProfile, (q) => q.eq('condicao', condicao));
+}
+
 // Função para carregar estatísticas das condições
 export async function loadCondicoesStats(userId = null, userLevel = null, userProfile = null) {
   loading.set(true);
   error.set(null);
   
   try {
-    // Buscar jovens com filtro baseado no nível do usuário
-    let query = supabase
-      .from('jovens')
-      .select('condicao, responsabilidade_igreja, ja_obreiro, foi_obreiro, ja_colaborador, foi_colaborador, batizado_es, usuario_id, estado_id, bloco_id, regiao_id, igreja_id');
-    
-    // Aplicar filtros baseados na hierarquia de níveis de acesso
-    if (userLevel === 'administrador') {
-      // Administrador: acesso total - sem filtros
-      console.log('🔍 DEBUG - Administrador: acesso total sem filtros');
-    } else if (userLevel === 'lider_nacional_iurd' || userLevel === 'lider_nacional_fju') {
-      // Líderes nacionais: acesso nacional - sem filtros
-      console.log('🔍 DEBUG - Líder nacional: acesso nacional sem filtros');
-    } else if (userLevel === 'lider_estadual_iurd' || userLevel === 'lider_estadual_fju') {
-      // Líderes estaduais: acesso estadual
-      if (userProfile?.estado_id) {
-        console.log('🔍 DEBUG - Líder estadual: filtrando por estado:', { userId, userLevel, estado_id: userProfile.estado_id });
-        query = query.eq('estado_id', userProfile.estado_id);
-      } else {
-        console.log('⚠️  WARNING - Líder estadual sem estado_id definido');
-      }
-    } else if (userLevel === 'lider_bloco_iurd' || userLevel === 'lider_bloco_fju') {
-      // Líderes de bloco: acesso ao bloco
-      if (userProfile?.bloco_id) {
-        console.log('🔍 DEBUG - Líder de bloco: filtrando por bloco:', { userId, userLevel, bloco_id: userProfile.bloco_id });
-        query = query.eq('bloco_id', userProfile.bloco_id);
-      } else {
-        console.log('⚠️  WARNING - Líder de bloco sem bloco_id definido');
-      }
-    } else if (userLevel === 'lider_regional_iurd') {
-      // Líder regional: acesso à região
-      if (userProfile?.regiao_id) {
-        console.log('🔍 DEBUG - Líder regional: filtrando por região:', { userId, userLevel, regiao_id: userProfile.regiao_id });
-        query = query.eq('regiao_id', userProfile.regiao_id);
-      } else {
-        console.log('⚠️  WARNING - Líder regional sem regiao_id definido');
-      }
-    } else if (userLevel === 'lider_igreja_iurd') {
-      // Líder de igreja: acesso à igreja
-      if (userProfile?.igreja_id) {
-        console.log('🔍 DEBUG - Líder de igreja: filtrando por igreja:', { userId, userLevel, igreja_id: userProfile.igreja_id });
-        query = query.eq('igreja_id', userProfile.igreja_id);
-      } else {
-        console.log('⚠️  WARNING - Líder de igreja sem igreja_id definido');
-      }
-    } else if (userLevel === 'colaborador' && userId) {
-      // Colaborador: acesso aos jovens que ele cadastrou
-      console.log('🔍 DEBUG - Colaborador: filtrando por usuário que cadastrou:', { userId, userLevel });
-      query = query.eq('usuario_id', userId);
-    } else if (userLevel === 'jovem' && userId) {
-      // Jovem: acesso apenas aos seus próprios dados
-      console.log('🔍 DEBUG - Jovem: filtrando por usuário:', { userId, userLevel });
-      query = query.eq('usuario_id', userId);
-    } else {
-      console.log('🔍 DEBUG - Nível não reconhecido ou sem filtros:', { userId, userLevel });
-    }
-    
-    const { data: jovensData, error: jovensError } = await query;
-    
-    if (jovensError) throw jovensError;
-    
-    console.log('Jovens carregados para estatísticas das condições:', jovensData.length);
-    console.log('Primeiros 5 jovens:', jovensData.slice(0, 5));
-    
-    const stats = calcularCondicoes(jovensData);
-    console.log('Estatísticas calculadas:', stats);
-    
+    // Contagens no banco pela condição principal (caminho prioritário do formulário)
+    const [auxPastor, iburd, obreiro, colaborador, cpo, batizadoES, semCondicaoResult] = await Promise.all([
+      countCondicao(userId, userLevel, userProfile, 'auxiliar_pastor'),
+      countCondicao(userId, userLevel, userProfile, 'iburd'),
+      countCondicao(userId, userLevel, userProfile, 'obreiro'),
+      countCondicao(userId, userLevel, userProfile, 'colaborador'),
+      countCondicao(userId, userLevel, userProfile, 'cpo'),
+      countCondicao(userId, userLevel, userProfile, 'jovem_batizado_es'),
+      // Fallback legado: só baixa quem não tem condição preenchida
+      applyJovensEscopo(
+        supabase
+          .from('jovens')
+          .select('condicao, responsabilidade_igreja, ja_obreiro, foi_obreiro, ja_colaborador, foi_colaborador')
+          .or('condicao.is.null,condicao.eq.'),
+        userId,
+        userLevel,
+        userProfile
+      )
+    ]);
+
+    const stats = {
+      auxPastor,
+      iburd,
+      obreiro,
+      colaborador,
+      cpo,
+      batizadoES
+    };
+
+    if (semCondicaoResult.error) throw semCondicaoResult.error;
+    const fallbackStats = calcularCondicoes(semCondicaoResult.data || []);
+    stats.auxPastor += fallbackStats.auxPastor;
+    stats.iburd += fallbackStats.iburd;
+    stats.obreiro += fallbackStats.obreiro;
+    stats.colaborador += fallbackStats.colaborador;
+    stats.cpo += fallbackStats.cpo;
+    stats.batizadoES += fallbackStats.batizadoES;
+
     condicoesStats.set(stats);
     
   } catch (err) {
