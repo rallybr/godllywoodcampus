@@ -1,5 +1,5 @@
 <script>
-  import { onMount } from 'svelte';
+  import { onMount, tick } from 'svelte';
   import { goto } from '$app/navigation';
   import { user, userProfile } from '$lib/stores/auth';
   import { supabase } from '$lib/utils/supabase';
@@ -523,11 +523,103 @@
         canvas.height = img.height;
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0);
-        resolve(canvas.toDataURL('image/jpeg', 0.8));
+        resolve(canvas.toDataURL('image/jpeg', 0.92));
       };
       img.onerror = reject;
       img.src = src;
     });
+  }
+
+  async function inlineImagesForCapture(root) {
+    const imgs = [...root.querySelectorAll('img')];
+    await Promise.all(
+      imgs.map(async (img) => {
+        const src = img.currentSrc || img.src;
+        if (!src || src.startsWith('data:')) return;
+        try {
+          const dataUrl = await loadImage(src);
+          img.src = dataUrl;
+          if (typeof img.decode === 'function') {
+            await img.decode().catch(() => {});
+          }
+        } catch (err) {
+          console.warn('Falha ao inline da imagem para PDF:', src, err);
+        }
+      })
+    );
+
+    // background-image (fotos no modo PDF usam cover via CSS)
+    const bgEls = [...root.querySelectorAll('[style*="background-image"]')];
+    await Promise.all(
+      bgEls.map(async (el) => {
+        const style = el.getAttribute('style') || '';
+        const match = style.match(/background-image:\s*url\(['"]?(.*?)['"]?\)/i);
+        const src = match?.[1];
+        if (!src || src.startsWith('data:')) return;
+        try {
+          const dataUrl = await loadImage(src);
+          el.style.backgroundImage = `url("${dataUrl}")`;
+        } catch (err) {
+          console.warn('Falha ao inline do background para PDF:', src, err);
+        }
+      })
+    );
+  }
+
+  /**
+   * Adiciona um canvas ao PDF, fatiando em páginas se necessário.
+   * Retorna a posição Y seguinte (mm) na última página.
+   */
+  function adicionarCanvasAoPdf(doc, canvas, margin, startY, gapMm) {
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const usableWidth = pageWidth - margin * 2;
+    const pxPerMm = canvas.width / usableWidth;
+
+    let srcY = 0;
+    let currentY = startY;
+
+    while (srcY < canvas.height) {
+      const availableMm = pageHeight - margin - currentY;
+      if (availableMm < 12 && srcY > 0) {
+        doc.addPage();
+        currentY = margin;
+        continue;
+      }
+
+      const sliceHeightPx = Math.min(canvas.height - srcY, Math.max(availableMm, 12) * pxPerMm);
+      const sliceCanvas = document.createElement('canvas');
+      sliceCanvas.width = canvas.width;
+      sliceCanvas.height = Math.max(1, Math.ceil(sliceHeightPx));
+      const ctx = sliceCanvas.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
+      ctx.drawImage(
+        canvas,
+        0,
+        srcY,
+        canvas.width,
+        sliceHeightPx,
+        0,
+        0,
+        canvas.width,
+        sliceHeightPx
+      );
+
+      const sliceHeightMm = sliceHeightPx / pxPerMm;
+      const data = sliceCanvas.toDataURL('image/jpeg', 0.95);
+      doc.addImage(data, 'JPEG', margin, currentY, usableWidth, sliceHeightMm);
+
+      srcY += sliceHeightPx;
+      currentY += sliceHeightMm;
+
+      if (srcY < canvas.height) {
+        doc.addPage();
+        currentY = margin;
+      }
+    }
+
+    return currentY + gapMm;
   }
 
   async function gerarPDF() {
@@ -537,119 +629,182 @@
     }
 
     gerandoPdf = true;
+    const listaEl = document.getElementById('ponto-vista-lista');
+    const prevWidth = listaEl?.style.width || '';
+
     try {
-      const { jsPDF } = await import('jspdf');
+      // Força layout desktop idêntico ao da página web e oculta ações de admin
+      await tick();
+      if (listaEl) {
+        listaEl.style.width = '1120px';
+        listaEl.style.maxWidth = '1120px';
+      }
+      await tick();
+      // Aguarda layout/pintura e imagens
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+      const cards = [...document.querySelectorAll('[data-ponto-vista-card]')];
+      if (cards.length === 0) {
+        throw new Error('Nenhum card encontrado para exportar');
+      }
+
+      for (const card of cards) {
+        await inlineImagesForCapture(card);
+      }
+      await tick();
+      await new Promise((r) => setTimeout(r, 50));
+
+      const [{ jsPDF }, html2canvasModule] = await Promise.all([
+        import('jspdf'),
+        import('html2canvas')
+      ]);
+      const html2canvas = html2canvasModule.default;
+
       const doc = new jsPDF('p', 'mm', 'a4');
-      const pageWidth = doc.internal.pageSize.getWidth();
-      const pageHeight = doc.internal.pageSize.getHeight();
-      const margin = 10;
-      const cardHeight = 95;
-      const gap = 6;
+      const margin = 8;
+      const gap = 5;
       let y = margin;
 
-      for (let i = 0; i < jovens.length; i++) {
-        const jovem = jovens[i];
-        if (y + cardHeight > pageHeight - margin) {
+      for (let i = 0; i < cards.length; i++) {
+        const card = cards[i];
+        card.scrollIntoView({ block: 'nearest', behavior: 'auto' });
+        await new Promise((r) => requestAnimationFrame(r));
+
+        const canvas = await html2canvas(card, {
+          scale: 2,
+          useCORS: true,
+          allowTaint: false,
+          backgroundColor: '#ffffff',
+          logging: false,
+          imageTimeout: 15000,
+          removeContainer: true,
+          letterRendering: true,
+          onclone: (clonedDoc, clonedEl) => {
+            const fixStyle = clonedDoc.createElement('style');
+            fixStyle.textContent = `
+              [data-ponto-vista-card] {
+                overflow: visible !important;
+                -webkit-font-smoothing: antialiased !important;
+                text-rendering: geometricPrecision !important;
+              }
+              [data-ponto-vista-card] button,
+              [data-ponto-vista-card] .inline-flex {
+                overflow: visible !important;
+                align-items: center !important;
+                line-height: 1.45 !important;
+                padding-top: 0.4rem !important;
+                padding-bottom: 0.5rem !important;
+                min-height: 2rem !important;
+                height: auto !important;
+                max-height: none !important;
+              }
+              [data-ponto-vista-card] .truncate,
+              [data-ponto-vista-card] span {
+                overflow: visible !important;
+                text-overflow: clip !important;
+                line-height: 1.5 !important;
+                padding-top: 2px !important;
+                padding-bottom: 3px !important;
+                max-height: none !important;
+                height: auto !important;
+              }
+              [data-ponto-vista-card] .leading-tight {
+                line-height: 1.35 !important;
+              }
+              [data-ponto-vista-card] img {
+                flex-shrink: 0 !important;
+              }
+              [data-ponto-vista-card] > div > a.relative {
+                width: 14rem !important;
+                max-width: 14rem !important;
+                min-height: 0 !important;
+                height: auto !important;
+                aspect-ratio: 3 / 4 !important;
+                align-self: flex-start !important;
+                flex-shrink: 0 !important;
+                overflow: hidden !important;
+                position: relative !important;
+              }
+            `;
+            clonedDoc.head.appendChild(fixStyle);
+
+            clonedEl.style.boxShadow =
+              '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)';
+            clonedEl.style.borderRadius = '0.5rem';
+            clonedEl.style.overflow = 'visible';
+            clonedEl.style.backgroundColor = '#ffffff';
+
+            const row = clonedEl.querySelector(':scope > div');
+            if (row) {
+              row.style.display = 'flex';
+              row.style.flexDirection = 'row';
+              row.style.alignItems = 'flex-start';
+            }
+
+            // Foto principal: mesma largura, altura menor (3:4) — evita esticar no html2canvas
+            const fotoCol = clonedEl.querySelector(':scope > div > a.relative');
+            if (fotoCol) {
+              fotoCol.style.width = '14rem';
+              fotoCol.style.maxWidth = '14rem';
+              fotoCol.style.minHeight = '0';
+              fotoCol.style.height = 'auto';
+              fotoCol.style.aspectRatio = '3 / 4';
+              fotoCol.style.alignSelf = 'flex-start';
+              fotoCol.style.flexShrink = '0';
+              fotoCol.style.overflow = 'hidden';
+              fotoCol.style.position = 'relative';
+            }
+
+            // Converte imgs object-cover → background (html2canvas estica object-fit)
+            clonedEl.querySelectorAll('img').forEach((img) => {
+              const parent = img.parentElement;
+              if (!parent) return;
+              const cls = `${img.className || ''} ${parent.className || ''}`;
+              // Avatares circulares e bandeira: manter img
+              if (cls.includes('rounded-full') || cls.includes('w-11') || cls.includes('h-8')) return;
+
+              const isCover = (img.className || '').includes('object-cover');
+              if (!isCover) return;
+
+              const src = img.currentSrc || img.src;
+              if (!src) return;
+              parent.style.backgroundImage = `url("${src}")`;
+              parent.style.backgroundSize = 'cover';
+              parent.style.backgroundPosition = 'top center';
+              parent.style.backgroundRepeat = 'no-repeat';
+              img.style.visibility = 'hidden';
+              img.style.opacity = '0';
+            });
+
+            // Força métricas de texto nos chips (evita corte vertical do html2canvas)
+            clonedEl.querySelectorAll('button, .inline-flex').forEach((el) => {
+              el.style.overflow = 'visible';
+              el.style.lineHeight = '1.45';
+              el.style.alignItems = 'center';
+              el.style.height = 'auto';
+              el.style.maxHeight = 'none';
+            });
+            clonedEl.querySelectorAll('.truncate, span').forEach((el) => {
+              el.style.lineHeight = '1.5';
+              el.style.paddingTop = '2px';
+              el.style.paddingBottom = '3px';
+            });
+
+            clonedDoc.querySelectorAll('[role="dialog"], [role="tooltip"]').forEach((el) => el.remove());
+          }
+        });
+
+        // Se o card não cabe no restante da página, começa nova página
+        const pageHeight = doc.internal.pageSize.getHeight();
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const usableWidth = pageWidth - margin * 2;
+        const imgHeightMm = (canvas.height * usableWidth) / canvas.width;
+        if (y > margin && y + Math.min(imgHeightMm, 40) > pageHeight - margin) {
           doc.addPage();
           y = margin;
         }
 
-        const x = margin;
-        const cardWidth = pageWidth - margin * 2;
-        const fotoW = 42;
-        const fotoH = 56;
-        const namoradoW = 22;
-        const contentX = x + fotoW + namoradoW + 10;
-
-        doc.setFillColor(255, 255, 255);
-        doc.setDrawColor(210, 210, 210);
-        doc.setLineWidth(0.3);
-        doc.roundedRect(x, y, cardWidth, cardHeight, 2, 2, 'FD');
-
-        // Foto jovem
-        if (jovem.foto) {
-          try {
-            const imgData = await loadImage(jovem.foto);
-            doc.addImage(imgData, 'JPEG', x + 3, y + 3, fotoW, fotoH);
-          } catch {
-            doc.setFillColor(200, 200, 200);
-            doc.rect(x + 3, y + 3, fotoW, fotoH, 'F');
-          }
-        } else {
-          doc.setFillColor(200, 200, 200);
-          doc.rect(x + 3, y + 3, fotoW, fotoH, 'F');
-        }
-
-        // Foto namorado
-        if (jovem.namorado?.foto) {
-          try {
-            const imgN = await loadImage(jovem.namorado.foto);
-            doc.addImage(imgN, 'JPEG', x + 3 + fotoW + 2, y + 3, namoradoW, 30);
-          } catch {
-            /* ignore */
-          }
-        }
-
-        let ty = y + 8;
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(11);
-        doc.setTextColor(20, 20, 20);
-        const nomeLines = doc.splitTextToSize((jovem.nome_completo || 'N/A').toUpperCase(), cardWidth - contentX + x - 4);
-        doc.text(nomeLines, contentX, ty);
-        ty += nomeLines.length * 5 + 2;
-
-        doc.setFontSize(8);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(40, 40, 40);
-        const meta = [
-          `Estado: ${(jovem.estado?.nome || 'N/A').toUpperCase()}`,
-          `Bloco: ${(jovem.bloco?.nome || 'N/A').toUpperCase()}`,
-          `Região: ${(jovem.regiao?.nome || 'N/A').toUpperCase()}`,
-          `Igreja: ${(jovem.igreja?.nome || 'N/A').toUpperCase()}`
-        ];
-        meta.forEach((line) => {
-          doc.text(line, contentX, ty);
-          ty += 4;
-        });
-
-        ty += 2;
-        const pontos = jovem.pontos_de_vista || [];
-        const avaliadoPor = pontos.map((p) => p.usuario_nome).filter(Boolean).join(', ') || '—';
-        const pontoTexto = pontos.length
-          ? pontos.map((p) => `${p.usuario_nome} - ${statusLabel[p.tipo_aprovacao] || p.tipo_aprovacao}`).join(', ')
-          : '—';
-
-        doc.setFont('helvetica', 'bold');
-        doc.text('Avaliado por:', contentX, ty);
-        doc.setFont('helvetica', 'normal');
-        const avLines = doc.splitTextToSize(avaliadoPor, cardWidth - (contentX - x) - 4);
-        doc.text(avLines, contentX + 28, ty);
-        ty += Math.max(avLines.length, 1) * 3.8 + 1;
-
-        doc.setFont('helvetica', 'bold');
-        doc.text('Ponto de Vista:', contentX, ty);
-        doc.setFont('helvetica', 'normal');
-        const pvLines = doc.splitTextToSize(pontoTexto, cardWidth - (contentX - x) - 4);
-        doc.text(pvLines, contentX + 30, ty);
-        ty += Math.max(pvLines.length, 1) * 3.8 + 1;
-
-        const obs = pontos.filter((p) => p.observacao);
-        doc.setFont('helvetica', 'bold');
-        doc.text('Observações:', contentX, ty);
-        ty += 4;
-        doc.setFont('helvetica', 'normal');
-        if (obs.length === 0) {
-          doc.text('—', contentX, ty);
-        } else {
-          obs.forEach((o) => {
-            const line = `${o.usuario_nome}: ${o.observacao}`;
-            const lines = doc.splitTextToSize(line, cardWidth - (contentX - x) - 4);
-            doc.text(lines, contentX, ty);
-            ty += lines.length * 3.6 + 0.5;
-          });
-        }
-
-        y += cardHeight + gap;
+        y = adicionarCanvasAoPdf(doc, canvas, margin, y, gap);
       }
 
       doc.save(`ponto-de-vista-${new Date().toISOString().split('T')[0]}.pdf`);
@@ -657,6 +812,10 @@
       console.error('Erro ao gerar PDF:', err);
       alert('Erro ao gerar PDF. Verifique o console para mais detalhes.');
     } finally {
+      if (listaEl) {
+        listaEl.style.width = prevWidth;
+        listaEl.style.maxWidth = '';
+      }
       gerandoPdf = false;
     }
   }
@@ -929,9 +1088,9 @@
         <p class="text-sm">Use Pré-aprovar, Observar ou Sem condição no perfil do jovem para registrar o ponto de vista.</p>
       </div>
     {:else}
-      <div class="grid grid-cols-1 gap-6">
+      <div id="ponto-vista-lista" class="grid grid-cols-1 gap-6 {gerandoPdf ? 'ponto-vista-pdf-export' : ''}">
         {#each jovens as jovem (jovem.id)}
-          <CardPontoDeVista {jovem} on:alterado={carregarJovens} />
+          <CardPontoDeVista {jovem} modoPdf={gerandoPdf} on:alterado={carregarJovens} />
         {/each}
       </div>
     {/if}

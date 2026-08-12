@@ -4,6 +4,8 @@
   import { removerAprovacaoAdmin, limparObservacaoAprovacaoAdmin } from '$lib/stores/jovens-simple';
 
   export let jovem;
+  /** Quando true, layout desktop fixo e sem ações de admin (exportação PDF). */
+  export let modoPdf = false;
 
   const dispatch = createEventDispatcher();
 
@@ -26,7 +28,7 @@
 
   $: observacoes = pontos.filter((p) => p.observacao);
 
-  $: isAdmin = $userProfile?.nivel === 'administrador';
+  $: isAdmin = !modoPdf && $userProfile?.nivel === 'administrador';
 
   let removendoId = null;
 
@@ -82,6 +84,13 @@
   let fotoAvaliadorHover = null;
   let fotoAvaliadorModal = null;
   let hoverTimeout = null;
+
+  $: if (modoPdf) {
+    showNamoradoModal = false;
+    observacaoModal = null;
+    fotoAvaliadorHover = null;
+    fotoAvaliadorModal = null;
+  }
 
   function abrirFotoNamorado() {
     if (jovem.namorado?.foto) showNamoradoModal = true;
@@ -186,19 +195,33 @@
   }
 </script>
 
-<div class="card-ponto-vista bg-white rounded-lg shadow-lg overflow-hidden border border-gray-100">
-  <div class="flex flex-col md:flex-row md:items-stretch">
-    <!-- Foto do jovem: altura total do card -->
+<div
+  class="card-ponto-vista bg-white rounded-lg shadow-lg border border-gray-100 {modoPdf ? 'card-ponto-vista--pdf overflow-visible' : 'overflow-hidden'}"
+  data-ponto-vista-card
+>
+  <div class="flex flex-col md:flex-row md:items-stretch {modoPdf ? 'flex-row items-start' : ''}">
+    <!-- Foto do jovem: no PDF usa proporção fixa (evita esticar) -->
     <a
       href="/jovens/{jovem.id}"
-      class="relative block w-full md:w-48 lg:w-56 xl:w-64 flex-shrink-0 self-stretch min-h-[320px] md:min-h-full overflow-hidden bg-gray-200"
+      class="relative block w-full md:w-48 lg:w-56 xl:w-64 flex-shrink-0 overflow-hidden bg-gray-200 {modoPdf
+        ? 'w-56 self-start min-h-0 aspect-[3/4]'
+        : 'self-stretch min-h-[320px] md:min-h-full'}"
     >
       {#if jovem.foto}
-        <img
-          src={jovem.foto}
-          alt={jovem.nome_completo}
-          class="absolute inset-0 w-full h-full object-cover object-top"
-        />
+        {#if modoPdf}
+          <div
+            class="absolute inset-0 bg-cover bg-top bg-no-repeat"
+            style="background-image: url('{jovem.foto}')"
+            role="img"
+            aria-label={jovem.nome_completo}
+          ></div>
+        {:else}
+          <img
+            src={jovem.foto}
+            alt={jovem.nome_completo}
+            class="absolute inset-0 w-full h-full object-cover object-top"
+          />
+        {/if}
       {:else}
         <div class="absolute inset-0 bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
           <span class="text-white font-bold text-5xl">{jovem.nome_completo?.charAt(0) || 'J'}</span>
@@ -213,18 +236,27 @@
 
     <!-- Namorado (coluna intermediária) -->
     {#if jovem.namorado && (jovem.namorado.nome || jovem.namorado.foto)}
-      <div class="flex-shrink-0 bg-gray-50 px-3 py-4 md:py-5 flex md:flex-col items-start gap-3 md:w-36 lg:w-40 border-b md:border-b-0 md:border-r border-gray-100">
+      <div class="flex-shrink-0 bg-gray-50 px-3 py-4 md:py-5 flex md:flex-col items-start gap-3 md:w-36 lg:w-40 border-b md:border-b-0 md:border-r border-gray-100 {modoPdf ? 'flex-col py-5 w-40 border-b-0 border-r self-stretch' : ''}">
         {#if jovem.namorado.foto}
           <button
             type="button"
-            class="relative block w-28 sm:w-32 md:w-full aspect-[3/4] rounded-lg overflow-hidden border border-white shadow-md bg-white cursor-zoom-in"
+            class="relative block w-28 sm:w-32 md:w-full aspect-[3/4] rounded-lg overflow-hidden border border-white shadow-md bg-white cursor-zoom-in {modoPdf ? 'w-full' : ''}"
             on:click={abrirFotoNamorado}
             title="Ampliar foto"
           >
-            <img src={jovem.namorado.foto} alt={jovem.namorado.nome || 'Namorado'} class="absolute inset-0 w-full h-full object-cover object-top" />
+            {#if modoPdf}
+              <div
+                class="absolute inset-0 bg-cover bg-top bg-no-repeat"
+                style="background-image: url('{jovem.namorado.foto}')"
+                role="img"
+                aria-label={jovem.namorado.nome || 'Namorado'}
+              ></div>
+            {:else}
+              <img src={jovem.namorado.foto} alt={jovem.namorado.nome || 'Namorado'} class="absolute inset-0 w-full h-full object-cover object-top" />
+            {/if}
           </button>
         {:else}
-          <div class="w-28 sm:w-32 md:w-full aspect-[3/4] rounded-lg bg-gray-200 flex items-center justify-center text-gray-500 font-bold text-xl">
+          <div class="w-28 sm:w-32 md:w-full aspect-[3/4] rounded-lg bg-gray-200 flex items-center justify-center text-gray-500 font-bold text-xl {modoPdf ? 'w-full' : ''}">
             {(jovem.namorado.nome || 'N').charAt(0)}
           </div>
         {/if}
@@ -276,7 +308,7 @@
               {#each pontos as p}
                 <button
                   type="button"
-                  class="inline-flex items-center gap-2 rounded-lg border px-2.5 py-1.5 shadow-sm ring-1 bg-gray-100 text-gray-800 border-gray-300 ring-gray-200 hover:bg-gray-200 hover:brightness-[0.98] transition cursor-pointer"
+                  class="inline-flex items-center gap-2 rounded-lg border px-2.5 shadow-sm ring-1 bg-gray-100 text-gray-800 border-gray-300 ring-gray-200 hover:bg-gray-200 hover:brightness-[0.98] transition cursor-pointer {modoPdf ? 'py-2' : 'py-1.5'}"
                   on:mouseenter={() => mostrarFotoHover(p)}
                   on:mouseleave={esconderFotoHover}
                   on:focus={() => mostrarFotoHover(p)}
@@ -285,13 +317,17 @@
                   title="Ver foto de {p.usuario_nome}"
                 >
                   {#if p.usuario_foto}
-                    <img src={p.usuario_foto} alt="" class="w-6 h-6 rounded-full object-cover border border-white shadow-sm" />
+                    <img src={p.usuario_foto} alt="" class="w-6 h-6 rounded-full object-cover border border-white shadow-sm flex-shrink-0" />
                   {:else}
-                    <span class="w-6 h-6 rounded-full bg-gray-300 text-[10px] font-bold text-gray-700 flex items-center justify-center border border-white shadow-sm">
+                    <span class="w-6 h-6 rounded-full bg-gray-300 text-[10px] font-bold text-gray-700 flex items-center justify-center border border-white shadow-sm flex-shrink-0">
                       {(p.usuario_nome || '?').charAt(0).toUpperCase()}
                     </span>
                   {/if}
-                  <span class="text-xs font-semibold text-gray-800 truncate max-w-[140px]">{p.usuario_nome}</span>
+                  <span
+                    class="text-xs font-semibold text-gray-800 max-w-[140px] {modoPdf
+                      ? 'inline-block whitespace-nowrap leading-normal py-0.5'
+                      : 'truncate'}"
+                  >{p.usuario_nome}</span>
                 </button>
               {/each}
             </div>
@@ -306,10 +342,10 @@
             <div class="flex flex-wrap gap-2">
               {#each pontos as p}
                 {@const st = estiloStatus(p.tipo_aprovacao)}
-                <div class="inline-flex items-center gap-1 rounded-lg border px-1.5 py-1 shadow-sm ring-1 {st.badge}">
+                <div class="inline-flex items-center gap-1 rounded-lg border px-1.5 shadow-sm ring-1 {st.badge} {modoPdf ? 'py-1.5' : 'py-1'}">
                   <button
                     type="button"
-                    class="inline-flex items-center gap-2 rounded-md px-1.5 py-0.5 hover:brightness-[0.98] transition cursor-pointer"
+                    class="inline-flex items-center gap-2 rounded-md px-1.5 hover:brightness-[0.98] transition cursor-pointer {modoPdf ? 'py-1' : 'py-0.5'}"
                     title="Ver foto de {p.usuario_nome}"
                     on:mouseenter={() => mostrarFotoHover(p)}
                     on:mouseleave={esconderFotoHover}
@@ -318,12 +354,20 @@
                     on:click={(e) => abrirFotoAvaliador(p, e)}
                   >
                     {#if p.usuario_foto}
-                      <img src={p.usuario_foto} alt="" class="w-6 h-6 rounded-full object-cover border border-white shadow-sm" />
+                      <img src={p.usuario_foto} alt="" class="w-6 h-6 rounded-full object-cover border border-white shadow-sm flex-shrink-0" />
                     {:else}
                       <span class="w-2 h-2 rounded-full flex-shrink-0 {st.dot}"></span>
                     {/if}
-                    <span class="text-xs font-semibold text-gray-800 truncate max-w-[140px]">{p.usuario_nome}</span>
-                    <span class="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-white/70 border border-black/5">
+                    <span
+                      class="text-xs font-semibold text-gray-800 max-w-[140px] {modoPdf
+                        ? 'inline-block whitespace-nowrap leading-normal py-0.5'
+                        : 'truncate'}"
+                    >{p.usuario_nome}</span>
+                    <span
+                      class="text-[10px] font-bold uppercase tracking-wide px-1.5 rounded bg-white/70 border border-black/5 {modoPdf
+                        ? 'py-1 leading-normal'
+                        : 'py-0.5'}"
+                    >
                       {st.label}
                     </span>
                   </button>
@@ -359,17 +403,21 @@
                     on:mouseenter={() => mostrarFotoHover(item)}
                     on:mouseleave={esconderFotoHover}
                     on:click={() => abrirObservacao(item)}
-                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold text-white transition-all hover:scale-[1.02] focus:outline-none"
+                    class="inline-flex items-center gap-1.5 px-3 rounded-lg text-xs sm:text-sm font-semibold text-white transition-all focus:outline-none {modoPdf ? 'py-2 hover:scale-100' : 'py-1.5 hover:scale-[1.02]'}"
                     title="Ver observação de {item.usuario_nome}"
                   >
                     {#if item.usuario_foto}
-                      <img src={item.usuario_foto} alt="" class="w-5 h-5 rounded-full object-cover border border-white/40" />
+                      <img src={item.usuario_foto} alt="" class="w-5 h-5 rounded-full object-cover border border-white/40 flex-shrink-0" />
                     {:else}
-                      <svg class="w-3.5 h-3.5 opacity-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg class="w-3.5 h-3.5 opacity-90 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
                       </svg>
                     {/if}
-                    <span class="truncate max-w-[160px]">{item.usuario_nome}</span>
+                    <span
+                      class="max-w-[160px] {modoPdf
+                        ? 'inline-block whitespace-nowrap leading-normal py-0.5'
+                        : 'truncate'}"
+                    >{item.usuario_nome}</span>
                   </button>
                   {#if isAdmin}
                     <button
@@ -538,3 +586,58 @@
     </div>
   </div>
 {/if}
+
+<style>
+  /* html2canvas corta descenders em chips flex com line-height/overflow apertados */
+  :global(.card-ponto-vista--pdf) {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: geometricPrecision;
+  }
+
+  :global(.card-ponto-vista--pdf) :global(button),
+  :global(.card-ponto-vista--pdf) :global(.inline-flex) {
+    overflow: visible !important;
+    align-items: center !important;
+    line-height: 1.45 !important;
+  }
+
+  :global(.card-ponto-vista--pdf) :global(span),
+  :global(.card-ponto-vista--pdf) :global(p),
+  :global(.card-ponto-vista--pdf) :global(h3) {
+    line-height: 1.45 !important;
+  }
+
+  :global(.card-ponto-vista--pdf) :global(.truncate) {
+    display: inline-block !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    white-space: nowrap !important;
+    line-height: 1.5 !important;
+    padding-top: 2px !important;
+    padding-bottom: 3px !important;
+    vertical-align: middle !important;
+    max-height: none !important;
+  }
+
+  :global(.card-ponto-vista--pdf) :global(.leading-tight) {
+    line-height: 1.35 !important;
+  }
+
+  :global(.card-ponto-vista--pdf) :global(button.inline-flex),
+  :global(.card-ponto-vista--pdf) :global(div.inline-flex) {
+    padding-top: 0.4rem !important;
+    padding-bottom: 0.45rem !important;
+    min-height: 2rem !important;
+  }
+
+  /* Foto principal no PDF: largura fixa, altura pela proporção 3:4 */
+  :global(.card-ponto-vista--pdf) > :global(div) > :global(a.relative) {
+    width: 14rem !important;
+    max-width: 14rem !important;
+    min-height: 0 !important;
+    height: auto !important;
+    aspect-ratio: 3 / 4 !important;
+    align-self: flex-start !important;
+    flex-shrink: 0 !important;
+  }
+</style>
