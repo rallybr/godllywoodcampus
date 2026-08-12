@@ -443,6 +443,12 @@ export function canAccessPage(pagePath) {
   
   if (!profile) return false;
   
+  // Páginas restritas a administrador e líderes nacionais
+  const nacionalOnlyPages = ['/ponto-de-vista'];
+  if (nacionalOnlyPages.some(page => pagePath.startsWith(page))) {
+    return ['administrador', 'lider_nacional_iurd', 'lider_nacional_fju'].includes(profile.nivel);
+  }
+
   // Páginas que apenas administradores podem acessar
   const adminOnlyPages = ['/usuarios', '/seguranca', '/config'];
   if (adminOnlyPages.some(page => pagePath.startsWith(page))) {
@@ -454,8 +460,7 @@ export function canAccessPage(pagePath) {
     '/jovens',
     '/avaliacoes',
     '/relatorios',
-    '/relatorio-condicao',
-    '/ponto-de-vista'
+    '/relatorio-condicao'
   ];
   if (notForJovens.some(page => pagePath.startsWith(page))) {
     return profile.nivel !== 'jovem';

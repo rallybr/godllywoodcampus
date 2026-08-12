@@ -8,6 +8,7 @@
   import { slide } from 'svelte/transition';
 
   const TIPOS_PONTO_VISTA = ['pre_aprovado', 'observar', 'sem_condicao'];
+  const NIVEIS_PONTO_DE_VISTA = ['administrador', 'lider_nacional_iurd', 'lider_nacional_fju'];
   const statusLabel = {
     pre_aprovado: 'OK',
     observar: 'Observar',
@@ -57,12 +58,16 @@
   let condicaoAberta = false;
   let edicaoAberta = false;
 
+  function podeAcessarPontoDeVista(nivel) {
+    return NIVEIS_PONTO_DE_VISTA.includes(nivel);
+  }
+
   onMount(async () => {
     if (!$user) {
       goto('/login');
       return;
     }
-    if ($userProfile?.nivel === 'jovem') {
+    if (!podeAcessarPontoDeVista($userProfile?.nivel)) {
       goto('/');
       return;
     }
@@ -75,12 +80,12 @@
     await carregarJovens();
   });
 
-  // Bloqueio reativo: nunca exibir para nível jovem (mesmo via URL direta)
-  $: if ($userProfile?.nivel === 'jovem') {
+  // Bloqueio reativo: só admin e líderes nacionais
+  $: if ($userProfile && !podeAcessarPontoDeVista($userProfile.nivel)) {
     goto('/');
   }
 
-  $: acessoNegado = $userProfile?.nivel === 'jovem';
+  $: acessoNegado = $userProfile ? !podeAcessarPontoDeVista($userProfile.nivel) : false;
 
   function fecharFiltrosExceto(aberto) {
     avaliadorAberto = aberto === 'avaliador';
@@ -111,7 +116,7 @@
   }
 
   async function carregarOpcoesFiltro() {
-    if ($userProfile?.nivel === 'jovem') return;
+    if (!podeAcessarPontoDeVista($userProfile?.nivel)) return;
     try {
       const { data: aprovacoesData, error: aprovError } = await supabase
         .from('aprovacoes_jovens')
@@ -291,7 +296,7 @@
   }
 
   async function carregarJovens() {
-    if ($userProfile?.nivel === 'jovem') {
+    if (!podeAcessarPontoDeVista($userProfile?.nivel)) {
       jovens = [];
       return;
     }
