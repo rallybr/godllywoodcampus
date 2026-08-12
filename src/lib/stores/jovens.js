@@ -810,6 +810,31 @@ export async function removerAprovacaoAdmin(aprovacaoId) {
   }
 }
 
+export async function limparObservacaoAprovacaoAdmin(aprovacaoId) {
+  loading.set(true);
+  error.set(null);
+
+  try {
+    const { data, error: rpcError } = await supabase.rpc('limpar_observacao_aprovacao_admin', {
+      p_aprovacao_id: aprovacaoId
+    });
+
+    if (rpcError) throw rpcError;
+
+    if (!data.success) {
+      throw new Error(data.error || 'Erro ao excluir observação');
+    }
+
+    return data;
+  } catch (err) {
+    error.set(err.message);
+    console.error('Error clearing observation:', err);
+    throw err;
+  } finally {
+    loading.set(false);
+  }
+}
+
 export async function getJovemStats() {
   try {
     const { data, error } = await supabase

@@ -731,28 +731,39 @@ export async function loadUsuariosAssociadosJovem(jovemId) {
   }
 }
 
-// Função para desassociar jovem de usuário
+// Função para desassociar jovem de usuário (admin: qualquer usuário via RPC)
 export async function desassociarJovemUsuario(jovemId, usuarioId) {
   loading.set(true);
   error.set(null);
   
   try {
     console.log('🔍 DEBUG - Desassociando jovem:', jovemId, 'do usuário:', usuarioId);
-    
-    // Remover a linha de associação
-    const { error: updateError } = await supabase
-      .from('jovens_usuarios_associacoes')
-      .delete()
-      .eq('jovem_id', jovemId)
-      .eq('usuario_id', usuarioId);
-    
-    if (updateError) {
-      console.error('Erro ao desassociar jovem:', updateError);
-      throw updateError;
+
+    const { data, error: rpcError } = await supabase.rpc('desassociar_jovem_admin', {
+      p_jovem_id: jovemId,
+      p_usuario_id: usuarioId
+    });
+
+    if (rpcError) {
+      // Fallback: delete direto (policies RLS de gestão)
+      const { error: updateError } = await supabase
+        .from('jovens_usuarios_associacoes')
+        .delete()
+        .eq('jovem_id', jovemId)
+        .eq('usuario_id', usuarioId);
+
+      if (updateError) {
+        console.error('Erro ao desassociar jovem:', updateError);
+        throw updateError;
+      }
+      return true;
+    }
+
+    if (data && data.success === false) {
+      throw new Error(data.error || 'Erro ao desassociar jovem');
     }
     
     console.log('🔍 DEBUG - Jovem desassociado com sucesso');
-    
     return true;
     
   } catch (err) {

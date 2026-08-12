@@ -100,7 +100,7 @@
     <div class="flex items-center justify-between mb-4">
       <div>
         <h3 class="text-lg font-semibold text-gray-900">Associações do Jovem</h3>
-        <p class="text-sm text-gray-500">Usuários aos quais este jovem está associado</p>
+        <p class="text-sm text-gray-500">Administrador pode desassociar este jovem de qualquer usuário</p>
       </div>
       <button
         on:click={carregarAssociacoes}

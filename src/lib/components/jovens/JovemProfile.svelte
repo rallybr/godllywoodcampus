@@ -1,6 +1,6 @@
 <script>
   import { page } from '$app/stores';
-  import { loadJovemById, aprovarJovem, buscarAprovacoesJovem, verificarSeUsuarioJaAprovou, removerAprovacaoAdmin } from '$lib/stores/jovens-simple';
+  import { loadJovemById, aprovarJovem, buscarAprovacoesJovem, verificarSeUsuarioJaAprovou, removerAprovacaoAdmin, limparObservacaoAprovacaoAdmin } from '$lib/stores/jovens-simple';
   import { goto } from '$app/navigation';
   import Button from '$lib/components/ui/Button.svelte';
   import Card from '$lib/components/ui/Card.svelte';
@@ -142,19 +142,36 @@
   }
 
   async function handleRemoverAprovacao(aprovacaoId, usuarioNome, tipoAprovacao) {
-    if (!confirm(`Tem certeza que deseja remover a ${labelTipoAprovacao(tipoAprovacao)} de ${usuarioNome}?`)) {
+    if (!confirm(`Tem certeza que deseja remover a ${labelTipoAprovacao(tipoAprovacao)} de ${usuarioNome}? A observação também será excluída.`)) {
       return;
     }
 
     removendoAprovacao = true;
     try {
       await removerAprovacaoAdmin(aprovacaoId);
-      // Recarregar aprovações após remoção
       await loadAprovacoes();
-      alert('Aprovação removida com sucesso!');
+      alert('Registro removido com sucesso!');
     } catch (err) {
       console.error('Erro ao remover aprovação:', err);
-      alert('Erro ao remover aprovação: ' + err.message);
+      alert('Erro ao remover: ' + err.message);
+    } finally {
+      removendoAprovacao = false;
+    }
+  }
+
+  async function handleLimparObservacao(aprovacaoId, usuarioNome) {
+    if (!confirm(`Excluir apenas a observação de ${usuarioNome}? O status será mantido.`)) {
+      return;
+    }
+
+    removendoAprovacao = true;
+    try {
+      await limparObservacaoAprovacaoAdmin(aprovacaoId);
+      await loadAprovacoes();
+      alert('Observação excluída com sucesso!');
+    } catch (err) {
+      console.error('Erro ao excluir observação:', err);
+      alert('Erro ao excluir observação: ' + err.message);
     } finally {
       removendoAprovacao = false;
     }
@@ -163,8 +180,15 @@
   function abrirModalPontoDeVista(status) {
     if (!jovem || isApproving) return;
     pontoDeVistaPendente = status;
-    const atual = (aprovacoes || []).find((a) => a.tipo_aprovacao === status);
-    observacaoPendente = atual?.observacao || '';
+    // Só pré-carrega a observação DO PRÓPRIO avaliador (nunca de outro)
+    const meuRegistro = (aprovacoes || []).find(
+      (a) =>
+        a.tipo_aprovacao === status &&
+        a.usuario_id &&
+        $userProfile?.id &&
+        a.usuario_id === $userProfile.id
+    );
+    observacaoPendente = meuRegistro?.observacao || '';
     showPontoDeVistaModal = true;
   }
 
@@ -651,11 +675,23 @@
                         {badge}
                       </span>
                       {#if $userProfile?.nivel === 'administrador'}
+                        {#if aprovacao.observacao}
+                          <button
+                            on:click={() => handleLimparObservacao(aprovacao.id, aprovacao.usuario_nome)}
+                            disabled={removendoAprovacao}
+                            class="flex items-center justify-center p-1 sm:p-2 text-amber-600 hover:text-amber-800 hover:bg-amber-50 rounded-full transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Excluir só a observação"
+                          >
+                            <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                            </svg>
+                          </button>
+                        {/if}
                         <button
                           on:click={() => handleRemoverAprovacao(aprovacao.id, aprovacao.usuario_nome, aprovacao.tipo_aprovacao)}
                           disabled={removendoAprovacao}
                           class="flex items-center justify-center p-1 sm:p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-full transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                          title="Remover"
+                          title="Excluir status e observação"
                         >
                           <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />

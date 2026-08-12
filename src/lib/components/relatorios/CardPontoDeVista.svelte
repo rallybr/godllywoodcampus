@@ -1,5 +1,11 @@
 <script>
+  import { createEventDispatcher } from 'svelte';
+  import { userProfile } from '$lib/stores/auth';
+  import { removerAprovacaoAdmin, limparObservacaoAprovacaoAdmin } from '$lib/stores/jovens-simple';
+
   export let jovem;
+
+  const dispatch = createEventDispatcher();
 
   const statusLabel = {
     pre_aprovado: 'OK',
@@ -19,6 +25,10 @@
   );
 
   $: observacoes = pontos.filter((p) => p.observacao);
+
+  $: isAdmin = $userProfile?.nivel === 'administrador';
+
+  let removendoId = null;
 
   const PALETA_AVALIADORES = [
     'bg-violet-600 hover:bg-violet-700 border-violet-700',
@@ -129,6 +139,49 @@
       fecharFotoNamorado();
       fecharObservacao();
       fecharFotoAvaliador();
+    }
+  }
+
+  async function excluirStatus(ponto, event) {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    if (!isAdmin || !ponto?.id) return;
+    const label = statusLabel[ponto.tipo_aprovacao] || ponto.tipo_aprovacao;
+    if (!confirm(`Excluir "${label}" de ${ponto.usuario_nome}? A observação também será removida.`)) {
+      return;
+    }
+    removendoId = ponto.id;
+    try {
+      await removerAprovacaoAdmin(ponto.id);
+      if (observacaoModal?.id === ponto.id) fecharObservacao();
+      dispatch('alterado');
+    } catch (err) {
+      alert(err.message || 'Erro ao excluir status');
+    } finally {
+      removendoId = null;
+    }
+  }
+
+  async function excluirObservacao(item, event) {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    if (!isAdmin || !item?.id) return;
+    if (!confirm(`Excluir a observação de ${item.usuario_nome}? O status será mantido.`)) {
+      return;
+    }
+    removendoId = item.id;
+    try {
+      await limparObservacaoAprovacaoAdmin(item.id);
+      if (observacaoModal?.id === item.id) fecharObservacao();
+      dispatch('alterado');
+    } catch (err) {
+      alert(err.message || 'Erro ao excluir observação');
+    } finally {
+      removendoId = null;
     }
   }
 </script>
@@ -253,26 +306,41 @@
             <div class="flex flex-wrap gap-2">
               {#each pontos as p}
                 {@const st = estiloStatus(p.tipo_aprovacao)}
-                <button
-                  type="button"
-                  class="inline-flex items-center gap-2 rounded-lg border px-2.5 py-1.5 shadow-sm ring-1 {st.badge} hover:brightness-[0.98] transition cursor-pointer"
-                  title="Ver foto de {p.usuario_nome}"
-                  on:mouseenter={() => mostrarFotoHover(p)}
-                  on:mouseleave={esconderFotoHover}
-                  on:focus={() => mostrarFotoHover(p)}
-                  on:blur={esconderFotoHover}
-                  on:click={(e) => abrirFotoAvaliador(p, e)}
-                >
-                  {#if p.usuario_foto}
-                    <img src={p.usuario_foto} alt="" class="w-6 h-6 rounded-full object-cover border border-white shadow-sm" />
-                  {:else}
-                    <span class="w-2 h-2 rounded-full flex-shrink-0 {st.dot}"></span>
+                <div class="inline-flex items-center gap-1 rounded-lg border px-1.5 py-1 shadow-sm ring-1 {st.badge}">
+                  <button
+                    type="button"
+                    class="inline-flex items-center gap-2 rounded-md px-1.5 py-0.5 hover:brightness-[0.98] transition cursor-pointer"
+                    title="Ver foto de {p.usuario_nome}"
+                    on:mouseenter={() => mostrarFotoHover(p)}
+                    on:mouseleave={esconderFotoHover}
+                    on:focus={() => mostrarFotoHover(p)}
+                    on:blur={esconderFotoHover}
+                    on:click={(e) => abrirFotoAvaliador(p, e)}
+                  >
+                    {#if p.usuario_foto}
+                      <img src={p.usuario_foto} alt="" class="w-6 h-6 rounded-full object-cover border border-white shadow-sm" />
+                    {:else}
+                      <span class="w-2 h-2 rounded-full flex-shrink-0 {st.dot}"></span>
+                    {/if}
+                    <span class="text-xs font-semibold text-gray-800 truncate max-w-[140px]">{p.usuario_nome}</span>
+                    <span class="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-white/70 border border-black/5">
+                      {st.label}
+                    </span>
+                  </button>
+                  {#if isAdmin}
+                    <button
+                      type="button"
+                      class="flex items-center justify-center w-7 h-7 rounded-full text-red-600 hover:bg-red-100 disabled:opacity-50"
+                      title="Excluir {st.label} de {p.usuario_nome}"
+                      disabled={removendoId === p.id}
+                      on:click={(e) => excluirStatus(p, e)}
+                    >
+                      <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
                   {/if}
-                  <span class="text-xs font-semibold text-gray-800 truncate max-w-[140px]">{p.usuario_nome}</span>
-                  <span class="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-white/70 border border-black/5">
-                    {st.label}
-                  </span>
-                </button>
+                </div>
               {/each}
             </div>
           {/if}
@@ -285,23 +353,38 @@
           {:else}
             <div class="flex flex-wrap gap-2">
               {#each observacoes as item, i}
-                <button
-                  type="button"
-                  on:mouseenter={() => mostrarFotoHover(item)}
-                  on:mouseleave={esconderFotoHover}
-                  on:click={() => abrirObservacao(item)}
-                  class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold text-white border shadow-sm transition-all hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-gray-400 {corAvaliador(item.usuario_nome, i)}"
-                  title="Ver observação de {item.usuario_nome}"
-                >
-                  {#if item.usuario_foto}
-                    <img src={item.usuario_foto} alt="" class="w-5 h-5 rounded-full object-cover border border-white/40" />
-                  {:else}
-                    <svg class="w-3.5 h-3.5 opacity-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                    </svg>
+                <div class="inline-flex items-center gap-1 rounded-lg {corAvaliador(item.usuario_nome, i)} border shadow-sm">
+                  <button
+                    type="button"
+                    on:mouseenter={() => mostrarFotoHover(item)}
+                    on:mouseleave={esconderFotoHover}
+                    on:click={() => abrirObservacao(item)}
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold text-white transition-all hover:scale-[1.02] focus:outline-none"
+                    title="Ver observação de {item.usuario_nome}"
+                  >
+                    {#if item.usuario_foto}
+                      <img src={item.usuario_foto} alt="" class="w-5 h-5 rounded-full object-cover border border-white/40" />
+                    {:else}
+                      <svg class="w-3.5 h-3.5 opacity-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                      </svg>
+                    {/if}
+                    <span class="truncate max-w-[160px]">{item.usuario_nome}</span>
+                  </button>
+                  {#if isAdmin}
+                    <button
+                      type="button"
+                      class="flex items-center justify-center w-7 h-7 mr-1 rounded-full text-white/90 hover:bg-black/20 disabled:opacity-50"
+                      title="Excluir observação de {item.usuario_nome}"
+                      disabled={removendoId === item.id}
+                      on:click={(e) => excluirObservacao(item, e)}
+                    >
+                      <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
                   {/if}
-                  <span class="truncate max-w-[160px]">{item.usuario_nome}</span>
-                </button>
+                </div>
               {/each}
             </div>
           {/if}
@@ -433,7 +516,17 @@
           {observacaoModal.observacao}
         </p>
       </div>
-      <div class="px-5 py-3 bg-gray-50 border-t border-gray-100 flex justify-end">
+      <div class="px-5 py-3 bg-gray-50 border-t border-gray-100 flex justify-end gap-2">
+        {#if isAdmin && observacaoModal?.id}
+          <button
+            type="button"
+            on:click={(e) => excluirObservacao(observacaoModal, e)}
+            disabled={removendoId === observacaoModal.id}
+            class="px-4 py-2 text-sm font-medium rounded-lg bg-red-50 border border-red-200 text-red-700 hover:bg-red-100 transition-colors disabled:opacity-50"
+          >
+            Excluir observação
+          </button>
+        {/if}
         <button
           type="button"
           on:click={fecharObservacao}

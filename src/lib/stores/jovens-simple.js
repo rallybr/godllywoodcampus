@@ -563,7 +563,7 @@ export async function verificarSeUsuarioJaAprovou(jovemId, tipoAprovacao = null)
   }
 }
 
-// Função para remover aprovação (apenas administradores)
+// Função para remover aprovação / ponto de vista (apenas administradores)
 export async function removerAprovacaoAdmin(aprovacaoId) {
   loading.set(true);
   error.set(null);
@@ -583,6 +583,32 @@ export async function removerAprovacaoAdmin(aprovacaoId) {
   } catch (err) {
     error.set(err.message);
     console.error('Error removing approval:', err);
+    throw err;
+  } finally {
+    loading.set(false);
+  }
+}
+
+/** Administrador: exclui só a observação, mantém o status (OK / Observar / Sem condição). */
+export async function limparObservacaoAprovacaoAdmin(aprovacaoId) {
+  loading.set(true);
+  error.set(null);
+
+  try {
+    const { data, error: rpcError } = await supabase.rpc('limpar_observacao_aprovacao_admin', {
+      p_aprovacao_id: aprovacaoId
+    });
+
+    if (rpcError) throw rpcError;
+
+    if (!data.success) {
+      throw new Error(data.error || 'Erro ao excluir observação');
+    }
+
+    return data;
+  } catch (err) {
+    error.set(err.message);
+    console.error('Error clearing observation:', err);
     throw err;
   } finally {
     loading.set(false);

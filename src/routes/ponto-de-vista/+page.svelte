@@ -926,7 +926,7 @@
     {:else}
       <div class="grid grid-cols-1 gap-6">
         {#each jovens as jovem (jovem.id)}
-          <CardPontoDeVista {jovem} />
+          <CardPontoDeVista {jovem} on:alterado={carregarJovens} />
         {/each}
       </div>
     {/if}
