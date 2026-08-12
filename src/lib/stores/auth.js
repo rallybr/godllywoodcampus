@@ -1,8 +1,5 @@
 import { writable, get } from 'svelte/store';
 import { supabase } from '$lib/utils/supabase';
-import { registrarUltimoAcesso } from './usuarios';
-import { initializeAccessLevels } from './niveis-acesso';
-import { initializeCadastroCheck, marcarJovemNaoCadastrado } from './jovem-cadastro';
 import { browser } from '$app/environment';
 
 export const user = writable(null);
@@ -38,62 +35,102 @@ export function waitForUserProfile(timeoutMs = 15000) {
   });
 }
 
+const PROFILE_SELECT = `
+  *,
+  user_roles!user_roles_user_id_fkey (
+    *,
+    roles (*)
+  )
+`;
+
 // Initialize auth state
 if (browser) {
-  let initialSessionHandled = false;
+  let bootstrapped = false;
 
-  function scheduleProfileLoad(userId) {
-    setTimeout(async () => {
-      try {
-        await loadUserProfile(userId);
-      } finally {
-        loading.set(false);
-      }
-    }, 0);
+  function releaseLoading() {
+    if (get(loading)) {
+      loading.set(false);
+    }
   }
 
-  function handleAuthSession(event, session) {
+  function scheduleProfileLoad(userId) {
+    // Fora do callback do onAuthStateChange para evitar deadlock do auth-js
+    queueMicrotask(() => {
+      void loadUserProfile(userId);
+    });
+  }
+
+  function bootstrapSession(session) {
+    if (bootstrapped) return;
+    bootstrapped = true;
+
     user.set(session?.user ?? null);
+    // Libera a UI imediatamente — o perfil carrega em paralelo
+    releaseLoading();
 
     if (session?.user) {
-      if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'USER_UPDATED') {
-        scheduleProfileLoad(session.user.id);
-        return;
-      }
-      loading.set(false);
-      return;
+      scheduleProfileLoad(session.user.id);
+    } else {
+      userProfile.set(null);
     }
-
-    userProfile.set(null);
-    if (event === 'SIGNED_OUT') {
-      marcarJovemNaoCadastrado();
-    }
-    loading.set(false);
   }
 
   supabase.auth.onAuthStateChange((event, session) => {
     if (event === 'INITIAL_SESSION') {
-      if (initialSessionHandled) return;
-      initialSessionHandled = true;
+      bootstrapSession(session);
+      return;
     }
-    handleAuthSession(event, session);
+
+    user.set(session?.user ?? null);
+
+    if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+      releaseLoading();
+      if (session?.user) {
+        scheduleProfileLoad(session.user.id);
+      }
+      return;
+    }
+
+    if (event === 'SIGNED_OUT') {
+      userProfile.set(null);
+      void import('./jovem-cadastro')
+        .then((m) => m.marcarJovemNaoCadastrado())
+        .catch(() => {});
+      releaseLoading();
+      return;
+    }
+
+    // TOKEN_REFRESHED e demais eventos: só garante que a tela não fica presa
+    releaseLoading();
   });
 
-  // Fallback caso INITIAL_SESSION demore ou não dispare
-  supabase.auth.getSession().then(({ data: { session } }) => {
-    if (!initialSessionHandled) {
-      initialSessionHandled = true;
-      handleAuthSession('INITIAL_SESSION', session);
+  // Fallback se INITIAL_SESSION não disparar (versões antigas / edge cases)
+  setTimeout(() => {
+    if (bootstrapped) {
+      releaseLoading();
+      return;
     }
-  });
+
+    supabase.auth
+      .getSession()
+      .then(({ data: { session } }) => {
+        bootstrapSession(session);
+      })
+      .catch((err) => {
+        console.warn('Falha ao obter sessão inicial:', err);
+        bootstrapped = true;
+        releaseLoading();
+      });
+  }, 150);
 
   // Segurança: nunca deixar loading infinito
   setTimeout(() => {
     if (get(loading)) {
       console.warn('Timeout na inicialização do auth — liberando tela.');
+      bootstrapped = true;
       loading.set(false);
     }
-  }, 5000);
+  }, 3000);
 }
 
 export async function loadUserProfile(userId) {
@@ -111,36 +148,40 @@ export async function loadUserProfile(userId) {
 }
 
 function runProfileSideEffects() {
-  // Não bloqueia a UI: roles/cadastro/último acesso rodam em paralelo após o perfil
+  // Imports dinâmicos evitam dependência circular auth ↔ niveis-acesso / jovem-cadastro
   void Promise.allSettled([
-    initializeAccessLevels(),
-    initializeCadastroCheck(),
-    registrarUltimoAcesso().catch((err) => {
-      console.warn('Erro ao registrar último acesso:', err);
-    })
+    import('./niveis-acesso').then((m) => m.initializeAccessLevels()),
+    import('./jovem-cadastro').then((m) => m.initializeCadastroCheck()),
+    import('./usuarios').then((m) =>
+      m.registrarUltimoAcesso().catch((err) => {
+        console.warn('Erro ao registrar último acesso:', err);
+      })
+    )
   ]);
+}
+
+async function fetchUsuarioByAuthId(userId) {
+  return supabase
+    .from('usuarios')
+    .select(PROFILE_SELECT)
+    .eq('id_auth', userId)
+    .single();
 }
 
 async function _loadUserProfile(userId) {
   try {
-    const { data, error } = await supabase
-      .from('usuarios')
-      .select(`
-        *,
-        user_roles!user_roles_user_id_fkey (
-          *,
-          roles (*)
-        )
-      `)
-      .eq('id_auth', userId)
-      .single();
+    const { data, error } = await fetchUsuarioByAuthId(userId);
 
     if (error) {
       // Se não encontrar o usuário na tabela, cria um perfil mínimo automaticamente
       if (error.code === 'PGRST116') {
         try {
-          const { data: authUserData } = await supabase.auth.getUser();
-          const authUser = authUserData?.user;
+          const currentUser = get(user);
+          const authUser =
+            currentUser?.id === userId
+              ? currentUser
+              : (await supabase.auth.getUser()).data?.user;
+
           if (authUser) {
             const { error: insertErr } = await supabase
               .from('usuarios')
@@ -153,18 +194,8 @@ async function _loadUserProfile(userId) {
                 ativo: true
               }]);
             if (insertErr) throw insertErr;
-            // Tentar carregar novamente
-            const { data: created, error: reloadErr } = await supabase
-              .from('usuarios')
-              .select(`
-                *,
-                user_roles!user_roles_user_id_fkey (
-                  *,
-                  roles (*)
-                )
-              `)
-              .eq('id_auth', userId)
-              .single();
+
+            const { data: created, error: reloadErr } = await fetchUsuarioByAuthId(userId);
             if (!reloadErr) {
               userProfile.set(created);
               runProfileSideEffects();
@@ -258,7 +289,12 @@ export async function signOut() {
   const { error } = await supabase.auth.signOut();
   user.set(null);
   userProfile.set(null);
-  marcarJovemNaoCadastrado();
+  try {
+    const { marcarJovemNaoCadastrado } = await import('./jovem-cadastro');
+    marcarJovemNaoCadastrado();
+  } catch {
+    // ignore
+  }
   return { error };
 }
 

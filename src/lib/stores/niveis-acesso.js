@@ -450,7 +450,13 @@ export function canAccessPage(pagePath) {
   }
   
   // Páginas que jovens não podem acessar
-  const notForJovens = ['/jovens', '/avaliacoes', '/relatorios'];
+  const notForJovens = [
+    '/jovens',
+    '/avaliacoes',
+    '/relatorios',
+    '/relatorio-condicao',
+    '/ponto-de-vista'
+  ];
   if (notForJovens.some(page => pagePath.startsWith(page))) {
     return profile.nivel !== 'jovem';
   }

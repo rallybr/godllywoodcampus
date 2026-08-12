@@ -105,8 +105,14 @@
   // Verificar se é a página da ficha do jovem
   $: isFichaPage = $page?.url?.pathname?.includes('/ficha');
   
-  // Verificar se é a página de relatório por condição
-  $: isRelatorioCondicaoPage = $page?.url?.pathname === '/relatorio-condicao';
+  // Verificar se é a página de relatório por condição ou ponto de vista
+  $: isRelatorioCondicaoPage =
+    $page?.url?.pathname === '/relatorio-condicao' ||
+    $page?.url?.pathname === '/ponto-de-vista';
+
+  // Rotas públicas: não bloqueiam no spinner global de auth
+  const publicPaths = ['/login', '/register', '/forgot-password', '/reset-password', '/auth/callback'];
+  $: isPublicRoute = publicPaths.some((path) => ($page?.url?.pathname || '').startsWith(path));
 </script>
 
 <svelte:head>
@@ -115,15 +121,15 @@
 </svelte:head>
 
 <div class="min-h-screen" style="background-color: var(--fb-gray-light);">
-  {#if $loading}
+  {#if $loading && !isPublicRoute}
     <div class="flex items-center justify-center min-h-screen">
       <div class="relative">
         <div class="animate-spin rounded-full h-32 w-32 border-4 border-blue-200 border-t-blue-600"></div>
         <div class="absolute inset-0 animate-pulse rounded-full h-32 w-32 border-4 border-pink-200 border-t-pink-600"></div>
       </div>
     </div>
-  {:else if !$user}
-    <!-- Login page content will be rendered here -->
+  {:else if !$user || isPublicRoute}
+    <!-- Login / rotas públicas -->
     <slot />
   {:else}
     {#if isFichaPage}

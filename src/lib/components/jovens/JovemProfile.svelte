@@ -8,10 +8,17 @@
   import { userProfile, hasRole } from '$lib/stores/auth';
   import AvaliacaoModal from '$lib/components/modals/AvaliacaoModal.svelte';
   import AssociarUsuarioModal from '$lib/components/modals/AssociarUsuarioModal.svelte';
+  import PontoDeVistaObservacaoModal from '$lib/components/modals/PontoDeVistaObservacaoModal.svelte';
   import AssociacoesJovem from './AssociacoesJovem.svelte';
   import DadosNucleoView from './DadosNucleoView.svelte';
   import { format, parseISO } from 'date-fns';
   import { ptBR } from 'date-fns/locale';
+
+  const PONTOS_DE_VISTA = {
+    pre_aprovado: 'OK',
+    observar: 'Observar',
+    sem_condicao: 'Sem condição'
+  };
 
   const condicoesMap = {
     auxiliar_pastor: 'Esposa de Pastor',
@@ -42,10 +49,15 @@
   let aprovacoes = [];
   let usuarioJaAprovouAprovado = false;
   let usuarioJaAprovouPreAprovado = false;
+  let usuarioJaMarcouObservar = false;
+  let usuarioJaMarcouSemCondicao = false;
   let aprovacoesTab = 'pre_aprovado';
   let removendoAprovacao = false; // Aba ativa por padrão
   let showFotoModal = false;
   let loadedJovemId = '';
+  let showPontoDeVistaModal = false;
+  let pontoDeVistaPendente = null;
+  let observacaoPendente = '';
 
   const tabs = [
     { id: 'dados-pessoais', label: 'Dados Pessoais', icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z' },
@@ -78,6 +90,8 @@
     aprovacoes = [];
     usuarioJaAprovouAprovado = false;
     usuarioJaAprovouPreAprovado = false;
+    usuarioJaMarcouObservar = false;
+    usuarioJaMarcouSemCondicao = false;
 
     try {
       const data = await loadJovemById(requestId);
@@ -100,17 +114,35 @@
   }
 
   async function loadAprovacoes() {
+    if (hasRole('jovem')($userProfile)) {
+      aprovacoes = [];
+      usuarioJaAprovouAprovado = false;
+      usuarioJaAprovouPreAprovado = false;
+      usuarioJaMarcouObservar = false;
+      usuarioJaMarcouSemCondicao = false;
+      return;
+    }
     try {
       aprovacoes = await buscarAprovacoesJovem(jovemId);
       usuarioJaAprovouAprovado = await verificarSeUsuarioJaAprovou(jovemId, 'aprovado');
       usuarioJaAprovouPreAprovado = await verificarSeUsuarioJaAprovou(jovemId, 'pre_aprovado');
+      usuarioJaMarcouObservar = await verificarSeUsuarioJaAprovou(jovemId, 'observar');
+      usuarioJaMarcouSemCondicao = await verificarSeUsuarioJaAprovou(jovemId, 'sem_condicao');
     } catch (err) {
       console.error('Erro ao carregar aprovações:', err);
     }
   }
 
+  function labelTipoAprovacao(tipo) {
+    if (tipo === 'aprovado') return 'aprovação';
+    if (tipo === 'pre_aprovado') return 'pré-aprovação (OK)';
+    if (tipo === 'observar') return 'marcação Observar';
+    if (tipo === 'sem_condicao') return 'marcação Sem condição';
+    return 'avaliação';
+  }
+
   async function handleRemoverAprovacao(aprovacaoId, usuarioNome, tipoAprovacao) {
-    if (!confirm(`Tem certeza que deseja remover a ${tipoAprovacao === 'aprovado' ? 'aprovação' : 'pré-aprovação'} de ${usuarioNome}?`)) {
+    if (!confirm(`Tem certeza que deseja remover a ${labelTipoAprovacao(tipoAprovacao)} de ${usuarioNome}?`)) {
       return;
     }
 
@@ -127,14 +159,43 @@
       removendoAprovacao = false;
     }
   }
+
+  function abrirModalPontoDeVista(status) {
+    if (!jovem || isApproving) return;
+    pontoDeVistaPendente = status;
+    const atual = (aprovacoes || []).find((a) => a.tipo_aprovacao === status);
+    observacaoPendente = atual?.observacao || '';
+    showPontoDeVistaModal = true;
+  }
+
+  function fecharModalPontoDeVista() {
+    if (isApproving) return;
+    showPontoDeVistaModal = false;
+    pontoDeVistaPendente = null;
+    observacaoPendente = '';
+  }
+
+  async function confirmarPontoDeVista(event) {
+    if (!jovem || !pontoDeVistaPendente) return;
+    const observacao = event?.detail?.observacao || '';
+    const status = pontoDeVistaPendente;
+    try {
+      await handleAprovar(status, observacao);
+      showPontoDeVistaModal = false;
+      pontoDeVistaPendente = null;
+      observacaoPendente = '';
+    } catch {
+      // erro já tratado em handleAprovar
+    }
+  }
   
   // @ts-ignore
-  async function handleAprovar(status) {
+  async function handleAprovar(status, observacao = null) {
     if (!jovem) return;
     
     isApproving = true;
     try {
-      await aprovarJovem(jovem.id, status);
+      await aprovarJovem(jovem.id, status, observacao);
       
       // Recarregar aprovações após aprovar
       await loadAprovacoes();
@@ -147,6 +208,8 @@
       }
     } catch (err) {
       error = err.message;
+      alert(err.message);
+      throw err;
     } finally {
       isApproving = false;
     }
@@ -356,9 +419,9 @@
       <div class="mt-4 sm:mt-6 space-y-2 sm:space-y-3">
         <!-- Primeira linha: Pré-aprovar | Aprovar | Associar -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
-          <!-- Botão Pré-aprovar -->
+          <!-- Botão Pré-aprovar (= OK no Ponto de Vista) -->
           <button
-            on:click={() => handleAprovar('pre_aprovado')}
+            on:click={() => abrirModalPontoDeVista('pre_aprovado')}
             disabled={isApproving}
             class="flex items-center justify-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-2 sm:py-3 text-xs sm:text-sm font-medium rounded-lg transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 {usuarioJaAprovouPreAprovado 
               ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-lg shadow-purple-200' 
@@ -367,8 +430,8 @@
             <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <span class="hidden xs:inline">{usuarioJaAprovouPreAprovado ? 'Pré-aprovado por você' : 'Pré-aprovar'}</span>
-            <span class="xs:hidden">{usuarioJaAprovouPreAprovado ? 'Pré-aprovado' : 'Pré-aprovar'}</span>
+            <span class="hidden xs:inline">{usuarioJaAprovouPreAprovado ? 'OK por você' : 'Pré-aprovar'}</span>
+            <span class="xs:hidden">{usuarioJaAprovouPreAprovado ? 'OK' : 'Pré-aprovar'}</span>
           </button>
           
           <!-- Botão Aprovar -->
@@ -401,6 +464,36 @@
           {:else}
             <div class="hidden lg:block"></div>
           {/if}
+        </div>
+
+        <!-- Linha Ponto de Vista: Observar | Sem condição -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+          <button
+            on:click={() => abrirModalPontoDeVista('observar')}
+            disabled={isApproving}
+            class="flex items-center justify-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-2 sm:py-3 text-xs sm:text-sm font-medium rounded-lg transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 {usuarioJaMarcouObservar
+              ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-lg shadow-amber-200'
+              : 'bg-gradient-to-r from-amber-100 to-amber-200 text-amber-800 hover:from-amber-200 hover:to-amber-300 border border-amber-300'}"
+          >
+            <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+            <span>{usuarioJaMarcouObservar ? 'Observar (você)' : 'Observar'}</span>
+          </button>
+
+          <button
+            on:click={() => abrirModalPontoDeVista('sem_condicao')}
+            disabled={isApproving}
+            class="flex items-center justify-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-2 sm:py-3 text-xs sm:text-sm font-medium rounded-lg transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 {usuarioJaMarcouSemCondicao
+              ? 'bg-gradient-to-r from-slate-500 to-slate-600 text-white shadow-lg shadow-slate-200'
+              : 'bg-gradient-to-r from-slate-100 to-slate-200 text-slate-700 hover:from-slate-200 hover:to-slate-300 border border-slate-300'}"
+          >
+            <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636m12.728 12.728L18.364 5.636M5.636 18.364l12.728-12.728" />
+            </svg>
+            <span>{usuarioJaMarcouSemCondicao ? 'Sem condição (você)' : 'Sem condição'}</span>
+          </button>
         </div>
         
         <!-- Segunda linha: Ver Ficha | Progresso | Editar -->
@@ -452,37 +545,57 @@
         
         <!-- Abas de Aprovações -->
         <div class="mb-4 sm:mb-6">
-          <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
             <button
-              class="flex-1 py-2 sm:py-3 px-3 sm:px-4 rounded-lg font-semibold text-xs sm:text-sm transition-all duration-200 transform hover:scale-105 {aprovacoesTab === 'pre_aprovado' 
+              class="py-2 sm:py-3 px-2 sm:px-3 rounded-lg font-semibold text-xs sm:text-sm transition-all duration-200 transform hover:scale-105 {aprovacoesTab === 'pre_aprovado' 
                 ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-lg shadow-purple-200' 
                 : 'bg-gradient-to-r from-purple-100 to-purple-200 text-purple-700 hover:from-purple-200 hover:to-purple-300 border border-purple-300'}"
               on:click={() => aprovacoesTab = 'pre_aprovado'}
             >
               <div class="flex items-center justify-center space-x-1 sm:space-x-2">
-                <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span class="hidden xs:inline">Pré-aprovado</span>
-                <span class="xs:hidden">Pré-aprovado</span>
+                <span>OK</span>
                 <span class="bg-white bg-opacity-20 px-1 sm:px-2 py-1 rounded-full text-xs font-bold">
                   {aprovacoes.filter(a => a.tipo_aprovacao === 'pre_aprovado').length}
                 </span>
               </div>
             </button>
+
+            <button
+              class="py-2 sm:py-3 px-2 sm:px-3 rounded-lg font-semibold text-xs sm:text-sm transition-all duration-200 transform hover:scale-105 {aprovacoesTab === 'observar' 
+                ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-lg shadow-amber-200' 
+                : 'bg-gradient-to-r from-amber-100 to-amber-200 text-amber-800 hover:from-amber-200 hover:to-amber-300 border border-amber-300'}"
+              on:click={() => aprovacoesTab = 'observar'}
+            >
+              <div class="flex items-center justify-center space-x-1 sm:space-x-2">
+                <span>Observar</span>
+                <span class="bg-white bg-opacity-20 px-1 sm:px-2 py-1 rounded-full text-xs font-bold">
+                  {aprovacoes.filter(a => a.tipo_aprovacao === 'observar').length}
+                </span>
+              </div>
+            </button>
+
+            <button
+              class="py-2 sm:py-3 px-2 sm:px-3 rounded-lg font-semibold text-xs sm:text-sm transition-all duration-200 transform hover:scale-105 {aprovacoesTab === 'sem_condicao' 
+                ? 'bg-gradient-to-r from-slate-500 to-slate-600 text-white shadow-lg shadow-slate-200' 
+                : 'bg-gradient-to-r from-slate-100 to-slate-200 text-slate-700 hover:from-slate-200 hover:to-slate-300 border border-slate-300'}"
+              on:click={() => aprovacoesTab = 'sem_condicao'}
+            >
+              <div class="flex items-center justify-center space-x-1 sm:space-x-2">
+                <span>Sem condição</span>
+                <span class="bg-white bg-opacity-20 px-1 sm:px-2 py-1 rounded-full text-xs font-bold">
+                  {aprovacoes.filter(a => a.tipo_aprovacao === 'sem_condicao').length}
+                </span>
+              </div>
+            </button>
             
             <button
-              class="flex-1 py-2 sm:py-3 px-3 sm:px-4 rounded-lg font-semibold text-xs sm:text-sm transition-all duration-200 transform hover:scale-105 {aprovacoesTab === 'aprovado' 
+              class="py-2 sm:py-3 px-2 sm:px-3 rounded-lg font-semibold text-xs sm:text-sm transition-all duration-200 transform hover:scale-105 {aprovacoesTab === 'aprovado' 
                 ? 'bg-gradient-to-r from-rose-500 to-rose-600 text-white shadow-lg shadow-rose-200' 
                 : 'bg-gradient-to-r from-rose-100 to-rose-200 text-rose-700 hover:from-rose-200 hover:to-rose-300 border border-rose-300'}"
               on:click={() => aprovacoesTab = 'aprovado'}
             >
               <div class="flex items-center justify-center space-x-1 sm:space-x-2">
-                <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-                <span class="hidden xs:inline">Aprovado</span>
-                <span class="xs:hidden">Aprovado</span>
+                <span>Aprovado</span>
                 <span class="bg-white bg-opacity-20 px-1 sm:px-2 py-1 rounded-full text-xs font-bold">
                   {aprovacoes.filter(a => a.tipo_aprovacao === 'aprovado').length}
                 </span>
@@ -493,51 +606,74 @@
         
         <!-- Conteúdo das Abas -->
         <div class="space-y-2 sm:space-y-3">
-          {#if aprovacoesTab === 'pre_aprovado'}
+          {#if aprovacoesTab === 'pre_aprovado' || aprovacoesTab === 'observar' || aprovacoesTab === 'sem_condicao'}
+            {@const tipoAtual = aprovacoesTab}
+            {@const lista = aprovacoes.filter(a => a.tipo_aprovacao === tipoAtual)}
+            {@const titulo =
+              tipoAtual === 'pre_aprovado' ? 'OK POR:' :
+              tipoAtual === 'observar' ? 'OBSERVAR POR:' :
+              'SEM CONDIÇÃO POR:'}
+            {@const badge =
+              tipoAtual === 'pre_aprovado' ? 'OK' :
+              tipoAtual === 'observar' ? 'Observar' :
+              'Sem condição'}
+            {@const bg =
+              tipoAtual === 'pre_aprovado' ? 'bg-purple-50 border-purple-200' :
+              tipoAtual === 'observar' ? 'bg-amber-50 border-amber-200' :
+              'bg-slate-50 border-slate-200'}
+            {@const badgeCls =
+              tipoAtual === 'pre_aprovado' ? 'bg-purple-100 text-purple-800' :
+              tipoAtual === 'observar' ? 'bg-amber-100 text-amber-800' :
+              'bg-slate-100 text-slate-800'}
             <div class="space-y-2">
-              <h4 class="text-xs sm:text-sm font-medium text-gray-700 mb-2 sm:mb-3">PRÉ-APROVADO POR:</h4>
-              {#each aprovacoes.filter(a => a.tipo_aprovacao === 'pre_aprovado') as aprovacao}
-                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between p-2 sm:p-3 bg-yellow-50 rounded-lg border border-yellow-200 space-y-2 sm:space-y-0">
-                  <div class="flex items-center space-x-2 sm:space-x-3">
-                    {#if aprovacao.usuario_estado_bandeira}
-                      <img src={aprovacao.usuario_estado_bandeira} alt="Bandeira" class="w-5 h-3 sm:w-6 sm:h-4 rounded flex-shrink-0" />
-                    {/if}
-                    <div class="min-w-0 flex-1">
-                      <div class="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-2">
-                        <span class="font-medium text-gray-900 text-sm sm:text-base truncate">{aprovacao.usuario_nome}</span>
-                        <span class="text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded-full inline-block w-fit">
-                          {aprovacao.usuario_nivel}
-                        </span>
-                      </div>
-                      <div class="text-xs text-gray-500">
-                        {format(parseISO(aprovacao.criado_em), 'dd/MM/yyyy HH:mm', { locale: ptBR })}
+              <h4 class="text-xs sm:text-sm font-medium text-gray-700 mb-2 sm:mb-3">{titulo}</h4>
+              {#each lista as aprovacao}
+                <div class="flex flex-col p-2 sm:p-3 rounded-lg border space-y-2 {bg}">
+                  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
+                    <div class="flex items-center space-x-2 sm:space-x-3">
+                      {#if aprovacao.usuario_estado_bandeira}
+                        <img src={aprovacao.usuario_estado_bandeira} alt="Bandeira" class="w-5 h-3 sm:w-6 sm:h-4 rounded flex-shrink-0" />
+                      {/if}
+                      <div class="min-w-0 flex-1">
+                        <div class="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-2">
+                          <span class="font-medium text-gray-900 text-sm sm:text-base truncate">{aprovacao.usuario_nome}</span>
+                          <span class="text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded-full inline-block w-fit">
+                            {aprovacao.usuario_nivel}
+                          </span>
+                        </div>
+                        <div class="text-xs text-gray-500">
+                          {format(parseISO(aprovacao.criado_em), 'dd/MM/yyyy HH:mm', { locale: ptBR })}
+                        </div>
                       </div>
                     </div>
+                    <div class="flex items-center space-x-2 sm:ml-auto">
+                      <span class="px-2 sm:px-3 py-1 rounded-full text-xs font-medium {badgeCls}">
+                        {badge}
+                      </span>
+                      {#if $userProfile?.nivel === 'administrador'}
+                        <button
+                          on:click={() => handleRemoverAprovacao(aprovacao.id, aprovacao.usuario_nome, aprovacao.tipo_aprovacao)}
+                          disabled={removendoAprovacao}
+                          class="flex items-center justify-center p-1 sm:p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-full transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="Remover"
+                        >
+                          <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      {/if}
+                    </div>
                   </div>
-                  <div class="flex items-center space-x-2 sm:ml-auto">
-                    <span class="px-2 sm:px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                      Pré-aprovado
-                    </span>
-                    <!-- Botão de remover (apenas para administradores) -->
-                    {#if $userProfile?.nivel === 'administrador'}
-                      <button
-                        on:click={() => handleRemoverAprovacao(aprovacao.id, aprovacao.usuario_nome, aprovacao.tipo_aprovacao)}
-                        disabled={removendoAprovacao}
-                        class="flex items-center justify-center p-1 sm:p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-full transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                        title="Remover pré-aprovação"
-                      >
-                        <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
-                    {/if}
-                  </div>
+                  {#if aprovacao.observacao}
+                    <p class="text-sm text-gray-700 bg-white/70 rounded-md px-3 py-2 border border-white/80">
+                      {aprovacao.observacao}
+                    </p>
+                  {/if}
                 </div>
               {/each}
-              {#if aprovacoes.filter(a => a.tipo_aprovacao === 'pre_aprovado').length === 0}
+              {#if lista.length === 0}
                 <div class="text-center py-6 sm:py-8 text-gray-500">
-                  <div class="text-3xl sm:text-4xl mb-2">📝</div>
-                  <p class="text-sm sm:text-base">Nenhuma pré-aprovação registrada</p>
+                  <p class="text-sm sm:text-base">Nenhum registro de {badge}</p>
                 </div>
               {/if}
             </div>
@@ -971,6 +1107,16 @@
     // Após associar, apenas recarregar dados/associações
     await loadJovemData();
   }}
+/>
+
+<PontoDeVistaObservacaoModal
+  isOpen={showPontoDeVistaModal}
+  titulo="Registrar Ponto de Vista"
+  statusLabel={PONTOS_DE_VISTA[pontoDeVistaPendente] || ''}
+  observacaoInicial={observacaoPendente}
+  loading={isApproving}
+  on:close={fecharModalPontoDeVista}
+  on:confirm={confirmarPontoDeVista}
 />
 
 {#if showFotoModal && jovem?.foto}

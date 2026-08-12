@@ -577,7 +577,7 @@ export async function deleteJovem(id) {
   }
 }
 
-export async function aprovarJovem(id, status) {
+export async function aprovarJovem(id, status, observacao = null) {
   loading.set(true);
   error.set(null);
   
@@ -588,11 +588,13 @@ export async function aprovarJovem(id, status) {
       throw new Error('Sem permissão para aprovar este jovem');
     }
 
+    const obs = typeof observacao === 'string' ? observacao.trim().slice(0, 144) : null;
+
     // Usar a nova função de aprovação múltipla
     const { data, error: rpcError } = await supabase.rpc('aprovar_jovem_multiplo', {
       p_jovem_id: id,
       p_tipo_aprovacao: status,
-      p_observacao: null
+      p_observacao: obs || null
     });
     
     if (rpcError) throw rpcError;
