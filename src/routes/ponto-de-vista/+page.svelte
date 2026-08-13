@@ -6,6 +6,7 @@
   import CardPontoDeVista from '$lib/components/relatorios/CardPontoDeVista.svelte';
   import Button from '$lib/components/ui/Button.svelte';
   import { slide } from 'svelte/transition';
+  import { formatarNomeAvaliador } from '$lib/utils/nome-avaliador';
 
   const TIPOS_PONTO_VISTA = ['pre_aprovado', 'observar', 'sem_condicao'];
   const NIVEIS_PONTO_DE_VISTA = ['administrador', 'lider_nacional_iurd', 'lider_nacional_fju'];
@@ -136,7 +137,7 @@
         if (id && nome) mapaAvaliadores.set(id, nome);
       });
       avaliadoresDisponiveis = [...mapaAvaliadores.entries()]
-        .map(([id, nome]) => ({ id, nome }))
+        .map(([id, nome]) => ({ id, nome, nomeExibicao: formatarNomeAvaliador(nome) }))
         .sort((a, b) => a.nome.localeCompare(b.nome));
 
       const jovemIds = [...new Set((aprovacoesData || []).map((a) => a.jovem_id).filter(Boolean))];
@@ -268,7 +269,7 @@
       const userId = $userProfile?.id;
       let query = supabase
         .from('edicoes')
-        .select('id, nome, numero')
+        .select('id, nome, numero, ativa')
         .order('numero', { ascending: false });
 
       if (userLevel === 'colaborador' && userId) {
@@ -282,6 +283,7 @@
           query = query.in('id', [...new Set(jovensData.map((j) => j.edicao_id).filter(Boolean))]);
         } else {
           edicoesDisponiveis = [];
+          edicoesSelecionadas = [];
           return;
         }
       }
@@ -289,9 +291,26 @@
       const { data, error: fetchError } = await query;
       if (fetchError) throw fetchError;
       edicoesDisponiveis = data || [];
+      aplicarEdicaoAtualPadrao();
     } catch (err) {
       console.error('Erro ao carregar edições:', err);
       edicoesDisponiveis = [];
+      edicoesSelecionadas = [];
+    }
+  }
+
+  /** Sempre deixa a edição ativa (atual) selecionada por padrão */
+  function aplicarEdicaoAtualPadrao() {
+    const atual = edicoesDisponiveis.find((e) => e.ativa);
+    if (atual?.id) {
+      edicoesSelecionadas = [atual.id];
+      return;
+    }
+    // Fallback: maior número = edição mais recente
+    if (edicoesDisponiveis.length > 0) {
+      edicoesSelecionadas = [edicoesDisponiveis[0].id];
+    } else {
+      edicoesSelecionadas = [];
     }
   }
 
@@ -509,7 +528,7 @@
     statusSelecionados = [];
     estadosSelecionados = [];
     condicoesSelecionadas = [];
-    edicoesSelecionadas = [];
+    aplicarEdicaoAtualPadrao();
     carregarJovens();
   }
 
@@ -714,16 +733,14 @@
               [data-ponto-vista-card] img {
                 flex-shrink: 0 !important;
               }
-              [data-ponto-vista-card] > div > a.relative {
-                width: 14rem !important;
-                max-width: 14rem !important;
-                min-height: 0 !important;
-                height: auto !important;
-                aspect-ratio: 3 / 4 !important;
-                align-self: flex-start !important;
+              [data-pdf-fotos-coluna] {
+                width: 11rem !important;
+                max-width: 11rem !important;
                 flex-shrink: 0 !important;
-                overflow: hidden !important;
-                position: relative !important;
+                align-self: stretch !important;
+                display: flex !important;
+                flex-direction: column !important;
+                min-height: 0 !important;
               }
             `;
             clonedDoc.head.appendChild(fixStyle);
@@ -731,28 +748,24 @@
             clonedEl.style.boxShadow =
               '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)';
             clonedEl.style.borderRadius = '0.5rem';
-            clonedEl.style.overflow = 'visible';
+            clonedEl.style.overflow = 'hidden';
             clonedEl.style.backgroundColor = '#ffffff';
 
             const row = clonedEl.querySelector(':scope > div');
             if (row) {
               row.style.display = 'flex';
               row.style.flexDirection = 'row';
-              row.style.alignItems = 'flex-start';
+              row.style.alignItems = 'stretch';
             }
 
-            // Foto principal: mesma largura, altura menor (3:4) — evita esticar no html2canvas
-            const fotoCol = clonedEl.querySelector(':scope > div > a.relative');
-            if (fotoCol) {
-              fotoCol.style.width = '14rem';
-              fotoCol.style.maxWidth = '14rem';
-              fotoCol.style.minHeight = '0';
-              fotoCol.style.height = 'auto';
-              fotoCol.style.aspectRatio = '3 / 4';
-              fotoCol.style.alignSelf = 'flex-start';
-              fotoCol.style.flexShrink = '0';
-              fotoCol.style.overflow = 'hidden';
-              fotoCol.style.position = 'relative';
+            const fotosColuna = clonedEl.querySelector('[data-pdf-fotos-coluna]');
+            if (fotosColuna) {
+              fotosColuna.style.width = '11rem';
+              fotosColuna.style.maxWidth = '11rem';
+              fotosColuna.style.flexShrink = '0';
+              fotosColuna.style.alignSelf = 'stretch';
+              fotosColuna.style.display = 'flex';
+              fotosColuna.style.flexDirection = 'column';
             }
 
             // Converte imgs object-cover → background (html2canvas estica object-fit)
@@ -761,9 +774,9 @@
               if (!parent) return;
               const cls = `${img.className || ''} ${parent.className || ''}`;
               // Avatares circulares e bandeira: manter img
-              if (cls.includes('rounded-full') || cls.includes('w-11') || cls.includes('h-8')) return;
+              if (cls.includes('rounded-full') || cls.includes('w-9') || cls.includes('h-6')) return;
 
-              const isCover = (img.className || '').includes('object-cover');
+              const isCover = (img.className || '').includes('object-cover') || img.hasAttribute('data-pdf-cover');
               if (!isCover) return;
 
               const src = img.currentSrc || img.src;
@@ -969,8 +982,9 @@
                 {avaliadoresSelecionados.includes(item.id)
                   ? 'bg-indigo-600 text-white border-indigo-600'
                   : 'bg-white text-gray-700 border-gray-300 hover:border-indigo-400'}"
+              title={item.nome}
             >
-              {item.nome}
+              {item.nomeExibicao || item.nome}
             </button>
           {/each}
           {#if avaliadoresDisponiveis.length === 0}

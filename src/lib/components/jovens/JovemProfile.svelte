@@ -59,6 +59,16 @@
   let pontoDeVistaPendente = null;
   let observacaoPendente = '';
 
+  const NIVEIS_VER_TODAS_APROVACOES = ['administrador', 'lider_nacional_iurd', 'lider_nacional_fju'];
+
+  $: podeVerTodasAprovacoes = NIVEIS_VER_TODAS_APROVACOES.includes($userProfile?.nivel);
+
+  // Histórico: Admin / LN FJU / LN IURD veem todos; demais avaliadores só o próprio
+  $: aprovacoesVisiveis = (aprovacoes || []).filter((a) => {
+    if (podeVerTodasAprovacoes) return true;
+    return a.usuario_id && $userProfile?.id && a.usuario_id === $userProfile.id;
+  });
+
   const tabs = [
     { id: 'dados-pessoais', label: 'Dados Pessoais', icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z' },
     { id: 'espirituais', label: 'Espirituais', icon: 'M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z' },
@@ -562,7 +572,7 @@
     {/if}
     
     <!-- Status e Histórico de Aprovações -->
-    {#if !hasRole('jovem')($userProfile) && aprovacoes && aprovacoes.length > 0}
+    {#if !hasRole('jovem')($userProfile) && aprovacoesVisiveis && aprovacoesVisiveis.length > 0}
       <div class="mt-4 sm:mt-6 bg-white rounded-lg shadow-sm border border-gray-200 p-3 sm:p-4 lg:p-6">
         <h3 class="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Histórico de Aprovações</h3>
         
@@ -579,7 +589,7 @@
               <div class="flex items-center justify-center space-x-1 sm:space-x-2">
                 <span>OK</span>
                 <span class="bg-white bg-opacity-20 px-1 sm:px-2 py-1 rounded-full text-xs font-bold">
-                  {aprovacoes.filter(a => a.tipo_aprovacao === 'pre_aprovado').length}
+                  {aprovacoesVisiveis.filter(a => a.tipo_aprovacao === 'pre_aprovado').length}
                 </span>
               </div>
             </button>
@@ -593,7 +603,7 @@
               <div class="flex items-center justify-center space-x-1 sm:space-x-2">
                 <span>Observar</span>
                 <span class="bg-white bg-opacity-20 px-1 sm:px-2 py-1 rounded-full text-xs font-bold">
-                  {aprovacoes.filter(a => a.tipo_aprovacao === 'observar').length}
+                  {aprovacoesVisiveis.filter(a => a.tipo_aprovacao === 'observar').length}
                 </span>
               </div>
             </button>
@@ -607,7 +617,7 @@
               <div class="flex items-center justify-center space-x-1 sm:space-x-2">
                 <span>Sem condição</span>
                 <span class="bg-white bg-opacity-20 px-1 sm:px-2 py-1 rounded-full text-xs font-bold">
-                  {aprovacoes.filter(a => a.tipo_aprovacao === 'sem_condicao').length}
+                  {aprovacoesVisiveis.filter(a => a.tipo_aprovacao === 'sem_condicao').length}
                 </span>
               </div>
             </button>
@@ -621,7 +631,7 @@
               <div class="flex items-center justify-center space-x-1 sm:space-x-2">
                 <span>Aprovado</span>
                 <span class="bg-white bg-opacity-20 px-1 sm:px-2 py-1 rounded-full text-xs font-bold">
-                  {aprovacoes.filter(a => a.tipo_aprovacao === 'aprovado').length}
+                  {aprovacoesVisiveis.filter(a => a.tipo_aprovacao === 'aprovado').length}
                 </span>
               </div>
             </button>
@@ -632,7 +642,7 @@
         <div class="space-y-2 sm:space-y-3">
           {#if aprovacoesTab === 'pre_aprovado' || aprovacoesTab === 'observar' || aprovacoesTab === 'sem_condicao'}
             {@const tipoAtual = aprovacoesTab}
-            {@const lista = aprovacoes.filter(a => a.tipo_aprovacao === tipoAtual)}
+            {@const lista = aprovacoesVisiveis.filter(a => a.tipo_aprovacao === tipoAtual)}
             {@const titulo =
               tipoAtual === 'pre_aprovado' ? 'OK POR:' :
               tipoAtual === 'observar' ? 'OBSERVAR POR:' :
@@ -716,7 +726,7 @@
           {:else if aprovacoesTab === 'aprovado'}
             <div class="space-y-2">
               <h4 class="text-xs sm:text-sm font-medium text-gray-700 mb-2 sm:mb-3">APROVADO POR:</h4>
-              {#each aprovacoes.filter(a => a.tipo_aprovacao === 'aprovado') as aprovacao}
+              {#each aprovacoesVisiveis.filter(a => a.tipo_aprovacao === 'aprovado') as aprovacao}
                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between p-2 sm:p-3 bg-green-50 rounded-lg border border-green-200 space-y-2 sm:space-y-0">
                   <div class="flex items-center space-x-2 sm:space-x-3">
                     {#if aprovacao.usuario_estado_bandeira}
@@ -754,7 +764,7 @@
                   </div>
                 </div>
               {/each}
-              {#if aprovacoes.filter(a => a.tipo_aprovacao === 'aprovado').length === 0}
+              {#if aprovacoesVisiveis.filter(a => a.tipo_aprovacao === 'aprovado').length === 0}
                 <div class="text-center py-6 sm:py-8 text-gray-500">
                   <div class="text-3xl sm:text-4xl mb-2">✅</div>
                   <p class="text-sm sm:text-base">Nenhuma aprovação registrada</p>
