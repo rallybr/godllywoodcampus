@@ -194,10 +194,10 @@
 </script>
 
 <div
-  class="card-ponto-vista bg-white rounded-lg shadow-lg overflow-hidden border border-gray-100"
+  class="card-ponto-vista bg-white rounded-lg overflow-hidden border border-gray-300"
   data-ponto-vista-card
 >
-  <div class="flex flex-col md:flex-row md:items-stretch">
+  <div class="flex flex-col md:flex-row md:items-stretch" data-pdf-card-topo>
     <!-- Fotos empilhadas (jovem acima, namorado abaixo) para liberar largura aos dados -->
     <div
       class="fotos-coluna flex flex-col w-full md:w-36 lg:w-40 xl:w-44 flex-shrink-0 self-stretch border-b md:border-b-0 md:border-r border-gray-100 bg-gray-100 min-h-[280px] md:min-h-0"
@@ -297,7 +297,7 @@
               {#each pontos as p}
                 <button
                   type="button"
-                  class="inline-flex items-center gap-2 rounded-lg border px-2.5 shadow-sm ring-1 bg-gray-100 text-gray-800 border-gray-300 ring-gray-200 hover:bg-gray-200 hover:brightness-[0.98] transition cursor-pointer {modoPdf ? 'py-2' : 'py-1.5'}"
+                  class="inline-flex items-center gap-2 rounded-lg border px-2.5 py-1.5 shadow-sm ring-1 bg-gray-100 text-gray-800 border-gray-300 ring-gray-200 hover:bg-gray-200 hover:brightness-[0.98] transition cursor-pointer"
                   on:mouseenter={() => mostrarFotoHover(p)}
                   on:mouseleave={esconderFotoHover}
                   on:focus={() => mostrarFotoHover(p)}
@@ -313,9 +313,8 @@
                     </span>
                   {/if}
                   <span
-                    class="text-xs font-semibold text-gray-800 max-w-[160px] {modoPdf
-                      ? 'inline-block whitespace-nowrap leading-normal py-0.5'
-                      : 'truncate'}"
+                    class="text-xs font-semibold text-gray-800 truncate max-w-[160px]"
+                    data-nome-avaliador
                     title={p.usuario_nome}
                   >{nomeAvaliador(p.usuario_nome)}</span>
                 </button>
@@ -332,10 +331,10 @@
             <div class="flex flex-wrap gap-2">
               {#each pontos as p}
                 {@const st = estiloStatus(p.tipo_aprovacao)}
-                <div class="inline-flex items-center gap-1 rounded-lg border px-1.5 shadow-sm ring-1 {st.badge} {modoPdf ? 'py-1.5' : 'py-1'}">
+                <div class="inline-flex items-center gap-1 rounded-lg border px-1.5 py-1 shadow-sm ring-1 {st.badge}">
                   <button
                     type="button"
-                    class="inline-flex items-center gap-2 rounded-md px-1.5 hover:brightness-[0.98] transition cursor-pointer {modoPdf ? 'py-1' : 'py-0.5'}"
+                    class="inline-flex items-center gap-2 rounded-md px-1.5 py-0.5 hover:brightness-[0.98] transition cursor-pointer"
                     title="Ver foto de {p.usuario_nome}"
                     on:mouseenter={() => mostrarFotoHover(p)}
                     on:mouseleave={esconderFotoHover}
@@ -349,15 +348,13 @@
                       <span class="w-2 h-2 rounded-full flex-shrink-0 {st.dot}"></span>
                     {/if}
                     <span
-                      class="text-xs font-semibold text-gray-800 max-w-[160px] {modoPdf
-                        ? 'inline-block whitespace-nowrap leading-normal py-0.5'
-                        : 'truncate'}"
+                      class="text-xs font-semibold text-gray-800 truncate max-w-[160px]"
+                      data-nome-avaliador
                       title={p.usuario_nome}
                     >{nomeAvaliador(p.usuario_nome)}</span>
                     <span
-                      class="text-[10px] font-bold uppercase tracking-wide px-1.5 rounded bg-white/70 border border-black/5 {modoPdf
-                        ? 'py-1 leading-normal'
-                        : 'py-0.5'}"
+                      class="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-white/70 border border-black/5"
+                      data-status-label
                     >
                       {st.label}
                     </span>
@@ -394,7 +391,7 @@
                     on:mouseenter={() => mostrarFotoHover(item)}
                     on:mouseleave={esconderFotoHover}
                     on:click={() => abrirObservacao(item)}
-                    class="inline-flex items-center gap-1.5 px-3 rounded-lg text-xs sm:text-sm font-semibold text-white transition-all focus:outline-none {modoPdf ? 'py-2 hover:scale-100' : 'py-1.5 hover:scale-[1.02]'}"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold text-white transition-all hover:scale-[1.02] focus:outline-none"
                     title="Ver observação de {item.usuario_nome}"
                   >
                     {#if item.usuario_foto}
@@ -405,9 +402,8 @@
                       </svg>
                     {/if}
                     <span
-                      class="max-w-[160px] {modoPdf
-                        ? 'inline-block whitespace-nowrap leading-normal py-0.5'
-                        : 'truncate'}"
+                      class="truncate max-w-[160px]"
+                      data-nome-avaliador
                       title={item.usuario_nome}
                     >{nomeAvaliador(item.usuario_nome)}</span>
                   </button>
@@ -432,6 +428,33 @@
       </div>
     </div>
   </div>
+
+  {#if modoPdf && observacoes.length > 0}
+    <div class="px-5 pb-5 pt-4 border-t border-gray-100 space-y-3" data-pdf-observacoes-texto>
+      <p class="text-sm font-semibold uppercase tracking-wide text-gray-500 mb-2">Descrições</p>
+      {#each observacoes as item}
+        {@const st = estiloStatus(item.tipo_aprovacao)}
+        <div class="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-3.5 text-left" data-pdf-descricao-card>
+          <div class="flex items-center gap-2 mb-1.5">
+            {#if item.usuario_foto}
+              <img
+                src={item.usuario_foto}
+                alt=""
+                class="w-6 h-6 rounded-full object-cover flex-shrink-0"
+              />
+            {/if}
+            <span class="text-sm font-bold text-gray-900">{nomeAvaliador(item.usuario_nome)}</span>
+            {#if st?.label}
+              <span class="text-xs font-bold uppercase tracking-wide px-1.5 py-0.5 rounded border {st.badge}">
+                {st.label}
+              </span>
+            {/if}
+          </div>
+          <p class="text-lg text-gray-800 leading-relaxed whitespace-pre-wrap" data-pdf-descricao-texto>{item.observacao}</p>
+        </div>
+      {/each}
+    </div>
+  {/if}
 </div>
 
 {#if showNamoradoModal && jovem.namorado && (jovem.namorado.foto || jovem.namorado.nome)}
@@ -591,6 +614,10 @@
 {/if}
 
 <style>
+  .card-ponto-vista {
+    box-shadow: 0 10px 18px -6px rgba(0, 0, 0, 0.22), 0 4px 6px -4px rgba(0, 0, 0, 0.12);
+  }
+
   /* Coluna de fotos: divide a altura do card entre jovem e namorado */
   .fotos-coluna {
     min-height: 280px;
@@ -602,27 +629,65 @@
     }
   }
 
-  :global(body.exportando-ponto-vista-pdf) [data-ponto-vista-card] > div {
+  :global(body.exportando-ponto-vista-pdf) [data-ponto-vista-card] {
+    display: flex !important;
+    flex-direction: column !important;
+    font-size: 15px;
+  }
+
+  :global(body.exportando-ponto-vista-pdf) [data-ponto-vista-card] h3 {
+    font-size: 1.45rem !important;
+    line-height: 1.25 !important;
+  }
+
+  :global(body.exportando-ponto-vista-pdf) [data-pdf-card-topo] {
     display: flex !important;
     flex-direction: row !important;
     align-items: stretch !important;
+    min-height: 420px;
   }
 
   :global(body.exportando-ponto-vista-pdf) [data-pdf-fotos-coluna] {
-    width: 11rem !important;
+    width: 13rem !important;
     flex-shrink: 0 !important;
     align-self: stretch !important;
     display: flex !important;
     flex-direction: column !important;
   }
 
+  :global(body.exportando-ponto-vista-pdf) [data-pdf-fotos-coluna] > a,
+  :global(body.exportando-ponto-vista-pdf) [data-pdf-fotos-coluna] > button {
+    flex: 1 1 0 !important;
+    min-height: 200px !important;
+    overflow: hidden !important;
+  }
+
   :global(body.exportando-ponto-vista-pdf) [data-ponto-vista-card] button.inline-flex,
   :global(body.exportando-ponto-vista-pdf) [data-ponto-vista-card] div.inline-flex {
     overflow: visible !important;
+    align-items: center !important;
+    line-height: 1 !important;
   }
 
-  :global(body.exportando-ponto-vista-pdf) [data-ponto-vista-card] .truncate {
-    line-height: 1.35 !important;
-    padding-bottom: 1px;
+  :global(body.exportando-ponto-vista-pdf) [data-nome-avaliador],
+  :global(body.exportando-ponto-vista-pdf) [data-status-label] {
+    display: inline-flex !important;
+    align-items: center !important;
+    line-height: 1 !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    font-size: 13px !important;
+    transform: translateY(-3px);
+  }
+
+  :global(body.exportando-ponto-vista-pdf) [data-pdf-descricao-texto] {
+    font-size: 1.1875rem !important;
+    line-height: 1.55 !important;
+  }
+
+  :global(body.exportando-ponto-vista-pdf) [data-pdf-observacoes-texto] > p {
+    font-size: 0.875rem !important;
   }
 </style>

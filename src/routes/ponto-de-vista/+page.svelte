@@ -532,113 +532,208 @@
     carregarJovens();
   }
 
-  function loadImage(src) {
+  function loadHtmlImage(src) {
     return new Promise((resolve, reject) => {
       const img = new Image();
       img.crossOrigin = 'anonymous';
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        canvas.width = img.width;
-        canvas.height = img.height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0);
-        resolve(canvas.toDataURL('image/jpeg', 0.92));
-      };
+      img.onload = () => resolve(img);
       img.onerror = reject;
       img.src = src;
     });
   }
 
-  async function inlineImagesForCapture(root) {
-    const imgs = [...root.querySelectorAll('img')];
-    await Promise.all(
-      imgs.map(async (img) => {
-        const src = img.currentSrc || img.src;
-        if (!src || src.startsWith('data:')) return;
-        try {
-          const dataUrl = await loadImage(src);
-          img.src = dataUrl;
-          if (typeof img.decode === 'function') {
-            await img.decode().catch(() => {});
-          }
-        } catch (err) {
-          console.warn('Falha ao inline da imagem para PDF:', src, err);
-        }
-      })
-    );
+  function drawImageCover(ctx, img, dWidth, dHeight, position = 'center') {
+    const ir = img.naturalWidth / img.naturalHeight;
+    const dr = dWidth / dHeight;
+    let sx = 0;
+    let sy = 0;
+    let sw = img.naturalWidth;
+    let sh = img.naturalHeight;
 
-    // background-image (fotos no modo PDF usam cover via CSS)
-    const bgEls = [...root.querySelectorAll('[style*="background-image"]')];
-    await Promise.all(
-      bgEls.map(async (el) => {
-        const style = el.getAttribute('style') || '';
-        const match = style.match(/background-image:\s*url\(['"]?(.*?)['"]?\)/i);
-        const src = match?.[1];
-        if (!src || src.startsWith('data:')) return;
-        try {
-          const dataUrl = await loadImage(src);
-          el.style.backgroundImage = `url("${dataUrl}")`;
-        } catch (err) {
-          console.warn('Falha ao inline do background para PDF:', src, err);
+    if (ir > dr) {
+      sw = img.naturalHeight * dr;
+      sx = (img.naturalWidth - sw) / 2;
+    } else {
+      sh = img.naturalWidth / dr;
+      if (position === 'top') sy = 0;
+      else if (position === 'bottom') sy = img.naturalHeight - sh;
+      else sy = (img.naturalHeight - sh) / 2;
+    }
+
+    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, dWidth, dHeight);
+  }
+
+  /** Só as fotos grandes da coluna esquerda — avatares NÃO entram aqui */
+  async function rasterizeFotosColuna(root) {
+    const imgs = [...root.querySelectorAll('[data-pdf-fotos-coluna] img')];
+    for (const img of imgs) {
+      const rect = img.getBoundingClientRect();
+      const w = Math.max(1, Math.round(rect.width));
+      const h = Math.max(1, Math.round(rect.height));
+      if (w < 2 || h < 2) continue;
+      const src = img.currentSrc || img.src;
+      if (!src || src.startsWith('data:')) continue;
+      try {
+        const bitmap = await loadHtmlImage(src);
+        const scale = 2;
+        const canvas = document.createElement('canvas');
+        canvas.width = w * scale;
+        canvas.height = h * scale;
+        const ctx = canvas.getContext('2d');
+        drawImageCover(ctx, bitmap, canvas.width, canvas.height, img.getAttribute('data-pdf-cover') || 'top');
+        img.src = canvas.toDataURL('image/jpeg', 0.92);
+        img.style.width = `${w}px`;
+        img.style.height = `${h}px`;
+        img.style.maxWidth = 'none';
+        img.style.objectFit = 'fill';
+        if (typeof img.decode === 'function') await img.decode().catch(() => {});
+      } catch (err) {
+        console.warn('Falha ao rasterizar foto da coluna:', src, err);
+      }
+    }
+  }
+
+  async function inlineAvataresComTamanhoFixo(root) {
+    const imgs = [...root.querySelectorAll('img.rounded-full')];
+    for (const img of imgs) {
+      const rect = img.getBoundingClientRect();
+      const w = Math.max(1, Math.round(rect.width || 24));
+      const h = Math.max(1, Math.round(rect.height || 24));
+      img.style.width = `${w}px`;
+      img.style.height = `${h}px`;
+      img.style.maxWidth = `${w}px`;
+      img.style.maxHeight = `${h}px`;
+      img.style.flexShrink = '0';
+      img.style.objectFit = 'cover';
+      const src = img.currentSrc || img.src;
+      if (!src || src.startsWith('data:')) continue;
+      try {
+        const bitmap = await loadHtmlImage(src);
+        const canvas = document.createElement('canvas');
+        canvas.width = w * 2;
+        canvas.height = h * 2;
+        const ctx = canvas.getContext('2d');
+        drawImageCover(ctx, bitmap, canvas.width, canvas.height, 'center');
+        img.src = canvas.toDataURL('image/jpeg', 0.9);
+        if (typeof img.decode === 'function') await img.decode().catch(() => {});
+      } catch (err) {
+        console.warn('Falha ao inline do avatar:', src, err);
+      }
+    }
+  }
+
+  /** html2canvas ignora gap — converte para margin nos filhos */
+  function converterGapEmMargin(root) {
+    const els = [root, ...root.querySelectorAll('*')];
+    els.forEach((el) => {
+      const cs = getComputedStyle(el);
+      if (!cs.display.includes('flex')) return;
+      const colGap = parseFloat(cs.columnGap) || 0;
+      const rowGap = parseFloat(cs.rowGap) || 0;
+      if (colGap === 0 && rowGap === 0) return;
+      el.style.gap = '0px';
+      el.style.columnGap = '0px';
+      el.style.rowGap = '0px';
+      [...el.children].forEach((child, i) => {
+        const last = i === el.children.length - 1;
+        if (cs.flexWrap === 'wrap') {
+          child.style.marginRight = `${colGap}px`;
+          child.style.marginBottom = `${rowGap}px`;
+        } else if ((cs.flexDirection || '').startsWith('column')) {
+          if (!last) child.style.marginBottom = `${rowGap || colGap}px`;
+        } else if (!last) {
+          child.style.marginRight = `${colGap || rowGap}px`;
         }
-      })
-    );
+      });
+    });
+  }
+
+  function travarLayoutChips(root) {
+    root.querySelectorAll('.inline-flex').forEach((el) => {
+      const cs = getComputedStyle(el);
+      el.style.display = 'inline-flex';
+      el.style.flexDirection = 'row';
+      el.style.alignItems = 'center';
+      el.style.flexWrap = 'nowrap';
+      el.style.verticalAlign = 'middle';
+      el.style.lineHeight = '1';
+      el.style.overflow = 'visible';
+      el.style.backgroundColor = cs.backgroundColor;
+      el.style.color = cs.color;
+      el.style.border = cs.border;
+      el.style.borderRadius = cs.borderRadius;
+      el.style.paddingTop = '8px';
+      el.style.paddingBottom = '8px';
+      el.style.paddingLeft = cs.paddingLeft;
+      el.style.paddingRight = cs.paddingRight;
+      el.style.boxSizing = 'border-box';
+    });
+
+    root.querySelectorAll('[data-nome-avaliador], [data-status-label]').forEach((el) => {
+      el.classList.remove('truncate');
+      el.style.display = 'inline-flex';
+      el.style.alignItems = 'center';
+      el.style.lineHeight = '1';
+      el.style.height = '18px';
+      el.style.fontSize = '13px';
+      el.style.overflow = 'visible';
+      el.style.textOverflow = 'clip';
+      el.style.whiteSpace = 'nowrap';
+      el.style.padding = '0';
+      el.style.margin = '0';
+      el.style.verticalAlign = 'middle';
+      el.style.transform = 'translateY(-3px)';
+    });
+  }
+
+  function canvasComSombraInferior(srcCanvas) {
+    const padX = 6;
+    const padTop = 2;
+    const padBottom = 22;
+    const out = document.createElement('canvas');
+    out.width = srcCanvas.width + padX * 2;
+    out.height = srcCanvas.height + padTop + padBottom;
+    const ctx = out.getContext('2d');
+    ctx.fillStyle = '#f9fafb';
+    ctx.fillRect(0, 0, out.width, out.height);
+    ctx.save();
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.22)';
+    ctx.shadowBlur = 18;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 10;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(padX, padTop, srcCanvas.width, srcCanvas.height);
+    ctx.restore();
+    ctx.drawImage(srcCanvas, padX, padTop);
+    return out;
   }
 
   /**
-   * Adiciona um canvas ao PDF, fatiando em páginas se necessário.
-   * Retorna a posição Y seguinte (mm) na última página.
+   * Coloca um jovem em uma página A4 na largura útil da folha.
+   * Se o card for mais alto que a página, recorta o rodapé (sem estreitar nem esticar).
    */
-  function adicionarCanvasAoPdf(doc, canvas, margin, startY, gapMm) {
+  function adicionarJovemEmPaginaUnica(doc, canvas, margin) {
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
     const usableWidth = pageWidth - margin * 2;
-    const pxPerMm = canvas.width / usableWidth;
+    const usableHeight = pageHeight - margin * 2;
+    const pxPorMm = canvas.width / usableWidth;
+    const maxPx = usableHeight * pxPorMm;
 
-    let srcY = 0;
-    let currentY = startY;
-
-    while (srcY < canvas.height) {
-      const availableMm = pageHeight - margin - currentY;
-      if (availableMm < 12 && srcY > 0) {
-        doc.addPage();
-        currentY = margin;
-        continue;
-      }
-
-      const sliceHeightPx = Math.min(canvas.height - srcY, Math.max(availableMm, 12) * pxPerMm);
-      const sliceCanvas = document.createElement('canvas');
-      sliceCanvas.width = canvas.width;
-      sliceCanvas.height = Math.max(1, Math.ceil(sliceHeightPx));
-      const ctx = sliceCanvas.getContext('2d');
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
-      ctx.drawImage(
-        canvas,
-        0,
-        srcY,
-        canvas.width,
-        sliceHeightPx,
-        0,
-        0,
-        canvas.width,
-        sliceHeightPx
-      );
-
-      const sliceHeightMm = sliceHeightPx / pxPerMm;
-      const data = sliceCanvas.toDataURL('image/jpeg', 0.95);
-      doc.addImage(data, 'JPEG', margin, currentY, usableWidth, sliceHeightMm);
-
-      srcY += sliceHeightPx;
-      currentY += sliceHeightMm;
-
-      if (srcY < canvas.height) {
-        doc.addPage();
-        currentY = margin;
-      }
+    let src = canvas;
+    let drawH = (canvas.height * usableWidth) / canvas.width;
+    if (canvas.height > maxPx) {
+      const cropped = document.createElement('canvas');
+      cropped.width = canvas.width;
+      cropped.height = Math.max(1, Math.floor(maxPx));
+      const ctx = cropped.getContext('2d');
+      ctx.drawImage(canvas, 0, 0);
+      src = cropped;
+      drawH = usableHeight;
     }
 
-    return currentY + gapMm;
+    const data = src.toDataURL('image/jpeg', 0.95);
+    doc.addImage(data, 'JPEG', margin, margin, usableWidth, drawH);
   }
 
   async function gerarPDF() {
@@ -648,48 +743,45 @@
     }
 
     gerandoPdf = true;
-    const listaEl = document.getElementById('ponto-vista-lista');
-    const prevWidth = listaEl?.style.width || '';
 
     try {
-      // Força layout desktop idêntico ao da página web e oculta ações de admin
+      document.body.classList.add('exportando-ponto-vista-pdf');
       await tick();
-      if (listaEl) {
-        listaEl.style.width = '1120px';
-        listaEl.style.maxWidth = '1120px';
-      }
-      await tick();
-      // Aguarda layout/pintura e imagens
       await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
 
       const cards = [...document.querySelectorAll('[data-ponto-vista-card]')];
-      if (cards.length === 0) {
-        throw new Error('Nenhum card encontrado para exportar');
-      }
-
-      for (const card of cards) {
-        await inlineImagesForCapture(card);
-      }
-      await tick();
-      await new Promise((r) => setTimeout(r, 50));
+      if (cards.length === 0) throw new Error('Nenhum card encontrado para exportar');
 
       const [{ jsPDF }, html2canvasModule] = await Promise.all([
         import('jspdf'),
         import('html2canvas')
       ]);
       const html2canvas = html2canvasModule.default;
-
       const doc = new jsPDF('p', 'mm', 'a4');
       const margin = 8;
-      const gap = 5;
-      let y = margin;
+      const pintarFundo = () => {
+        doc.setFillColor(249, 250, 251);
+        doc.rect(0, 0, doc.internal.pageSize.getWidth(), doc.internal.pageSize.getHeight(), 'F');
+      };
+      pintarFundo();
+      const addPageComFundo = () => {
+        doc.addPage();
+        pintarFundo();
+      };
 
       for (let i = 0; i < cards.length; i++) {
         const card = cards[i];
+        if (i > 0) addPageComFundo();
         card.scrollIntoView({ block: 'nearest', behavior: 'auto' });
+        await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+        await rasterizeFotosColuna(card);
+        await inlineAvataresComTamanhoFixo(card);
+        converterGapEmMargin(card);
+        travarLayoutChips(card);
         await new Promise((r) => requestAnimationFrame(r));
 
-        const canvas = await html2canvas(card, {
+        const rawCanvas = await html2canvas(card, {
           scale: 2,
           useCORS: true,
           allowTaint: false,
@@ -697,127 +789,84 @@
           logging: false,
           imageTimeout: 15000,
           removeContainer: true,
-          letterRendering: true,
           onclone: (clonedDoc, clonedEl) => {
-            const fixStyle = clonedDoc.createElement('style');
-            fixStyle.textContent = `
-              [data-ponto-vista-card] {
-                overflow: visible !important;
-                -webkit-font-smoothing: antialiased !important;
-                text-rendering: geometricPrecision !important;
-              }
-              [data-ponto-vista-card] button,
-              [data-ponto-vista-card] .inline-flex {
-                overflow: visible !important;
-                align-items: center !important;
-                line-height: 1.45 !important;
-                padding-top: 0.4rem !important;
-                padding-bottom: 0.5rem !important;
-                min-height: 2rem !important;
-                height: auto !important;
-                max-height: none !important;
-              }
-              [data-ponto-vista-card] .truncate,
-              [data-ponto-vista-card] span {
-                overflow: visible !important;
-                text-overflow: clip !important;
-                line-height: 1.5 !important;
-                padding-top: 2px !important;
-                padding-bottom: 3px !important;
-                max-height: none !important;
-                height: auto !important;
-              }
-              [data-ponto-vista-card] .leading-tight {
-                line-height: 1.35 !important;
-              }
-              [data-ponto-vista-card] img {
-                flex-shrink: 0 !important;
-              }
-              [data-pdf-fotos-coluna] {
-                width: 11rem !important;
-                max-width: 11rem !important;
-                flex-shrink: 0 !important;
-                align-self: stretch !important;
-                display: flex !important;
-                flex-direction: column !important;
-                min-height: 0 !important;
-              }
-            `;
-            clonedDoc.head.appendChild(fixStyle);
-
-            clonedEl.style.boxShadow =
-              '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)';
+            clonedDoc.querySelectorAll('[role="dialog"], [role="tooltip"]').forEach((el) => el.remove());
+            clonedDoc.querySelectorAll('button[title^="Excluir"]').forEach((el) => {
+              el.style.display = 'none';
+            });
+            clonedEl.style.backgroundColor = '#ffffff';
+            clonedEl.style.border = '1px solid #d1d5db';
             clonedEl.style.borderRadius = '0.5rem';
             clonedEl.style.overflow = 'hidden';
-            clonedEl.style.backgroundColor = '#ffffff';
+            clonedEl.style.boxShadow = 'none';
+            clonedEl.style.display = 'flex';
+            clonedEl.style.flexDirection = 'column';
+            clonedEl.style.fontSize = '15px';
+            clonedEl.style.boxSizing = 'border-box';
 
-            const row = clonedEl.querySelector(':scope > div');
+            const titulo = clonedEl.querySelector('h3');
+            if (titulo) {
+              titulo.style.fontSize = '1.45rem';
+              titulo.style.lineHeight = '1.25';
+            }
+
+            const row = clonedEl.querySelector('[data-pdf-card-topo]');
             if (row) {
               row.style.display = 'flex';
               row.style.flexDirection = 'row';
               row.style.alignItems = 'stretch';
+              row.style.minHeight = '420px';
             }
 
             const fotosColuna = clonedEl.querySelector('[data-pdf-fotos-coluna]');
             if (fotosColuna) {
-              fotosColuna.style.width = '11rem';
-              fotosColuna.style.maxWidth = '11rem';
-              fotosColuna.style.flexShrink = '0';
-              fotosColuna.style.alignSelf = 'stretch';
+              const w = fotosColuna.getBoundingClientRect?.().width;
               fotosColuna.style.display = 'flex';
               fotosColuna.style.flexDirection = 'column';
+              fotosColuna.style.flexShrink = '0';
+              fotosColuna.style.alignSelf = 'stretch';
+              if (w) {
+                fotosColuna.style.width = `${w}px`;
+                fotosColuna.style.maxWidth = `${w}px`;
+              }
             }
-
-            // Converte imgs object-cover → background (html2canvas estica object-fit)
-            clonedEl.querySelectorAll('img').forEach((img) => {
-              const parent = img.parentElement;
-              if (!parent) return;
-              const cls = `${img.className || ''} ${parent.className || ''}`;
-              // Avatares circulares e bandeira: manter img
-              if (cls.includes('rounded-full') || cls.includes('w-9') || cls.includes('h-6')) return;
-
-              const isCover = (img.className || '').includes('object-cover') || img.hasAttribute('data-pdf-cover');
-              if (!isCover) return;
-
-              const src = img.currentSrc || img.src;
-              if (!src) return;
-              parent.style.backgroundImage = `url("${src}")`;
-              parent.style.backgroundSize = 'cover';
-              parent.style.backgroundPosition = 'top center';
-              parent.style.backgroundRepeat = 'no-repeat';
-              img.style.visibility = 'hidden';
-              img.style.opacity = '0';
+            clonedEl.querySelectorAll('[data-pdf-fotos-coluna] > a, [data-pdf-fotos-coluna] > button').forEach((el) => {
+              el.style.minHeight = '200px';
+              el.style.flex = '1 1 0';
+              el.style.overflow = 'hidden';
             });
 
-            // Força métricas de texto nos chips (evita corte vertical do html2canvas)
-            clonedEl.querySelectorAll('button, .inline-flex').forEach((el) => {
-              el.style.overflow = 'visible';
-              el.style.lineHeight = '1.45';
+            clonedEl.querySelectorAll('img.rounded-full').forEach((img) => {
+              const w = img.style.width || '24px';
+              const h = img.style.height || '24px';
+              img.style.width = w;
+              img.style.height = h;
+              img.style.maxWidth = w;
+              img.style.maxHeight = h;
+              img.style.flexShrink = '0';
+              img.style.borderRadius = '9999px';
+            });
+
+            clonedEl.querySelectorAll('.inline-flex').forEach((el) => {
               el.style.alignItems = 'center';
-              el.style.height = 'auto';
-              el.style.maxHeight = 'none';
+              el.style.lineHeight = '1';
+              el.style.overflow = 'visible';
             });
-            clonedEl.querySelectorAll('.truncate, span').forEach((el) => {
-              el.style.lineHeight = '1.5';
-              el.style.paddingTop = '2px';
-              el.style.paddingBottom = '3px';
+            clonedEl.querySelectorAll('[data-nome-avaliador], [data-status-label]').forEach((el) => {
+              el.style.display = 'inline-flex';
+              el.style.alignItems = 'center';
+              el.style.lineHeight = '1';
+              el.style.height = '18px';
+              el.style.fontSize = '13px';
+              el.style.overflow = 'visible';
+              el.style.padding = '0';
+              el.style.transform = 'translateY(-3px)';
             });
-
-            clonedDoc.querySelectorAll('[role="dialog"], [role="tooltip"]').forEach((el) => el.remove());
           }
         });
 
-        // Se o card não cabe no restante da página, começa nova página
-        const pageHeight = doc.internal.pageSize.getHeight();
-        const pageWidth = doc.internal.pageSize.getWidth();
-        const usableWidth = pageWidth - margin * 2;
-        const imgHeightMm = (canvas.height * usableWidth) / canvas.width;
-        if (y > margin && y + Math.min(imgHeightMm, 40) > pageHeight - margin) {
-          doc.addPage();
-          y = margin;
-        }
-
-        y = adicionarCanvasAoPdf(doc, canvas, margin, y, gap);
+        const canvas = canvasComSombraInferior(rawCanvas);
+        adicionarJovemEmPaginaUnica(doc, canvas, margin);
       }
 
       doc.save(`ponto-de-vista-${new Date().toISOString().split('T')[0]}.pdf`);
@@ -825,11 +874,9 @@
       console.error('Erro ao gerar PDF:', err);
       alert('Erro ao gerar PDF. Verifique o console para mais detalhes.');
     } finally {
-      if (listaEl) {
-        listaEl.style.width = prevWidth;
-        listaEl.style.maxWidth = '';
-      }
+      document.body.classList.remove('exportando-ponto-vista-pdf');
       gerandoPdf = false;
+      await carregarJovens();
     }
   }
 </script>

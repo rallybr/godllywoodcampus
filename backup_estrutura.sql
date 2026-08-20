@@ -249,55 +249,63 @@ CREATE OR REPLACE FUNCTION "public"."aprovar_jovem_multiplo"("p_jovem_id" "uuid"
     AS $$
 DECLARE
   current_user_id uuid;
-  user_roles_info record;
   jovem_info record;
-  resultado jsonb;
+  obs text;
 BEGIN
-  -- Obter o ID do usuário atual
   current_user_id := (SELECT id FROM public.usuarios WHERE id_auth = auth.uid());
-  IF current_user_id IS NULL THEN 
+  IF current_user_id IS NULL THEN
     RETURN jsonb_build_object('success', false, 'error', 'Usuário não autenticado');
   END IF;
-  
-  -- Buscar informações do jovem
+
   SELECT estado_id, bloco_id, regiao_id, igreja_id
   INTO jovem_info
   FROM public.jovens
   WHERE id = p_jovem_id;
-  
+
   IF jovem_info IS NULL THEN
     RETURN jsonb_build_object('success', false, 'error', 'Jovem não encontrado');
   END IF;
-  
-  -- ✅ CORREÇÃO: Usar a função com nome correto e passar p_jovem_id
+
   IF NOT public.can_access_jovem(
-    jovem_info.estado_id, 
-    jovem_info.bloco_id, 
-    jovem_info.regiao_id, 
+    jovem_info.estado_id,
+    jovem_info.bloco_id,
+    jovem_info.regiao_id,
     jovem_info.igreja_id,
-    p_jovem_id  -- ✅ Passar o ID do jovem para verificação de associação
+    p_jovem_id
   ) THEN
     RETURN jsonb_build_object('success', false, 'error', 'Sem permissão para aprovar este jovem');
   END IF;
-  
-  -- Verificar se o tipo de aprovação é válido
-  IF p_tipo_aprovacao NOT IN ('pre_aprovado', 'aprovado') THEN
+
+  IF p_tipo_aprovacao NOT IN ('pre_aprovado', 'aprovado', 'observar', 'sem_condicao') THEN
     RETURN jsonb_build_object('success', false, 'error', 'Tipo de aprovação inválido');
   END IF;
-  
-  -- Inserir ou atualizar aprovação (usando alias AJ para evitar ambiguidade)
+
+  obs := NULLIF(btrim(COALESCE(p_observacao, '')), '');
+  IF obs IS NOT NULL AND char_length(obs) > 144 THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Observação deve ter no máximo 144 caracteres');
+  END IF;
+
+  -- Um ponto de vista por avaliador (OK / Observar / Sem condição são alternativos).
+  -- "aprovado" permanece independente.
+  IF p_tipo_aprovacao IN ('pre_aprovado', 'observar', 'sem_condicao') THEN
+    DELETE FROM public.aprovacoes_jovens
+    WHERE jovem_id = p_jovem_id
+      AND usuario_id = current_user_id
+      AND tipo_aprovacao IN ('pre_aprovado', 'observar', 'sem_condicao')
+      AND tipo_aprovacao <> p_tipo_aprovacao;
+  END IF;
+
   INSERT INTO public.aprovacoes_jovens (jovem_id, usuario_id, tipo_aprovacao, observacao)
-  VALUES (p_jovem_id, current_user_id, p_tipo_aprovacao, p_observacao)
-  ON CONFLICT (jovem_id, usuario_id, tipo_aprovacao) 
-  DO UPDATE SET 
+  VALUES (p_jovem_id, current_user_id, p_tipo_aprovacao, obs)
+  ON CONFLICT (jovem_id, usuario_id, tipo_aprovacao)
+  DO UPDATE SET
     observacao = EXCLUDED.observacao,
     atualizado_em = now();
-  
-  -- Criar log de auditoria
+
   INSERT INTO public.logs_auditoria (
-    usuario_id, 
-    acao, 
-    detalhe, 
+    usuario_id,
+    acao,
+    detalhe,
     dados_novos
   ) VALUES (
     current_user_id,
@@ -306,18 +314,17 @@ BEGIN
     jsonb_build_object(
       'jovem_id', p_jovem_id,
       'tipo_aprovacao', p_tipo_aprovacao,
-      'observacao', p_observacao
+      'observacao', obs
     )
   );
-  
-  -- Retornar sucesso
+
   RETURN jsonb_build_object(
-    'success', true, 
+    'success', true,
     'message', 'Aprovação registrada com sucesso',
     'jovem_id', p_jovem_id,
     'tipo_aprovacao', p_tipo_aprovacao
   );
-  
+
 EXCEPTION
   WHEN OTHERS THEN
     RETURN jsonb_build_object('success', false, 'error', SQLERRM);
@@ -328,7 +335,7 @@ $$;
 ALTER FUNCTION "public"."aprovar_jovem_multiplo"("p_jovem_id" "uuid", "p_tipo_aprovacao" "text", "p_observacao" "text") OWNER TO "postgres";
 
 
-COMMENT ON FUNCTION "public"."aprovar_jovem_multiplo"("p_jovem_id" "uuid", "p_tipo_aprovacao" "text", "p_observacao" "text") IS 'v3.0.0 - Aprovações múltiplas com suporte a associações (SEM AMBIGUIDADE)';
+COMMENT ON FUNCTION "public"."aprovar_jovem_multiplo"("p_jovem_id" "uuid", "p_tipo_aprovacao" "text", "p_observacao" "text") IS 'v4.0.0 - Aprovações com ponto de vista (OK/Observar/Sem condição) e observação até 144 caracteres';
 
 
 
@@ -1316,6 +1323,63 @@ $$;
 ALTER FUNCTION "public"."criar_notificacao_automatica"() OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."desassociar_jovem_admin"("p_jovem_id" "uuid", "p_usuario_id" "uuid") RETURNS "jsonb"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $$
+DECLARE
+  admin_row record;
+  removidos integer := 0;
+BEGIN
+  SELECT id, nivel INTO admin_row
+  FROM public.usuarios
+  WHERE id_auth = auth.uid();
+
+  IF admin_row.id IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Usuário não autenticado');
+  END IF;
+
+  IF admin_row.nivel <> 'administrador' THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Apenas administradores podem desassociar jovens');
+  END IF;
+
+  DELETE FROM public.jovens_usuarios_associacoes
+  WHERE jovem_id = p_jovem_id
+    AND usuario_id = p_usuario_id;
+
+  GET DIAGNOSTICS removidos = ROW_COUNT;
+
+  INSERT INTO public.logs_auditoria (usuario_id, acao, detalhe, dados_novos)
+  VALUES (
+    admin_row.id,
+    'desassociacao_admin',
+    format('Jovem %s desassociado do usuário %s', p_jovem_id, p_usuario_id),
+    jsonb_build_object(
+      'jovem_id', p_jovem_id,
+      'usuario_id', p_usuario_id,
+      'removidos', removidos
+    )
+  );
+
+  RETURN jsonb_build_object(
+    'success', true,
+    'message', CASE WHEN removidos > 0 THEN 'Jovem desassociado com sucesso' ELSE 'Nenhuma associação encontrada' END,
+    'removidos', removidos
+  );
+
+EXCEPTION
+  WHEN OTHERS THEN
+    RETURN jsonb_build_object('success', false, 'error', SQLERRM);
+END;
+$$;
+
+
+ALTER FUNCTION "public"."desassociar_jovem_admin"("p_jovem_id" "uuid", "p_usuario_id" "uuid") OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."desassociar_jovem_admin"("p_jovem_id" "uuid", "p_usuario_id" "uuid") IS 'v1.0.0 - Administrador desassocia jovem de qualquer usuário';
+
+
+
 CREATE OR REPLACE FUNCTION "public"."estatisticas_acesso_usuarios"() RETURNS "jsonb"
     LANGUAGE "plpgsql" SECURITY DEFINER
     AS $$
@@ -1871,6 +1935,68 @@ $$;
 
 
 ALTER FUNCTION "public"."limpar_notificacoes_antigas"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."limpar_observacao_aprovacao_admin"("p_aprovacao_id" "uuid") RETURNS "jsonb"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $$
+DECLARE
+  admin_row record;
+  aprovacao_data record;
+BEGIN
+  SELECT id, nivel INTO admin_row
+  FROM public.usuarios
+  WHERE id_auth = auth.uid();
+
+  IF admin_row.id IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Usuário não autenticado');
+  END IF;
+
+  IF admin_row.nivel <> 'administrador' THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Apenas administradores podem excluir observações');
+  END IF;
+
+  SELECT id, jovem_id, usuario_id, tipo_aprovacao, observacao
+  INTO aprovacao_data
+  FROM public.aprovacoes_jovens
+  WHERE id = p_aprovacao_id;
+
+  IF aprovacao_data.id IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Registro não encontrado');
+  END IF;
+
+  UPDATE public.aprovacoes_jovens
+  SET observacao = NULL,
+      atualizado_em = now()
+  WHERE id = p_aprovacao_id;
+
+  INSERT INTO public.logs_auditoria (usuario_id, acao, detalhe, dados_novos)
+  VALUES (
+    admin_row.id,
+    'limpeza_observacao_admin',
+    format('Observação removida da aprovação %s', p_aprovacao_id),
+    jsonb_build_object(
+      'aprovacao_id', p_aprovacao_id,
+      'jovem_id', aprovacao_data.jovem_id,
+      'usuario_id', aprovacao_data.usuario_id,
+      'tipo_aprovacao', aprovacao_data.tipo_aprovacao
+    )
+  );
+
+  RETURN jsonb_build_object('success', true, 'message', 'Observação excluída com sucesso');
+
+EXCEPTION
+  WHEN OTHERS THEN
+    RETURN jsonb_build_object('success', false, 'error', SQLERRM);
+END;
+$$;
+
+
+ALTER FUNCTION "public"."limpar_observacao_aprovacao_admin"("p_aprovacao_id" "uuid") OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."limpar_observacao_aprovacao_admin"("p_aprovacao_id" "uuid") IS 'v1.0.0 - Administrador exclui observação de ponto de vista sem remover o status';
+
 
 
 CREATE OR REPLACE FUNCTION "public"."namorado_jovem_pertence_ao_usuario"("p_jovem_id" "uuid") RETURNS boolean
@@ -2849,13 +2975,13 @@ ALTER FUNCTION "storage"."extension"("name" "text") OWNER TO "supabase_storage_a
 
 
 CREATE OR REPLACE FUNCTION "storage"."filename"("name" "text") RETURNS "text"
-    LANGUAGE "plpgsql"
+    LANGUAGE "plpgsql" IMMUTABLE
     AS $$
 DECLARE
-_parts text[];
+    _parts text[];
 BEGIN
-	select string_to_array(name, '/') into _parts;
-	return _parts[array_length(_parts,1)];
+    SELECT string_to_array(name, '/') INTO _parts;
+    RETURN _parts[array_length(_parts, 1)];
 END
 $$;
 
@@ -4213,7 +4339,7 @@ CREATE TABLE IF NOT EXISTS "public"."aprovacoes_jovens" (
     "observacao" "text",
     "criado_em" timestamp with time zone DEFAULT "now"(),
     "atualizado_em" timestamp with time zone DEFAULT "now"(),
-    CONSTRAINT "aprovacoes_jovens_tipo_aprovacao_check" CHECK (("tipo_aprovacao" = ANY (ARRAY['pre_aprovado'::"text", 'aprovado'::"text"])))
+    CONSTRAINT "aprovacoes_jovens_tipo_aprovacao_check" CHECK (("tipo_aprovacao" = ANY (ARRAY['pre_aprovado'::"text", 'aprovado'::"text", 'observar'::"text", 'sem_condicao'::"text"])))
 );
 
 
@@ -7103,6 +7229,12 @@ GRANT ALL ON FUNCTION "public"."criar_notificacao_automatica"() TO "service_role
 
 
 
+GRANT ALL ON FUNCTION "public"."desassociar_jovem_admin"("p_jovem_id" "uuid", "p_usuario_id" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."desassociar_jovem_admin"("p_jovem_id" "uuid", "p_usuario_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."desassociar_jovem_admin"("p_jovem_id" "uuid", "p_usuario_id" "uuid") TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."estatisticas_acesso_usuarios"() TO "anon";
 GRANT ALL ON FUNCTION "public"."estatisticas_acesso_usuarios"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."estatisticas_acesso_usuarios"() TO "service_role";
@@ -7178,6 +7310,12 @@ GRANT ALL ON FUNCTION "public"."limpar_logs_antigos"("dias_retencao" integer) TO
 GRANT ALL ON FUNCTION "public"."limpar_notificacoes_antigas"() TO "anon";
 GRANT ALL ON FUNCTION "public"."limpar_notificacoes_antigas"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."limpar_notificacoes_antigas"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."limpar_observacao_aprovacao_admin"("p_aprovacao_id" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."limpar_observacao_aprovacao_admin"("p_aprovacao_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."limpar_observacao_aprovacao_admin"("p_aprovacao_id" "uuid") TO "service_role";
 
 
 
